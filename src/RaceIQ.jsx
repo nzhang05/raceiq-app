@@ -1448,25 +1448,35 @@ function blankSplit() {
   return { km: "", pace: "", tempC: "", elevM: "" };
 }
 
-function AddRaceForm({ onSave, onCancel }) {
-  const [name, setName] = useState("");
-  const [sport, setSport] = useState(SPORT_OPTIONS[0]);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [distanceKm, setDistanceKm] = useState("");
-  const [elevationM, setElevationM] = useState("");
-  const [surface, setSurface] = useState(SURFACES[0]);
-  const [finishTime, setFinishTime] = useState("");
-  const [placement, setPlacement] = useState("");
-  const [field, setField] = useState("");
-  const [tempC, setTempC] = useState("");
-  const [humidity, setHumidity] = useState("");
-  const [wind, setWind] = useState("");
-  const [carbsPerHr, setCarbsPerHr] = useState("");
-  const [sodiumPerHr, setSodiumPerHr] = useState("");
-  const [fluidsPerHr, setFluidsPerHr] = useState("");
-  const [caffeine, setCaffeine] = useState("");
+function AddRaceForm({ onSave, onCancel, initialRace = null }) {
+  const paceToStr = (p) => `${Math.floor(p)}:${String(Math.round((p % 1) * 60)).padStart(2, "0")}`;
+  const editing = initialRace != null;
+
+  const [name, setName] = useState(initialRace?.name ?? "");
+  const [sport, setSport] = useState(initialRace?.sport ?? SPORT_OPTIONS[0]);
+  const [date, setDate] = useState(initialRace?.date ?? new Date().toISOString().slice(0, 10));
+  const [distanceKm, setDistanceKm] = useState(initialRace ? String(initialRace.distanceKm) : "");
+  const [elevationM, setElevationM] = useState(initialRace ? String(initialRace.elevationM || "") : "");
+  const [surface, setSurface] = useState(initialRace?.surface ?? SURFACES[0]);
+  const [finishTime, setFinishTime] = useState(initialRace?.finishTime ?? "");
+  const [placement, setPlacement] = useState(initialRace ? String(initialRace.placement || "") : "");
+  const [field, setField] = useState(initialRace ? String(initialRace.field || "") : "");
+  const [tempC, setTempC] = useState(initialRace ? String(initialRace.tempC || "") : "");
+  const [humidity, setHumidity] = useState(initialRace ? String(initialRace.humidity || "") : "");
+  const [wind, setWind] = useState(initialRace ? String(initialRace.wind || "") : "");
+  const [carbsPerHr, setCarbsPerHr] = useState(initialRace ? String(initialRace.fueling?.carbsPerHr || "") : "");
+  const [sodiumPerHr, setSodiumPerHr] = useState(initialRace ? String(initialRace.fueling?.sodiumPerHr || "") : "");
+  const [fluidsPerHr, setFluidsPerHr] = useState(initialRace ? String(initialRace.fueling?.fluidsPerHr || "") : "");
+  const [caffeine, setCaffeine] = useState(initialRace ? String(initialRace.fueling?.caffeine || "") : "");
   const [splitRows, setSplitRows] = useState(
-    Array.from({ length: EMPTY_SPLIT_ROWS }, blankSplit)
+    initialRace?.splits?.length
+      ? initialRace.splits.map((s) => ({
+          km: String(s.km),
+          pace: paceToStr(s.pace),
+          tempC: s.tempC != null ? String(s.tempC) : "",
+          elevM: s.elevM != null ? String(s.elevM) : "",
+        }))
+      : Array.from({ length: EMPTY_SPLIT_ROWS }, blankSplit)
   );
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null); // null | "loading" | "done" | "error"
@@ -1518,6 +1528,7 @@ function AddRaceForm({ onSave, onCancel }) {
       setDistanceKm(String(parsed.distanceKm));
       if (parsed.elevationM) setElevationM(String(parsed.elevationM));
       if (parsed.finishTime) setFinishTime(parsed.finishTime);
+      if (parsed.startTimeMs) setDate(new Date(parsed.startTimeMs).toISOString().slice(0, 10));
       setSplitRows(
         parsed.splits.map((s) => ({
           km: String(s.km),
@@ -1613,7 +1624,7 @@ function AddRaceForm({ onSave, onCancel }) {
     setError("");
 
     const raw = {
-      id: `custom-${Date.now()}`,
+      id: initialRace?.id ?? `custom-${Date.now()}`,
       name: name.trim(),
       sport,
       date,
@@ -1658,10 +1669,10 @@ function AddRaceForm({ onSave, onCancel }) {
       </button>
 
       <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>
-        ADD RACE
+        {editing ? "EDIT RACE" : "ADD RACE"}
       </div>
       <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: "0 0 8px", color: T.paper }}>
-        Enter race data
+        {editing ? "Edit race data" : "Enter race data"}
       </h1>
       <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginBottom: 8, maxWidth: 600 }}>
         Add what you have. RaceIQ derives your percentile, score, and verdict from these numbers, and writes the
@@ -2013,7 +2024,7 @@ function AddRaceForm({ onSave, onCancel }) {
             fontWeight: 600,
           }}
         >
-          SAVE RACE & GENERATE DEBRIEF
+          {editing ? "UPDATE RACE & REGENERATE DEBRIEF" : "SAVE RACE & GENERATE DEBRIEF"}
         </button>
         <button
           onClick={onCancel}
@@ -2333,7 +2344,7 @@ function buildDebrief(race) {
   return { strengths, limiters, recs };
 }
 
-function RaceDebrief({ race, onBack, onAskCoach }) {
+function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
   const { strengths, limiters, recs } = useMemo(() => buildDebrief(race), [race]);
   const allFindings = [
     ...strengths.map((s) => ({ ...s, kind: "strength" })),
@@ -2342,25 +2353,44 @@ function RaceDebrief({ race, onBack, onAskCoach }) {
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        style={{
-          background: "none",
-          border: "none",
-          color: T.inkDim,
-          fontFamily: FONT_MONO,
-          fontSize: 12,
-          letterSpacing: 0.5,
-          cursor: "pointer",
-          padding: 0,
-          marginBottom: 28,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        ← BACK TO RACE RESUME
-      </button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: "none",
+            border: "none",
+            color: T.inkDim,
+            fontFamily: FONT_MONO,
+            fontSize: 12,
+            letterSpacing: 0.5,
+            cursor: "pointer",
+            padding: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          ← BACK TO RACE RESUME
+        </button>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            style={{
+              background: "none",
+              border: `1px solid ${T.line}`,
+              color: T.inkDim,
+              fontFamily: FONT_MONO,
+              fontSize: 11,
+              letterSpacing: 0.5,
+              cursor: "pointer",
+              padding: "6px 14px",
+              borderRadius: 3,
+            }}
+          >
+            EDIT RACE
+          </button>
+        )}
+      </div>
 
       {/* Header */}
       <div style={{ marginBottom: 8, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass }}>
@@ -3968,6 +3998,12 @@ export default function RaceIQApp() {
     setView("debrief");
   }
 
+  function handleEditRace(race) {
+    setCustomRaces((prev) => prev.map((r) => (r.id === race.id ? race : r)));
+    setActiveId(race.id);
+    setView("debrief");
+  }
+
   function handleDeleteRace(id) {
     setCustomRaces((prev) => prev.filter((r) => r.id !== id));
   }
@@ -4106,8 +4142,16 @@ export default function RaceIQApp() {
         {view === "add" && (
           <AddRaceForm onSave={handleSaveRace} onCancel={() => setView("list")} />
         )}
+        {view === "edit" && activeRace && (
+          <AddRaceForm initialRace={activeRace} onSave={handleEditRace} onCancel={() => setView("debrief")} />
+        )}
         {view === "debrief" && activeRace && (
-          <RaceDebrief race={activeRace} onBack={() => setView("list")} onAskCoach={() => openCoach(activeRace.id)} />
+          <RaceDebrief
+            race={activeRace}
+            onBack={() => setView("list")}
+            onAskCoach={() => openCoach(activeRace.id)}
+            onEdit={activeRace.id.startsWith("custom-") ? () => setView("edit") : undefined}
+          />
         )}
         {view === "coach" && (
           <CoachView races={allRaces} contextRace={coachContextRace} onBack={handleCoachBack} />

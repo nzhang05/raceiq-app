@@ -52,6 +52,7 @@ const FONT_IMPORT = (
     }
 
     * { box-sizing: border-box; }
+    html, body { background: ${T.bg}; margin: 0; }
     ::selection { background: ${T.brass}; color: ${T.bg}; }
 
     /* ── Keyframes ── */
@@ -874,7 +875,7 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
   );
 }
 
-function RaceList({ races, onOpen, onAddRace, onDelete, selectedIds, onToggleSelect, onCompare, onClearSelection }) {
+function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelete, selectedIds, onToggleSelect, onCompare, onClearSelection }) {
   const [sport, setSport] = useState("All");
   const filtered = useMemo(
     () => (sport === "All" ? races : races.filter((r) => r.sport === sport)),
@@ -883,44 +884,35 @@ function RaceList({ races, onOpen, onAddRace, onDelete, selectedIds, onToggleSel
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>
-            RACE RESUME
-          </div>
-          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 600, margin: 0, color: T.paper, letterSpacing: 0.2 }}>
-            Your races
-          </h1>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {SPORTS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSport(s)}
-                style={{
-                  fontFamily: FONT_MONO,
-                  fontSize: 11,
-                  letterSpacing: 0.4,
-                  padding: "7px 12px",
-                  borderRadius: 3,
-                  border: `1px solid ${sport === s ? T.brass : T.line}`,
-                  background: sport === s ? "rgba(201,162,75,0.12)" : "transparent",
-                  color: sport === s ? T.brass : T.inkDim,
-                  cursor: "pointer",
-                }}
-              >
-                {s.toUpperCase()}
-              </button>
-            ))}
-          </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 600, margin: 0, color: T.paper, letterSpacing: 0.2 }}>
+          Race History
+        </h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={onPlanRace}
+            style={{
+              fontFamily: FONT_MONO,
+              fontSize: 11,
+              letterSpacing: 0.5,
+              padding: "9px 16px",
+              borderRadius: 3,
+              border: `1px solid ${T.brass}`,
+              background: "rgba(201,162,75,0.1)",
+              color: T.brass,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            PLAN A RACE
+          </button>
           <button
             onClick={onAddRace}
             style={{
               fontFamily: FONT_MONO,
               fontSize: 11,
               letterSpacing: 0.5,
-              padding: "7px 14px",
+              padding: "9px 16px",
               borderRadius: 3,
               border: "none",
               background: T.brass,
@@ -932,6 +924,54 @@ function RaceList({ races, onOpen, onAddRace, onDelete, selectedIds, onToggleSel
             + ADD RACE
           </button>
         </div>
+      </div>
+
+      {/* Summary stat cards */}
+      {(() => {
+        const totalDist = Math.round(races.reduce((s, r) => s + r.distanceKm, 0));
+        const strengthCount = races.filter((r) => r.verdict === "strength").length;
+        const limiterCount = races.filter((r) => r.verdict === "limiter").length;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+            {[
+              { label: "Races Logged", tag: "Count", value: races.length, bg: T.bg2, border: T.line, accent: T.paper },
+              { label: "Total Distance", tag: null, value: `${totalDist}km`, bg: T.bg2, border: T.line, accent: T.paper },
+              { label: "Strength Tags", tag: "Count", value: strengthCount, bg: T.greenDim, border: T.green + "40", accent: T.green },
+              { label: "Limiter Tags", tag: "Count", value: limiterCount, bg: T.emberDim, border: T.ember + "40", accent: T.ember },
+            ].map(({ label, tag, value, bg, border, accent }) => (
+              <div key={label} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: "16px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>{label.toUpperCase()}</span>
+                  {tag && <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.inkDim, opacity: 0.55 }}>{tag}</span>}
+                </div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, color: accent, lineHeight: 1 }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Sport filter */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+        {SPORTS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSport(s)}
+            style={{
+              fontFamily: FONT_MONO,
+              fontSize: 11,
+              letterSpacing: 0.4,
+              padding: "7px 12px",
+              borderRadius: 3,
+              border: `1px solid ${sport === s ? T.brass : T.line}`,
+              background: sport === s ? "rgba(201,162,75,0.12)" : "transparent",
+              color: sport === s ? T.brass : T.inkDim,
+              cursor: "pointer",
+            }}
+          >
+            {s.toUpperCase()}
+          </button>
+        ))}
       </div>
 
       <div
@@ -1056,6 +1096,102 @@ function Field({ label, children, hint }) {
 
 function TextInput(props) {
   return <input {...props} style={inputStyle} onFocus={(e) => (e.target.style.borderColor = T.brass)} onBlur={(e) => (e.target.style.borderColor = T.line)} />;
+}
+
+function LocationAutocomplete({ value, onChange, placeholder, onKeyDown }) {
+  const [suggestions, setSuggestions] = React.useState([]);
+  const [open, setOpen] = React.useState(false);
+  const [activeIdx, setActiveIdx] = React.useState(-1);
+  const debounceRef = React.useRef(null);
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const query = value.trim();
+    if (query.length < 2) { setSuggestions([]); setOpen(false); return; }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6`);
+        const data = await res.json();
+        const results = (data?.results || []).map(r => ({
+          label: [r.name, r.admin1, r.country].filter(Boolean).join(", "),
+          lat: r.latitude,
+          lon: r.longitude,
+        }));
+        setSuggestions(results);
+        setOpen(results.length > 0);
+        setActiveIdx(-1);
+      } catch { /* network unavailable — stay silent */ }
+    }, 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [value]);
+
+  React.useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function select(label) {
+    onChange({ target: { value: label } });
+    setSuggestions([]);
+    setOpen(false);
+    setActiveIdx(-1);
+  }
+
+  function handleKeyDown(e) {
+    if (open && suggestions.length > 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1)); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); return; }
+      if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); select(suggestions[activeIdx].label); return; }
+      if (e.key === "Escape") { setOpen(false); return; }
+    }
+    onKeyDown?.(e);
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <input
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        onKeyDown={handleKeyDown}
+        onFocus={(e) => { e.target.style.borderColor = T.brass; if (suggestions.length > 0) setOpen(true); }}
+        onBlur={(e) => e.target.style.borderColor = T.line}
+        style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+        autoComplete="off"
+      />
+      {open && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999,
+          background: T.bg, border: `1px solid ${T.line}`, borderTop: "none",
+          borderRadius: "0 0 3px 3px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          overflow: "hidden",
+        }}>
+          {suggestions.map((s, i) => (
+            <div
+              key={i}
+              onMouseDown={(e) => { e.preventDefault(); select(s.label); }}
+              onMouseEnter={() => setActiveIdx(i)}
+              style={{
+                padding: "8px 12px",
+                fontFamily: FONT_BODY,
+                fontSize: 13,
+                color: i === activeIdx ? T.bg : T.ink,
+                background: i === activeIdx ? T.brass : "transparent",
+                cursor: "pointer",
+                borderBottom: i < suggestions.length - 1 ? `1px solid ${T.line}` : "none",
+              }}
+            >
+              {s.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Select({ value, onChange, options }) {
@@ -1799,7 +1935,7 @@ function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 220 }}>
             <Field label="Race location" hint="City or race venue — used to look up recorded weather for the date above">
-              <TextInput
+              <LocationAutocomplete
                 value={locationQuery}
                 onChange={(e) => setLocationQuery(e.target.value)}
                 placeholder="Philadelphia, PA"
@@ -2096,78 +2232,7 @@ function Recommendation({ index, action, why }) {
    Stat block
    --------------------------------------------------------- */
 
-function useAnimatedCount(target, duration = 820) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) { setCount(target); return; }
-    let start = null;
-    let frame;
-    const step = (ts) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      setCount(Math.round(eased * target));
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [target, duration]);
-  return count;
-}
 
-function verdictGlow(v) {
-  if (v === "strength") return "linear-gradient(to right, rgba(79,174,140,0.09), transparent 85%)";
-  if (v === "limiter") return "linear-gradient(to right, rgba(255,106,57,0.09), transparent 85%)";
-  return "linear-gradient(to right, rgba(201,162,75,0.08), transparent 85%)";
-}
-
-function Stat({ label, value, sub, accent, hero, index = 0, animated }) {
-  const numericTarget = animated && typeof value === "number" ? value : 0;
-  const animatedValue = useAnimatedCount(numericTarget);
-  const displayValue = animated && typeof value === "number" ? animatedValue : value;
-
-  return (
-    <div
-      className="stat-enter"
-      style={{ minWidth: hero ? 130 : 110, animationDelay: `${index * 80}ms` }}
-    >
-      <div
-        style={{
-          fontFamily: FONT_MONO,
-          fontSize: 10.5,
-          letterSpacing: 0.8,
-          color: T.inkDim,
-          marginBottom: hero ? 6 : 4,
-          ...(hero ? { borderBottom: `1px solid ${T.brassDim}`, paddingBottom: 5 } : {}),
-        }}
-      >
-        {label}
-      </div>
-      {hero ? (
-        <span
-          className="score-badge"
-          style={{
-            fontFamily: FONT_DISPLAY,
-            fontSize: 28,
-            fontWeight: 600,
-            color: T.brass,
-            display: "inline-block",
-            marginTop: 4,
-            boxShadow: "0 0 28px rgba(201,162,75,0.14)",
-          }}
-        >
-          {displayValue}
-        </span>
-      ) : (
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, color: accent || T.paper, lineHeight: 1 }}>
-          {displayValue}
-        </div>
-      )}
-      {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
-}
 
 /* ---------------------------------------------------------
    Fueling benchmarks — science-backed carbohydrate targets
@@ -2403,32 +2468,43 @@ function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
         {fmtDate(race.date)} · {race.sport} · {race.distanceKm} km · +{race.elevationM}m
       </div>
 
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "FINISH TIME", value: race.finishTime, sub: null, accent: T.paper, bg: T.bg2, border: T.line },
+          { label: "PLACEMENT", value: `${race.placement}/${race.field}`, sub: `${race.percentile}th pct`, accent: T.paper, bg: T.bg2, border: T.line },
+          { label: "RACEIQ SCORE", value: race.rating, sub: `${race.ratingDelta >= 0 ? "+" : ""}${race.ratingDelta}`, accent: T.brass, bg: "rgba(201,162,75,0.07)", border: T.brassDim },
+          { label: "CONDITIONS", value: `${race.tempC}°C`, sub: `${race.humidity}% hum`, accent: T.paper, bg: T.bg2, border: T.line },
+        ].map(({ label, value, sub, accent, bg, border }, i) => (
+          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 80}ms`, background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: "16px 20px" }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.8, color: T.inkDim, marginBottom: 10 }}>{label}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 600, color: accent, lineHeight: 1 }}>{value}</div>
+            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 6 }}>{sub}</div>}
+          </div>
+        ))}
+      </div>
+
       {/* Verdict band */}
       <div
         style={{
-          borderLeft: `3px solid ${verdictColor(race.verdict)}`,
-          paddingLeft: 20,
-          paddingTop: 12,
-          paddingBottom: 12,
+          background: race.verdict === "strength"
+            ? T.greenDim
+            : race.verdict === "limiter"
+              ? T.emberDim
+              : T.brassDim,
+          border: `1px solid ${verdictColor(race.verdict)}60`,
+          borderRadius: 4,
+          padding: "16px 20px",
           marginBottom: 36,
-          background: verdictGlow(race.verdict),
-          borderRadius: "0 4px 4px 0",
         }}
       >
-        <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: verdictColor(race.verdict), marginBottom: 8 }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: verdictColor(race.verdict), marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: verdictColor(race.verdict), display: "inline-block", flexShrink: 0 }} />
           {verdictLabel(race.verdict)}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 22, lineHeight: 1.4, color: T.paper, maxWidth: 640 }}>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 20, lineHeight: 1.45, color: T.paper, maxWidth: 640 }}>
           {race.headline}
         </div>
-      </div>
-
-      {/* Stat row */}
-      <div style={{ display: "flex", gap: 36, flexWrap: "wrap", marginBottom: 40, paddingBottom: 32, borderBottom: `1px solid ${T.line}` }}>
-        <Stat label="FINISH TIME" value={race.finishTime} index={0} />
-        <Stat label="PLACEMENT" value={`${race.placement}/${race.field}`} sub={`${race.percentile}th percentile`} index={1} />
-        <Stat label="RACEIQ SCORE" value={race.rating} sub={`${race.ratingDelta >= 0 ? "+" : ""}${race.ratingDelta} this race`} accent={T.brass} hero animated index={2} />
-        <Stat label="CONDITIONS" value={`${race.tempC}°C`} sub={`${race.humidity}% humidity, ${race.wind} km/h wind`} index={3} />
       </div>
 
       {/* Pace / heat strip */}
@@ -2437,7 +2513,7 @@ function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
           Pace against temperature
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16, maxWidth: 600 }}>
-          The dashed line tracks course temperature; the solid line is your pace. Where they cross is where the race turned.
+          Solid line is your pace, dashed is course temp. Shaded area is elevation.
         </div>
         <div
           style={{
@@ -3934,6 +4010,617 @@ function CompareView({ races, onBack, onOpenDebrief, onAskCoach }) {
 }
 
 /* ---------------------------------------------------------
+   Race Plan — forecast weather, target time estimation,
+   plan generation, form, and output view
+   --------------------------------------------------------- */
+
+async function forecastWeather(lat, lon, dateStr) {
+  const params = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    start_date: dateStr,
+    end_date: dateStr,
+    hourly: "temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation",
+    timezone: "UTC",
+  });
+  let res;
+  try {
+    res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+  } catch (err) {
+    if (isNetworkBlockedError(err)) {
+      const dateMs = new Date(`${dateStr}T12:00:00Z`).getTime();
+      return simulateHistoricalWeather(lat, lon, dateMs, dateMs);
+    }
+    throw err;
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.reason || `Forecast lookup failed (${res.status}).`);
+  }
+  const data = await res.json();
+  const times = data?.hourly?.time;
+  if (!times?.length) throw new Error("No forecast available for this date and location.");
+  const targetHour = `${dateStr}T12:00`;
+  const bestIdx = times.findIndex(t => t === targetHour);
+  const idx = bestIdx >= 0 ? bestIdx : Math.floor(times.length / 2);
+  return {
+    tempC: Math.round((data.hourly.temperature_2m?.[idx] ?? 15) * 10) / 10,
+    humidity: data.hourly.relative_humidity_2m?.[idx] != null ? Math.round(data.hourly.relative_humidity_2m[idx]) : null,
+    wind: data.hourly.wind_speed_10m?.[idx] != null ? Math.round(data.hourly.wind_speed_10m[idx]) : null,
+    precipMm: data.hourly.precipitation?.[idx] ?? 0,
+    simulated: false,
+  };
+}
+
+function estimateTargetTime(gpxData, sport, plannedTempC, allRaces) {
+  const sameSport = allRaces.filter(r => r.sport === sport);
+  const candidates = sameSport.length ? sameSport : allRaces;
+  if (!candidates.length) {
+    const isRun = sport === "Road Running" || sport === "Trail Running";
+    return gpxData.distanceKm * (isRun ? 5.5 : 60 / 25);
+  }
+  // Pick the reference race with the best pace at comparable distance — percentile
+  // reflects field competitiveness, not personal fitness, so it's the wrong signal here.
+  const ref = [...candidates].sort((a, b) => {
+    const aPace = parseClockToMinutes(a.finishTime) / a.distanceKm;
+    const bPace = parseClockToMinutes(b.finishTime) / b.distanceKm;
+    return aPace - bPace; // lower pace = faster
+  })[0];
+  const refMin = parseClockToMinutes(ref.finishTime);
+  const isRun = sport === "Road Running" || sport === "Trail Running";
+  let adjustedMin = isRun
+    ? refMin * Math.pow(gpxData.distanceKm / ref.distanceKm, 1.06)
+    : refMin * (gpxData.distanceKm / ref.distanceKm);
+  // Elevation adjustment: +4 sec/km per 100 m/km elevation above reference
+  const elevDiff = Math.max(0, gpxData.elevationM / gpxData.distanceKm - ref.elevationM / ref.distanceKm);
+  adjustedMin += (elevDiff / 100) * (4 / 60) * gpxData.distanceKm;
+  // Weather adjustment
+  adjustedMin = adjustedMin * (1 + heatPenalty(plannedTempC ?? 15)) / (1 + heatPenalty(ref.tempC));
+  return adjustedMin;
+}
+
+async function estimateTargetTimeWithClaude(apiKey, gpxData, sport, plannedTempC, allRaces) {
+  const sameSport = allRaces.filter(r => r.sport === sport);
+  const relevantRaces = (sameSport.length ? sameSport : allRaces)
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+
+  const raceHistoryText = relevantRaces.map(r => {
+    const pace = parseClockToMinutes(r.finishTime) / r.distanceKm;
+    const paceStr = sport === "Road Running" || sport === "Trail Running"
+      ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")} min/km`
+      : `${(r.distanceKm / (parseClockToMinutes(r.finishTime) / 60)).toFixed(1)} km/h`;
+    return `- ${r.date || "unknown date"}: ${r.sport}, ${r.distanceKm} km, +${r.elevationM ?? 0}m elevation, finish ${r.finishTime} (${paceStr}), temp ~${r.tempC ?? "?"}°C`;
+  }).join("\n");
+
+  const targetElevDensity = gpxData.distanceKm > 0 ? (gpxData.elevationM / gpxData.distanceKm).toFixed(1) : "?";
+
+  const prompt = `You are a sports performance analyst. Estimate a realistic finish time for an endurance athlete's upcoming race.
+
+RACE HISTORY (chronological):
+${raceHistoryText || "No prior races recorded."}
+
+UPCOMING RACE:
+- Sport: ${sport}
+- Distance: ${gpxData.distanceKm} km
+- Elevation gain: +${gpxData.elevationM}m (${targetElevDensity} m/km)
+- Expected temperature: ${plannedTempC}°C
+- Course: ${gpxData.name || "unknown"}
+
+Consider the athlete's performance trajectory over time (not just their fastest result), adjust for the new course's distance and elevation vs. past races, and account for temperature. Return ONLY valid JSON in this exact shape:
+{"estimatedMinutes": <number>, "reasoning": "<one sentence>"}`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message || `API error ${res.status}`);
+  }
+  const json = await res.json();
+  const text = json.content?.[0]?.text ?? "";
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Could not parse Claude response");
+  const parsed = JSON.parse(match[0]);
+  if (typeof parsed.estimatedMinutes !== "number") throw new Error("Missing estimatedMinutes in response");
+  return { minutes: parsed.estimatedMinutes, reasoning: parsed.reasoning || "" };
+}
+
+function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces) {
+  const isRun = sport === "Road Running" || sport === "Trail Running";
+  const splits = gpxData.splits;
+
+  // Compute per-segment GAP cost multipliers and effort units
+  const segments = splits.map((curr, i) => {
+    const prev = i === 0 ? { km: 0, elevM: splits[0].elevM } : splits[i - 1];
+    const segKm = curr.km - (i === 0 ? 0 : splits[i - 1].km);
+    const elevDiff = curr.elevM != null && prev.elevM != null ? curr.elevM - prev.elevM : 0;
+    const gradePct = segKm > 0 ? Math.round((elevDiff / (segKm * 1000)) * 100 * 10) / 10 : 0;
+    const mult = isRun ? runningCostMultiplier(gradePct) : cyclingCostMultiplier(gradePct);
+    return {
+      fromKm: i === 0 ? 0 : splits[i - 1].km,
+      toKm: curr.km,
+      segKm,
+      elevM: curr.elevM,
+      gradePct,
+      costMult: mult,
+      effortUnits: segKm * mult,
+      label: gradePct > 3 ? "CLIMB" : gradePct < -3 ? "DESCENT" : "FLAT",
+    };
+  });
+
+  const totalEffortUnits = segments.reduce((s, seg) => s + seg.effortUnits, 0);
+  const flatPace = totalEffortUnits > 0 ? targetMinutes / totalEffortUnits : targetMinutes / gpxData.distanceKm;
+  const pacing = segments.map(seg => ({ ...seg, suggestedPace: flatPace * seg.costMult }));
+
+  // Nutrition
+  const h = Math.floor(targetMinutes / 60);
+  const m = Math.floor(targetMinutes % 60);
+  const s = Math.round((targetMinutes * 60) % 60);
+  const finishClock = h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+  const fuelBench = fuelingBenchmarks(finishClock);
+  const tempC = weather?.tempC ?? 15;
+  const heatOffset = Math.max(0, tempC - 15);
+  const nutrition = {
+    ...fuelBench,
+    fluidsPerHr: 400 + Math.round(heatOffset * 30),
+    sodiumPerHr: 400 + Math.round(heatOffset * 50),
+    caffeine: targetMinutes > 60 ? 200 : 0,
+  };
+
+  // Recommendations from past limiter patterns + conditions
+  const patterns = gatherLimiterPatterns(allRaces);
+  const recs = [];
+  recs.push({
+    action: `Start conservatively through the first ${Math.round(gpxData.distanceKm * 0.25)} km`,
+    why: "Going out too fast is the most common cause of late-race fade. Match your target splits exactly until you're a quarter of the way through — not faster.",
+  });
+  if (patterns.hotLimiters.length) {
+    recs.push({
+      action: "Pre-cool and start 3–5% slower if temps exceed 22°C",
+      why: `Your ${patterns.hotLimiters.length} heat-impacted ${patterns.hotLimiters.length === 1 ? "race" : "races"} show a consistent slowdown above 24°C. At ${tempC}°C${tempC >= 22 ? " — this applies today" : ", monitor conditions on race day"}.`,
+    });
+  }
+  if (patterns.underFueled.length) {
+    recs.push({
+      action: "Fuel every 20–30 minutes from the start",
+      why: `${patterns.underFueled.length} of your past ${patterns.underFueled.length === 1 ? "race was" : "races were"} flagged for under-fueling. Don't wait to feel hungry — gut absorption takes 15–20 minutes to kick in.`,
+    });
+  }
+  const bigClimbs = pacing.filter(s => s.gradePct > 5);
+  if (bigClimbs.length) {
+    recs.push({
+      action: "Hike or ease off on climbs steeper than 8%",
+      why: `This course has ${bigClimbs.length} segment${bigClimbs.length > 1 ? "s" : ""} above 5% grade. Maintaining the same effort (not pace) on climbs preserves more energy for the descent and the finish.`,
+    });
+  }
+  if (tempC >= 20) {
+    recs.push({
+      action: `Target ~${nutrition.fluidsPerHr} ml/hr — drink to thirst at ${tempC}°C`,
+      why: "Overdrinking is as harmful as under-drinking. Let thirst guide consumption but aim to hit this target across the race, not all at once at aid stations.",
+    });
+  }
+
+  const sameSport = allRaces.filter(r => r.sport === sport);
+  const candidates = sameSport.length ? sameSport : allRaces;
+  const referenceRace = candidates.length ? [...candidates].sort((a, b) => b.percentile - a.percentile)[0] : null;
+
+  return { course: { name: gpxData.name, distanceKm: gpxData.distanceKm, elevationM: gpxData.elevationM, sport }, pacing, nutrition, recommendations: recs, targetMinutes, estimatedFinishTime: finishClock, referenceRace, weather };
+}
+
+/* ---------------------------------------------------------
+   Race Plan Form
+   --------------------------------------------------------- */
+
+function RacePlanForm({ onGenerate, onCancel, allRaces, apiKey }) {
+  const [gpxParsed, setGpxParsed] = useState(null);
+  const [sport, setSport] = useState(SPORT_OPTIONS[0]);
+  const [date, setDate] = useState(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  const [locationQuery, setLocationQuery] = useState("");
+  const [weatherStatus, setWeatherStatus] = useState(null);
+  const [weatherMessage, setWeatherMessage] = useState("");
+  const [tempC, setTempC] = useState("");
+  const [humidity, setHumidity] = useState("");
+  const [wind, setWind] = useState("");
+  const [importStatus, setImportStatus] = useState(null);
+  const [importMessage, setImportMessage] = useState("");
+  const [targetTimeStr, setTargetTimeStr] = useState("");
+  const [estimateStatus, setEstimateStatus] = useState(null); // null | "loading" | "ai" | "fallback"
+  const [estimateReasoning, setEstimateReasoning] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!gpxParsed) return;
+    const planned = parseFloat(tempC) || 15;
+
+    function applyMinutes(min) {
+      const eh = Math.floor(min / 60);
+      const em = Math.floor(min % 60);
+      const es = Math.round((min * 60) % 60);
+      setTargetTimeStr(eh > 0
+        ? `${eh}:${String(em).padStart(2, "0")}:${String(es).padStart(2, "0")}`
+        : `${em}:${String(es).padStart(2, "0")}`
+      );
+    }
+
+    if (apiKey) {
+      setEstimateStatus("loading");
+      setEstimateReasoning("");
+      estimateTargetTimeWithClaude(apiKey, gpxParsed, sport, planned, allRaces)
+        .then(({ minutes, reasoning }) => {
+          applyMinutes(minutes);
+          setEstimateReasoning(reasoning);
+          setEstimateStatus("ai");
+        })
+        .catch(() => {
+          applyMinutes(estimateTargetTime(gpxParsed, sport, planned, allRaces));
+          setEstimateStatus("fallback");
+        });
+    } else {
+      applyMinutes(estimateTargetTime(gpxParsed, sport, planned, allRaces));
+      setEstimateStatus("fallback");
+    }
+  }, [gpxParsed, sport, tempC, allRaces, apiKey]);
+
+  async function handleFileImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportStatus("loading");
+    setImportMessage("");
+    try {
+      const parsed = await parseTrackFile(file);
+      setGpxParsed(parsed);
+      setImportStatus("done");
+      setImportMessage(`Loaded: ${parsed.name} · ${parsed.distanceKm} km · +${parsed.elevationM}m elevation gain.`);
+      if (parsed.startTimeMs) setDate(new Date(parsed.startTimeMs).toISOString().slice(0, 10));
+    } catch (err) {
+      setImportStatus("error");
+      setImportMessage(err.message || "Could not read that file.");
+    } finally {
+      e.target.value = "";
+    }
+  }
+
+  async function handleWeatherLookup() {
+    if (!locationQuery.trim()) return;
+    setWeatherStatus("loading");
+    setWeatherMessage("");
+    try {
+      const place = await geocodeLocation(locationQuery.trim());
+      const w = await forecastWeather(place.lat, place.lon, date);
+      setTempC(String(w.tempC));
+      if (w.humidity != null) setHumidity(String(w.humidity));
+      if (w.wind != null) setWind(String(w.wind));
+      const precipNote = w.precipMm > 0.2 ? ` Forecast shows ${w.precipMm}mm of precipitation.` : "";
+      if (w.simulated) {
+        setWeatherStatus("simulated");
+        setWeatherMessage(`SIMULATED — can't reach the forecast service from here. Placeholder: ${w.tempC}°C, ${w.humidity ?? "—"}% humidity, ${w.wind ?? "—"} km/h wind.${precipNote}`);
+      } else {
+        setWeatherStatus("done");
+        setWeatherMessage(`Forecast for ${place.label} on ${fmtDate(date)} (midday): ${w.tempC}°C, ${w.humidity ?? "—"}% humidity, ${w.wind ?? "—"} km/h wind.${precipNote} Adjust manually if your race starts earlier or later.`);
+      }
+    } catch (err) {
+      setWeatherStatus("error");
+      setWeatherMessage(err.message || "Couldn't look up forecast — enter conditions manually below.");
+    }
+  }
+
+  function handleGenerate() {
+    if (!gpxParsed) return setError("Upload a GPX file for the race course first.");
+    const targetMin = parseClockToMinutes(targetTimeStr);
+    if (!targetMin || targetMin <= 0) return setError("Enter a valid target time (H:MM:SS or MM:SS).");
+    setError("");
+    const weather = { tempC: parseFloat(tempC) || 15, humidity: parseFloat(humidity) || 60, wind: parseFloat(wind) || 0 };
+    onGenerate(buildRacePlan(gpxParsed, sport, weather, targetMin, allRaces));
+  }
+
+  return (
+    <div>
+      <button onClick={onCancel} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 28 }}>
+        ← BACK TO RACE RESUME
+      </button>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>RACE PLAN</div>
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: "0 0 8px", color: T.paper }}>Plan a race</h1>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginBottom: 28, maxWidth: 600 }}>
+        Upload the course GPX, enter your expected conditions, and RaceIQ will suggest pacing, fueling, and race-day tactics drawn from your history.
+      </div>
+
+      {/* GPX upload */}
+      <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 20px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.paper, marginBottom: 4 }}>Upload race course GPX</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, maxWidth: 440 }}>
+            Export the course from Strava, Garmin Connect, or RideWithGPS as GPX. RaceIQ reads it locally — nothing is uploaded.
+          </div>
+        </div>
+        <label style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "11px 18px", cursor: "pointer", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
+          {importStatus === "loading" ? "READING…" : gpxParsed ? "REPLACE FILE" : "CHOOSE GPX"}
+          <input type="file" accept=".gpx,.tcx" onChange={handleFileImport} style={{ display: "none" }} disabled={importStatus === "loading"} />
+        </label>
+      </div>
+      {importStatus === "done" && (
+        <div style={{ marginBottom: 20, padding: "10px 16px", background: "rgba(79,174,140,0.08)", border: `1px solid ${T.greenDim}`, borderRadius: 3, color: T.green, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          {importMessage}
+        </div>
+      )}
+      {importStatus === "error" && (
+        <div style={{ marginBottom: 20, padding: "10px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          {importMessage}
+        </div>
+      )}
+
+      <FormSectionTitle>Race details</FormSectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 24 }}>
+        <Field label="Sport">
+          <Select value={sport} onChange={e => setSport(e.target.value)} options={SPORT_OPTIONS} />
+        </Field>
+        <Field label="Race date">
+          <TextInput type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </Field>
+      </div>
+
+      <FormSectionTitle>Expected conditions</FormSectionTitle>
+      {weatherStatus !== "done" && weatherStatus !== "simulated" && (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <Field label="Race location" hint="City or venue — used to look up a forecast for the date above">
+              <LocationAutocomplete value={locationQuery} onChange={e => setLocationQuery(e.target.value)} placeholder="Philadelphia, PA" onKeyDown={e => e.key === "Enter" && handleWeatherLookup()} />
+            </Field>
+          </div>
+          <button
+            onClick={handleWeatherLookup}
+            disabled={!locationQuery.trim() || weatherStatus === "loading"}
+            style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, color: T.bg, background: locationQuery.trim() ? T.brass : T.line, border: "none", borderRadius: 3, padding: "10px 16px", cursor: locationQuery.trim() ? "pointer" : "default", fontWeight: 600, whiteSpace: "nowrap" }}
+          >
+            {weatherStatus === "loading" ? "LOOKING UP…" : "GET FORECAST"}
+          </button>
+        </div>
+      )}
+      {weatherStatus === "done" && (
+        <div style={{ marginBottom: 16, padding: "10px 16px", background: "rgba(79,174,140,0.08)", border: `1px solid ${T.greenDim}`, borderRadius: 3, color: T.green, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          {weatherMessage}
+        </div>
+      )}
+      {weatherStatus === "simulated" && (
+        <div style={{ marginBottom: 16, padding: "10px 16px", background: "rgba(201,162,75,0.1)", border: `1px solid ${T.brassDim}`, borderRadius: 3, color: T.brass, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          <strong style={{ fontFamily: FONT_MONO, fontWeight: 600 }}>SIMULATED — </strong>
+          {weatherMessage.replace(/^SIMULATED — /, "")}
+        </div>
+      )}
+      {weatherStatus === "error" && (
+        <div style={{ marginBottom: 16, padding: "10px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          {weatherMessage}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+        <Field label="Temperature (°C)">
+          <TextInput type="number" value={tempC} onChange={e => setTempC(e.target.value)} placeholder="15" />
+        </Field>
+        <Field label="Humidity (%)">
+          <TextInput type="number" value={humidity} onChange={e => setHumidity(e.target.value)} placeholder="60" />
+        </Field>
+        <Field label="Wind (km/h)">
+          <TextInput type="number" value={wind} onChange={e => setWind(e.target.value)} placeholder="10" />
+        </Field>
+      </div>
+
+      <FormSectionTitle>Target time</FormSectionTitle>
+      <div style={{ marginBottom: 8 }}>
+        {gpxParsed && estimateStatus === "loading" && (
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.brass, marginBottom: 10 }}>
+            Estimating with AI…
+          </div>
+        )}
+        {gpxParsed && estimateStatus === "ai" && (
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 10 }}>
+            {estimateReasoning || "AI estimate based on your race history and course data."} Edit to set your own goal.
+          </div>
+        )}
+        {gpxParsed && estimateStatus === "fallback" && (
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 10 }}>
+            Estimated from your best {allRaces.filter(r => r.sport === sport).length ? sport.toLowerCase() : "past"} result, adjusted for this course distance, elevation, and expected conditions. Edit to set your own goal.
+          </div>
+        )}
+        <div style={{ maxWidth: 220 }}>
+          <Field label="Goal finish time" hint="H:MM:SS or MM:SS">
+            <TextInput value={targetTimeStr} onChange={e => setTargetTimeStr(e.target.value)} placeholder="3:30:00" />
+          </Field>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ marginTop: 12, padding: "12px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 12, marginTop: 32, paddingTop: 24, borderTop: `1px solid ${T.line}` }}>
+        <button onClick={handleGenerate} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "12px 22px", cursor: "pointer", fontWeight: 600 }}>
+          GENERATE RACE PLAN →
+        </button>
+        <button onClick={onCancel} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.inkDim, background: "none", border: `1px solid ${T.line}`, borderRadius: 3, padding: "12px 22px", cursor: "pointer" }}>
+          CANCEL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
+   Race Plan View — generated output
+   --------------------------------------------------------- */
+
+function PaceLabel({ label }) {
+  const color = label === "CLIMB" ? T.brass : label === "DESCENT" ? T.green : T.inkDim;
+  return (
+    <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color, background: `${color}18`, border: `1px solid ${color}40`, borderRadius: 2, padding: "1px 5px" }}>
+      {label}
+    </span>
+  );
+}
+
+function RacePlanView({ plan, onBack, onLogRace, onAskCoach }) {
+  const isRun = plan.course.sport === "Road Running" || plan.course.sport === "Trail Running";
+  const { pacing, nutrition, recommendations, estimatedFinishTime, referenceRace, weather } = plan;
+
+  function fmtPaceDisplay(minPerKm) {
+    if (isRun) {
+      const m = Math.floor(minPerKm);
+      const s = String(Math.round((minPerKm - m) * 60)).padStart(2, "0");
+      return `${m}:${s}/km`;
+    }
+    return `${(60 / minPerKm).toFixed(1)} km/h`;
+  }
+
+  const climbCount = pacing.filter(s => s.label === "CLIMB").length;
+  const descentCount = pacing.filter(s => s.label === "DESCENT").length;
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 28 }}>
+        ← BACK TO RACE RESUME
+      </button>
+
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>RACE PLAN</div>
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 600, margin: "0 0 6px", color: T.paper, maxWidth: 760 }}>
+        {plan.course.name}
+      </h1>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginBottom: 28 }}>
+        {plan.course.sport} · {plan.course.distanceKm} km · +{plan.course.elevationM}m
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+        {[
+          { label: "TARGET TIME", value: estimatedFinishTime, sub: null, accent: T.paper, bg: T.bg2, border: T.line },
+          { label: "DISTANCE", value: `${plan.course.distanceKm} km`, sub: `+${plan.course.elevationM}m gain`, accent: T.paper, bg: T.bg2, border: T.line },
+          { label: "CONDITIONS", value: `${weather.tempC}°C`, sub: `${weather.humidity}% hum · ${weather.wind} km/h`, accent: T.temp, bg: T.bg2, border: T.line },
+          {
+            label: "BASED ON",
+            value: referenceRace ? referenceRace.name.split(" ").slice(0, 2).join(" ") : "Generic",
+            sub: referenceRace ? `${referenceRace.percentile}th pct ref` : "No past races",
+            accent: T.brass,
+            bg: "rgba(201,162,75,0.07)",
+            border: T.brassDim,
+          },
+        ].map(({ label, value, sub, accent, bg, border }, i) => (
+          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 80}ms`, background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: "16px 20px" }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.8, color: T.inkDim, marginBottom: 10 }}>{label}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 600, color: accent, lineHeight: 1 }}>{value}</div>
+            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 6 }}>{sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Pacing plan table */}
+      <div style={{ marginBottom: 44 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 4 }}>Pacing plan</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16, maxWidth: 600 }}>
+          Suggested pace per segment, grade-adjusted so your effort stays even across terrain.
+          {climbCount > 0 && ` ${climbCount} climb${climbCount > 1 ? "s" : ""} and ${descentCount} descent${descentCount !== 1 ? "s" : ""} identified on this course.`}
+        </div>
+        <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 0.6fr 0.8fr 1.2fr 0.8fr", padding: "10px 18px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.8, color: T.inkDim }}>
+            <div>SEGMENT</div>
+            <div>ELEV</div>
+            <div>GRADE</div>
+            <div>{isRun ? "PACE (MIN/KM)" : "SPEED (KM/H)"}</div>
+            <div>TYPE</div>
+          </div>
+          {pacing.map((seg, i) => (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 0.6fr 0.8fr 1.2fr 0.8fr",
+                padding: "12px 18px",
+                borderBottom: i < pacing.length - 1 ? `1px solid ${T.line}` : "none",
+                background: seg.label === "CLIMB" ? `${T.brassDim}22` : seg.label === "DESCENT" ? `${T.greenDim}22` : "transparent",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.paper }}>
+                {seg.fromKm === 0 ? "Start" : `km ${seg.fromKm}`} → km {seg.toKm}
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.inkDim }}>
+                {seg.elevM != null ? `${Math.round(seg.elevM)}m` : "—"}
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: seg.label === "CLIMB" ? T.brass : seg.label === "DESCENT" ? T.green : T.inkDim }}>
+                {seg.gradePct !== 0 ? `${seg.gradePct > 0 ? "+" : ""}${seg.gradePct}%` : "flat"}
+              </div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper }}>
+                {fmtPaceDisplay(seg.suggestedPace)}
+              </div>
+              <PaceLabel label={seg.label} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Two-column: nutrition + recommendations */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 48, marginBottom: 44 }}>
+        <div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 6 }}>Nutrition plan</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16 }}>
+            Targets for a {Math.round(plan.targetMinutes)}-minute effort.
+          </div>
+          <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: 20, marginBottom: 16 }}>
+            {[
+              ["Carbohydrate", nutrition.needsCarbs ? `${nutrition.carbsLow}–${nutrition.carbsHigh} g/hr` : "Not required"],
+              ["Sodium", `~${nutrition.sodiumPerHr} mg/hr`],
+              ["Fluids", `~${nutrition.fluidsPerHr} ml/hr`],
+              ["Caffeine", nutrition.caffeine > 0 ? `${nutrition.caffeine} mg total` : "Optional"],
+            ].map(([k, v], i) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none", fontFamily: FONT_MONO, fontSize: 13 }}>
+                <span style={{ color: T.inkDim }}>{k.toUpperCase()}</span>
+                <span style={{ color: T.paper }}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ink, lineHeight: 1.55 }}>
+            {nutrition.rationale}
+            {weather.tempC >= 20 && <> Fluids and sodium targets are scaled up for {weather.tempC}°C conditions.</>}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 6 }}>Race-day tactics</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 4 }}>
+            Drawn from your race history and this course profile.
+          </div>
+          {recommendations.map((r, i) => (
+            <Recommendation key={i} index={i + 1} action={r.action} why={r.why} />
+          ))}
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 16, borderTop: `1px solid ${T.line}` }}>
+        <button onClick={onLogRace} style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, background: T.brass, border: "none", color: T.bg, cursor: "pointer", fontWeight: 600 }}>
+          LOG THIS RACE AFTER →
+        </button>
+        <button onClick={onAskCoach} style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: `1px solid ${T.brass}`, background: "rgba(201,162,75,0.1)", color: T.brass, cursor: "pointer" }}>
+          ASK RACEIQ ABOUT THIS PLAN
+        </button>
+        <button onClick={onBack} style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}>
+          ← BACK
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
    App shell
    --------------------------------------------------------- */
 
@@ -3944,6 +4631,7 @@ export default function RaceIQApp() {
   const [customRaces, setCustomRaces] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [planData, setPlanData] = useState(null);
 
   useEffect(() => {
     loadCustomRaces().then((races) => {
@@ -4016,8 +4704,13 @@ export default function RaceIQApp() {
     }
   }
 
+  function handlePlanGenerate(plan) {
+    setPlanData(plan);
+    setView("plan-view");
+  }
+
   return (
-    <div style={{ minHeight: "100%", background: T.bg, color: T.paper, fontFamily: FONT_BODY, padding: "0" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.paper, fontFamily: FONT_BODY, padding: "0" }}>
       {FONT_IMPORT}
 
       {/* top bar — sticky with backdrop blur via .app-header */}
@@ -4085,7 +4778,7 @@ export default function RaceIQApp() {
             >
               RACES
             </button>
-            {(view === "debrief" || view === "add" || view === "coach" || view === "compare") && (
+            {(view === "debrief" || view === "add" || view === "coach" || view === "compare" || view === "plan" || view === "plan-view") && (
               <>
                 <span style={{ color: T.line, fontSize: 12 }}>›</span>
                 {view === "debrief" && activeRace && (
@@ -4096,6 +4789,21 @@ export default function RaceIQApp() {
                 )}
                 {view === "compare" && (
                   <span style={{ color: T.ink }}>COMPARE</span>
+                )}
+                {view === "plan" && (
+                  <span style={{ color: T.ink }}>PLAN A RACE</span>
+                )}
+                {view === "plan-view" && (
+                  <>
+                    <button
+                      onClick={() => setView("plan")}
+                      style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}
+                    >
+                      PLAN A RACE
+                    </button>
+                    <span style={{ color: T.line, fontSize: 12 }}>›</span>
+                    <span style={{ color: T.ink }}>{planData?.course?.name?.toUpperCase() ?? "RACE PLAN"}</span>
+                  </>
                 )}
                 {view === "coach" && coachContextRace && (
                   <>
@@ -4124,6 +4832,7 @@ export default function RaceIQApp() {
             races={allRaces}
             onOpen={openRace}
             onAddRace={() => setView("add")}
+            onPlanRace={() => setView("plan")}
             onDelete={handleDeleteRace}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
@@ -4155,6 +4864,22 @@ export default function RaceIQApp() {
         )}
         {view === "coach" && (
           <CoachView races={allRaces} contextRace={coachContextRace} onBack={handleCoachBack} />
+        )}
+        {view === "plan" && (
+          <RacePlanForm
+            allRaces={allRaces}
+            apiKey={apiKey}
+            onGenerate={handlePlanGenerate}
+            onCancel={() => setView("list")}
+          />
+        )}
+        {view === "plan-view" && planData && (
+          <RacePlanView
+            plan={planData}
+            onBack={() => setView("list")}
+            onLogRace={() => setView("add")}
+            onAskCoach={() => openCoach(null)}
+          />
         )}
       </div>
     </div>

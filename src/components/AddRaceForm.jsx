@@ -1,16 +1,23 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORT_OPTIONS, SURFACES } from "../constants.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
 import { enrichRace } from "../utils/ratings.js";
 import { parseTrackFile } from "../utils/gpx.js";
 import { fetchHistoricalWeather, fetchWeatherAlongCourse, geocodeLocation } from "../utils/weather.js";
 import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete } from "./ui.jsx";
+import FuelingSectionEditor from "./FuelingSectionEditor.jsx";
+import { sectionsToRates, rollUpSections, seedThirdsSections } from "../utils/fuelingSections.js";
 
 const EMPTY_SPLIT_ROWS = 4;
 
 function blankSplit() {
   return { km: "", pace: "", tempC: "", elevM: "" };
 }
+
+const fnum = (v) => (v === "" || v == null ? 0 : parseFloat(v) || 0);
+const round1 = (n) => Math.round(n * 10) / 10;
+let fuelSeq = 0;
+const fsUid = () => `fs-${Date.now()}-${fuelSeq++}`;
 
 export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
   const paceToStr = (p) => `${Math.floor(p)}:${String(Math.round((p % 1) * 60)).padStart(2, "0")}`;
@@ -32,6 +39,25 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
   const [sodiumPerHr, setSodiumPerHr] = useState(initialRace ? String(initialRace.fueling?.sodiumPerHr || "") : "");
   const [fluidsPerHr, setFluidsPerHr] = useState(initialRace ? String(initialRace.fueling?.fluidsPerHr || "") : "");
   const [caffeine, setCaffeine] = useState(initialRace ? String(initialRace.fueling?.caffeine || "") : "");
+
+  // By-section fuelling — the default for new races; edits respect the saved mode.
+  const [fuelMode, setFuelMode] = useState(
+    initialRace ? (initialRace.fueling?.inputMode === "sections" ? "sections" : "overall") : "sections"
+  );
+  const [entryMode, setEntryMode] = useState("amount");
+  const [fuelSections, setFuelSections] = useState(() =>
+    initialRace?.fueling?.inputMode === "sections" && initialRace.fueling.sections?.length
+      ? initialRace.fueling.sections.map((s, i) => ({
+          id: `fs-init-${i}`,
+          fromKm: s.fromKm,
+          toKm: s.toKm,
+          carbs: s.carbsPerHr != null ? String(s.carbsPerHr) : "",
+          sodium: s.sodiumPerHr != null ? String(s.sodiumPerHr) : "",
+          fluids: s.fluidsPerHr != null ? String(s.fluidsPerHr) : "",
+          caffeine: s.caffeineMg != null ? String(s.caffeineMg) : "",
+        }))
+      : []
+  );
   const [splitRows, setSplitRows] = useState(
     initialRace?.splits?.length
       ? initialRace.splits.map((s) => ({
@@ -42,6 +68,100 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         }))
       : Array.from({ length: EMPTY_SPLIT_ROWS }, blankSplit)
   );
+  // Numeric splits (for the fuelling profile + section-time roll-up).
+  const parsedSplits = useMemo(
+    () => splitRows
+      .filter((r) => r.km !== "" && r.pace !== "")
+      .map((r) => ({ km: parseFloat(r.km), pace: parseClockToMinutes(r.pace), elevM: r.elevM !== "" ? parseFloat(r.elevM) : null }))
+      .sort((a, b) => a.km - b.km),
+    [splitRows]
+  );
+  const hasSplitElev = parsedSplits.some((s) => s.elevM != null);
+  const fuelRollup = useMemo(
+    () => rollUpSections(sectionsToRates(fuelSections, parsedSplits, entryMode), parsedSplits),
+    [fuelSections, parsedSplits, entryMode]
+  );
+
+  // Keep the final section's end pinned to the current distance.
+  useEffect(() => {
+    const d = Number(distanceKm) || 0;
+    if (fuelMode !== "sections" || d <= 0 || fuelSections.length === 0) return;
+    setFuelSections((prev) => {
+      const last = prev[prev.length - 1];
+      if (round1(fnum(last.toKm)) === round1(d)) return prev;
+      const next = [...prev];
+      next[next.length - 1] = { ...last, toKm: round1(d) };
+      return next;
+    });
+  }, [distanceKm, fuelMode]);
+
+  // Seed sections (thirds of the race) once a distance is known — covers both the
+  // default sections mode on a fresh form and a GPX import that fills in distance.
+  useEffect(() => {
+    if (fuelMode !== "sections" || fuelSections.length > 0) return;
+    const d = Number(distanceKm) || 0;
+    if (d > 0) {
+      setFuelSections(seedThirdsSections(d, { carbs: carbsPerHr, sodium: sodiumPerHr, fluids: fluidsPerHr }));
+    }
+  }, [fuelMode, distanceKm, fuelSections.length]);
+
+  function enableSections() {
+    setFuelMode("sections");
+  }
+
+  function addFuelBoundary(km) {
+    setFuelSections((prev) => {
+      const i = prev.findIndex((s) => fnum(s.fromKm) < km && km < fnum(s.toKm));
+      if (i === -1) return prev;
+      const sec = prev[i];
+      const at = round1(km);
+      const first = { ...sec, toKm: at };
+      const second = { ...sec, id: fsUid(), fromKm: at, toKm: sec.toKm };
+      return [...prev.slice(0, i), first, second, ...prev.slice(i + 1)];
+    });
+  }
+  function moveFuelBoundary(id, km) {
+    if (isNaN(km)) return;
+    setFuelSections((prev) => {
+      const i = prev.findIndex((s) => s.id === id);
+      if (i === -1 || i === prev.length - 1) return prev;
+      const lo = fnum(prev[i].fromKm) + 0.1;
+      const hi = fnum(prev[i + 1].toKm) - 0.1;
+      const k = round1(Math.max(lo, Math.min(hi, km)));
+      const next = [...prev];
+      next[i] = { ...next[i], toKm: k };
+      next[i + 1] = { ...next[i + 1], fromKm: k };
+      return next;
+    });
+  }
+  function removeFuelBoundary(id) {
+    setFuelSections((prev) => {
+      const i = prev.findIndex((s) => s.id === id);
+      if (i === -1 || i === prev.length - 1) return prev;
+      const merged = { ...prev[i], toKm: prev[i + 1].toKm };
+      return [...prev.slice(0, i), merged, ...prev.slice(i + 2)];
+    });
+  }
+  function updateFuelSection(id, patch) {
+    setFuelSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+  function addFuelSection() {
+    setFuelSections((prev) => {
+      if (prev.length === 0) return prev;
+      // Split the widest section at its midpoint.
+      let widest = 0;
+      for (let i = 1; i < prev.length; i++) {
+        if (fnum(prev[i].toKm) - fnum(prev[i].fromKm) > fnum(prev[widest].toKm) - fnum(prev[widest].fromKm)) widest = i;
+      }
+      const sec = prev[widest];
+      const mid = round1((fnum(sec.fromKm) + fnum(sec.toKm)) / 2);
+      if (mid <= fnum(sec.fromKm) || mid >= fnum(sec.toKm)) return prev;
+      const first = { ...sec, toKm: mid };
+      const second = { ...sec, id: fsUid(), fromKm: mid, toKm: sec.toKm };
+      return [...prev.slice(0, widest), first, second, ...prev.slice(widest + 1)];
+    });
+  }
+
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState(null);
   const [importMessage, setImportMessage] = useState("");
@@ -196,12 +316,24 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       humidity: Number(humidity) || 50,
       wind: Number(wind) || 0,
       splits,
-      fueling: {
-        carbsPerHr: Number(carbsPerHr) || 0,
-        sodiumPerHr: Number(sodiumPerHr) || 0,
-        fluidsPerHr: Number(fluidsPerHr) || 0,
-        caffeine: Number(caffeine) || 0,
-      },
+      fueling:
+        fuelMode === "sections" && fuelSections.length
+          ? {
+              inputMode: "sections",
+              sections: sectionsToRates(fuelSections, splits, entryMode),
+              // scalar roll-up fields are filled by enrichRace
+              carbsPerHr: 0,
+              sodiumPerHr: 0,
+              fluidsPerHr: 0,
+              caffeine: 0,
+            }
+          : {
+              inputMode: "overall",
+              carbsPerHr: Number(carbsPerHr) || 0,
+              sodiumPerHr: Number(sodiumPerHr) || 0,
+              fluidsPerHr: Number(fluidsPerHr) || 0,
+              caffeine: Number(caffeine) || 0,
+            },
     };
 
     onSave(enrichRace(raw));
@@ -321,12 +453,59 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       </div>
 
       <FormSectionTitle>Fueling</FormSectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Carbs (g/hr)"><TextInput type="number" value={carbsPerHr} onChange={(e) => setCarbsPerHr(e.target.value)} placeholder="52" /></Field>
-        <Field label="Sodium (mg/hr)"><TextInput type="number" value={sodiumPerHr} onChange={(e) => setSodiumPerHr(e.target.value)} placeholder="280" /></Field>
-        <Field label="Fluids (ml/hr)"><TextInput type="number" value={fluidsPerHr} onChange={(e) => setFluidsPerHr(e.target.value)} placeholder="480" /></Field>
-        <Field label="Caffeine (mg total)"><TextInput type="number" value={caffeine} onChange={(e) => setCaffeine(e.target.value)} placeholder="80" /></Field>
+
+      {/* Overall vs by-section mode toggle */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[["overall", "OVERALL AVERAGE"], ["sections", "BY SECTION"]].map(([mode, label]) => (
+          <button
+            key={mode}
+            onClick={() => (mode === "sections" ? enableSections() : setFuelMode("overall"))}
+            style={{
+              fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.4, padding: "7px 13px", borderRadius: 3, cursor: "pointer",
+              border: `1px solid ${fuelMode === mode ? T.brass : T.line}`,
+              background: fuelMode === mode ? "rgba(201,162,75,0.12)" : "transparent",
+              color: fuelMode === mode ? T.brass : T.inkDim,
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
+      {fuelMode === "overall" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Field label="Carbs (g/hr)"><TextInput type="number" value={carbsPerHr} onChange={(e) => setCarbsPerHr(e.target.value)} placeholder="52" /></Field>
+          <Field label="Sodium (mg/hr)"><TextInput type="number" value={sodiumPerHr} onChange={(e) => setSodiumPerHr(e.target.value)} placeholder="280" /></Field>
+          <Field label="Fluids (ml/hr)"><TextInput type="number" value={fluidsPerHr} onChange={(e) => setFluidsPerHr(e.target.value)} placeholder="480" /></Field>
+          <Field label="Caffeine (mg total)"><TextInput type="number" value={caffeine} onChange={(e) => setCaffeine(e.target.value)} placeholder="80" /></Field>
+        </div>
+      ) : (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 14, lineHeight: 1.5 }}>
+            Log fuelling by section of the race so RaceIQ can line up a fuel drop-off with where your pace faded.
+            {fuelSections.length === 0
+              ? " Enter a distance above (or import a GPX) and RaceIQ will lay out sections to fill in."
+              : parsedSplits.length < 2 && " Add at least two splits below so section times can be computed for the totals."}
+          </div>
+          {fuelSections.length > 0 && (
+            <FuelingSectionEditor
+              splits={parsedSplits}
+              distanceKm={Number(distanceKm) || 0}
+              elevationM={Number(elevationM) || 0}
+              hasElev={hasSplitElev}
+              entryMode={entryMode}
+              setEntryMode={setEntryMode}
+              sections={fuelSections}
+              rollup={fuelRollup}
+              onAddBoundary={addFuelBoundary}
+              onMoveBoundary={moveFuelBoundary}
+              onRemoveBoundary={removeFuelBoundary}
+              onUpdateSection={updateFuelSection}
+              onAddSection={addFuelSection}
+            />
+          )}
+        </div>
+      )}
 
       <FormSectionTitle>Splits</FormSectionTitle>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 14 }}>

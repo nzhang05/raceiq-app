@@ -2,11 +2,35 @@ import { useState, useEffect, useMemo } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORT_OPTIONS, isCyclingSport } from "../constants.js";
 import { parseRouteFile } from "../utils/gpx.js";
 import { geocodeLocation } from "../utils/weather.js";
-import { forecastWeather, estimateTargetTime, buildRacePlan } from "../utils/racePlan.js";
+import { forecastWeather, estimateTargetTime, buildRacePlan, minutesToClock } from "../utils/racePlan.js";
+import { fuelingBenchmarks, personalizeFueling } from "../utils/fueling.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
-import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete } from "./ui.jsx";
+import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete, inputStyle } from "./ui.jsx";
+import ElevationProfile from "./ElevationProfile.jsx";
 
 const APIKEY_STORAGE_KEY = "raceiq:apikey";
+
+let stationSeq = 0;
+const uid = () => `as-${Date.now()}-${stationSeq++}`;
+
+// Compact on/off pill used for the water / food refill flags on each aid station.
+function StationToggle({ on, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, fontWeight: 600,
+        width: 42, padding: "5px 0", borderRadius: 3, cursor: "pointer",
+        border: `1px solid ${on ? T.brassDim : T.line}`,
+        background: on ? "rgba(201,162,75,0.12)" : "transparent",
+        color: on ? T.brass : T.inkDim,
+      }}
+    >
+      {on ? "YES" : "NO"}
+    </button>
+  );
+}
 
 async function estimateWithClaude(apiKey, gpxData, sport, plannedTempC, races) {
   const sorted = [...races].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
@@ -126,6 +150,64 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   const [derivedNote, setDerivedNote] = useState("");
   const [estimateSource, setEstimateSource] = useState(null); // null | "ai" | "fallback" | "loading"
 
+  // Fueling — optional manual overrides. Blank = use the value RaceIQ derives from
+  // the reference races (shown as the placeholder).
+  const [fuelCarbs, setFuelCarbs] = useState("");
+  const [fuelSodium, setFuelSodium] = useState("");
+  const [fuelFluids, setFuelFluids] = useState("");
+  const [fuelCaffeine, setFuelCaffeine] = useState("");
+
+  // What RaceIQ would use with no manual input — drives the placeholders and the
+  // per-field provenance hints below.
+  const derivedFueling = useMemo(() => {
+    const mins = parseClockToMinutes(targetClock);
+    if (!mins) return null;
+    const benchmark = fuelingBenchmarks(minutesToClock(mins));
+    const t = tempC !== "" ? parseFloat(tempC) : 18;
+    return personalizeFueling({ benchmark, history: selectedRaces, targetMinutes: mins, tempC: t, manual: {} });
+  }, [targetClock, tempC, selectedRaces]);
+
+  function fuelHint(metric) {
+    if (!derivedFueling) return "Enter a target time to derive this.";
+    const src = derivedFueling.sources[metric];
+    if (src === "history") return `Your average across ${derivedFueling.basedOnRaces} reference race${derivedFueling.basedOnRaces === 1 ? "" : "s"}.`;
+    return "Research default — no history to draw from.";
+  }
+
+  // Aid stations & carry capacity
+  const [aidStations, setAidStations] = useState([]);
+  const [carryCapacity, setCarryCapacity] = useState("");
+
+  function addStation() {
+    setAidStations((prev) => [...prev, { id: uid(), km: "", name: "", water: true, food: true }]);
+  }
+  function updateStation(idx, patch) {
+    setAidStations((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  }
+  function removeStation(idx) {
+    setAidStations((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function autoSpaceStations() {
+    if (!gpxData) return;
+    const spacing = isCyclingSport(sport) ? 25 : 8;
+    const next = [];
+    for (let km = spacing; km < gpxData.distanceKm - 0.5; km += spacing) {
+      next.push({ id: uid(), km: Math.round(km * 10) / 10, name: "", water: true, food: true });
+    }
+    setAidStations(next);
+  }
+
+  // Profile-driven mutations (by station id), kept sorted by km for tidy rows.
+  function addStationAtKm(km) {
+    setAidStations((prev) => [...prev, { id: uid(), km, name: "", water: true, food: true }].sort((a, b) => (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0)));
+  }
+  function moveStation(id, km) {
+    setAidStations((prev) => prev.map((s) => (s.id === id ? { ...s, km } : s)));
+  }
+  function removeStationById(id) {
+    setAidStations((prev) => prev.filter((s) => s.id !== id));
+  }
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -228,7 +310,14 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     const targetMinutes = parseClockToMinutes(targetClock);
     const weather = { tempC: parseFloat(tempC) || 18, humidity: parseFloat(humidity) || null, wind: parseFloat(wind) || null };
     const racesForPlan = selectedRaces.length > 0 ? selectedRaces : allRaces;
-    const plan = buildRacePlan(gpxData, sport, weather, targetMinutes, racesForPlan);
+    const carryCapacityMl = carryCapacity !== "" ? parseFloat(carryCapacity) : null;
+    const manualFueling = {
+      carbsPerHr: fuelCarbs !== "" ? parseFloat(fuelCarbs) : null,
+      sodiumPerHr: fuelSodium !== "" ? parseFloat(fuelSodium) : null,
+      fluidsPerHr: fuelFluids !== "" ? parseFloat(fuelFluids) : null,
+      caffeineMg: fuelCaffeine !== "" ? parseFloat(fuelCaffeine) : null,
+    };
+    const plan = buildRacePlan(gpxData, sport, weather, targetMinutes, racesForPlan, aidStations, carryCapacityMl, manualFueling);
     plan.raceDate = raceDate;
     onPlanGenerated(plan);
   }
@@ -441,6 +530,130 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
           placeholder="e.g. 3:45:00"
         />
       </Field>
+
+      {/* Section 5 — Fueling */}
+      <FormSectionTitle>5 — Fueling</FormSectionTitle>
+
+      <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 14px", lineHeight: 1.5 }}>
+        RaceIQ derives your nutrition targets from the fueling you actually logged in the
+        reference races above{derivedFueling?.basedOnRaces ? `` : ` (research defaults until you have race history)`}.
+        Override any field with a rate you know works for you — leave blank to keep the derived value.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <Field label="Carbs/hr (g)" hint={fuelHint("carbs")}>
+          <TextInput type="number" value={fuelCarbs} onChange={(e) => setFuelCarbs(e.target.value)} placeholder={derivedFueling?.carbsTargetNum != null ? String(derivedFueling.carbsTargetNum) : "—"} />
+        </Field>
+        <Field label="Sodium/hr (mg)" hint={fuelHint("sodium")}>
+          <TextInput type="number" value={fuelSodium} onChange={(e) => setFuelSodium(e.target.value)} placeholder={derivedFueling?.sodiumMgHr != null ? String(derivedFueling.sodiumMgHr) : "—"} />
+        </Field>
+        <Field label="Fluids/hr (ml)" hint={fuelHint("fluids")}>
+          <TextInput type="number" value={fuelFluids} onChange={(e) => setFuelFluids(e.target.value)} placeholder={derivedFueling?.fluidsMlHr != null ? String(derivedFueling.fluidsMlHr) : "—"} />
+        </Field>
+        <Field label="Caffeine (mg total)" hint={fuelHint("caffeine")}>
+          <TextInput type="number" value={fuelCaffeine} onChange={(e) => setFuelCaffeine(e.target.value)} placeholder={derivedFueling?.caffeineMg != null ? String(derivedFueling.caffeineMg) : "—"} />
+        </Field>
+      </div>
+
+      {derivedFueling?.notes?.length > 0 && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+          {derivedFueling.notes.map((note, i) => (
+            <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.brass, lineHeight: 1.45 }}>{note}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Section 6 — Aid Stations */}
+      <FormSectionTitle>6 — Aid Stations</FormSectionTitle>
+
+      <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 14px", lineHeight: 1.5 }}>
+        Mark where you can refill. RaceIQ works out how much food and fluid to carry
+        on each leg between stations. Leave empty to skip.
+      </p>
+
+      {gpxData ? (
+        <div style={{ marginBottom: 14 }}>
+          <ElevationProfile
+            splits={gpxData.splits}
+            distanceKm={gpxData.distanceKm}
+            elevationM={gpxData.elevationM}
+            stations={aidStations}
+            onAdd={addStationAtKm}
+            onMove={moveStation}
+            onRemove={removeStationById}
+          />
+        </div>
+      ) : (
+        <div style={{ marginBottom: 14, fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim }}>
+          Upload a course above to place aid stations on the elevation profile.
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={addStation}
+          style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}
+        >
+          + ADD STATION
+        </button>
+        <button
+          type="button"
+          onClick={autoSpaceStations}
+          disabled={!gpxData}
+          title={gpxData ? "" : "Upload a course first"}
+          style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: gpxData ? T.ink : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
+        >
+          AUTO-SPACE
+        </button>
+      </div>
+
+      {aidStations.length > 0 && (
+        <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>
+            <div>KM</div><div>NAME</div><div>WATER</div><div>FOOD</div><div />
+          </div>
+          {aidStations.map((s, i) => {
+            const kmNum = parseFloat(s.km);
+            const outOfRange = gpxData && !isNaN(kmNum) && (kmNum <= 0 || kmNum >= gpxData.distanceKm);
+            return (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", alignItems: "center", borderBottom: i < aidStations.length - 1 ? `1px solid ${T.line}33` : "none" }}>
+                <input
+                  type="number"
+                  value={s.km}
+                  onChange={(e) => updateStation(i, { km: e.target.value })}
+                  placeholder="km"
+                  style={{ ...inputStyle, padding: "7px 8px", borderColor: outOfRange ? T.ember : T.line }}
+                />
+                <input
+                  value={s.name}
+                  onChange={(e) => updateStation(i, { name: e.target.value })}
+                  placeholder={`Aid ${i + 1}`}
+                  style={{ ...inputStyle, padding: "7px 8px" }}
+                />
+                <StationToggle on={s.water} onClick={() => updateStation(i, { water: !s.water })} />
+                <StationToggle on={s.food} onClick={() => updateStation(i, { food: !s.food })} />
+                <button
+                  type="button"
+                  onClick={() => removeStation(i)}
+                  aria-label="Remove station"
+                  style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1, padding: 0 }}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {aidStations.length > 0 && (
+        <div style={{ maxWidth: 220 }}>
+          <Field label="Carry Capacity (ml)" hint="Fluid you can hold between stations. Legs that exceed it get flagged.">
+            <TextInput type="number" value={carryCapacity} onChange={(e) => setCarryCapacity(e.target.value)} placeholder="e.g. 1000" />
+          </Field>
+        </div>
+      )}
 
       {error && <div style={{ marginTop: 12, fontFamily: FONT_BODY, fontSize: 14, color: T.ember }}>{error}</div>}
 

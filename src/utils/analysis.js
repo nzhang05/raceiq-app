@@ -64,8 +64,14 @@ export function buildDebrief(race) {
     }
   }
 
-  // ---- Fueling, compared to the duration-based benchmark ----
-  if (fuel.needsCarbs && race.fueling?.carbsPerHr != null) {
+  // ---- Fueling ----
+  // When fuelling was logged by section, correlate a low-carb section with a pace
+  // fade *in that same section* — a located, causal story. Otherwise fall back to
+  // the whole-race benchmark finding.
+  const fuelSections = race.fueling?.inputMode === "sections" ? race.fueling.sections : null;
+  if (fuelSections?.length && fuel.needsCarbs) {
+    addSectionFuelingFindings(race, fuelSections, fuel, m, durationMin, { strengths, limiters, recs });
+  } else if (fuel.needsCarbs && race.fueling?.carbsPerHr != null) {
     const taken = race.fueling.carbsPerHr;
     if (taken < fuel.carbsLow) {
       const gap = fuel.carbsLow - taken;
@@ -135,6 +141,66 @@ export function buildDebrief(race) {
   return { strengths, limiters, recs };
 }
 
+// Per-section fuelling findings: line up a below-range carb section with a pace
+// fade in the same km range (located limiter), reward an even, well-fuelled close
+// (located strength), and flag a section where temperature rose but fluid intake
+// dropped (dehydration timing). All numbers come from this race's own sections.
+function addSectionFuelingFindings(race, sections, fuel, m, durationMin, out) {
+  const key = m?.paceKey ?? (race.splits?.[0]?.gapPace != null ? "gapPace" : "pace");
+  const inRange = (sec) => (race.splits || []).filter((s) => s.km > sec.fromKm + 1e-9 && s.km <= sec.toKm + 1e-9);
+
+  const summaries = sections.map((sec) => {
+    const sp = inRange(sec);
+    const paces = sp.map((s) => s[key]).filter((p) => p != null && isFinite(p));
+    const temps = sp.map((s) => s.tempC).filter((t) => t != null);
+    const firstPace = paces[0] ?? null;
+    const lastPace = paces[paces.length - 1] ?? null;
+    const driftPct = firstPace ? ((lastPace - firstPace) / firstPace) * 100 : 0;
+    const avgTemp = temps.length ? temps.reduce((a, t) => a + t, 0) / temps.length : null;
+    return { sec, firstPace, lastPace, driftPct, avgTemp, carbRate: sec.carbsPerHr ?? 0, fluidRate: sec.fluidsPerHr ?? 0 };
+  });
+
+  // Located limiter: the biggest-faded under-fuelled section.
+  const faded = summaries
+    .filter((x) => x.firstPace != null && x.lastPace != null && x.carbRate < fuel.carbsLow && x.driftPct > 8)
+    .sort((a, b) => b.driftPct - a.driftPct);
+
+  if (faded.length) {
+    const x = faded[0];
+    const gap = fuel.carbsLow - x.carbRate;
+    out.limiters.push({
+      title: "Fuel dropped where your pace did",
+      body: `Over km ${x.sec.fromKm}–${x.sec.toKm} your carb intake was ${x.carbRate}g/hr — ${gap}g/hr under the ${fuel.carbsLabel} range for a ${durationMin}-minute effort — and that's exactly where your pace slipped from ${fmtPace(x.firstPace)} to ${fmtPace(x.lastPace)}. The fade tracks the fuel, not just the distance.`,
+    });
+    out.recs.push({
+      action: `Hold ${fuel.carbsLabel} through km ${x.sec.fromKm}–${x.sec.toKm}`,
+      why: `You under-fuelled that section by ${gap}g/hr and it's where the wheels came off. Carrying the target rate through it is the highest-leverage change for this course. ${fuel.rationale}`,
+    });
+  } else {
+    // Located strength: closing section fuelled in range and held.
+    const closing = summaries[summaries.length - 1];
+    if (closing && closing.firstPace != null && closing.carbRate >= fuel.carbsLow && closing.driftPct <= 4) {
+      out.strengths.push({
+        title: "You fuelled the back section and it held",
+        body: `Through the closing km ${closing.sec.fromKm}–${closing.sec.toKm} you took ${closing.carbRate}g/hr — inside the ${fuel.carbsLabel} range — and pace held at ${fmtPace(closing.lastPace)}. Fuelling late is exactly where it pays off.`,
+      });
+    }
+  }
+
+  // Heat × fluid timing: a later, hotter section with a lower fluid rate.
+  for (let i = 1; i < summaries.length; i++) {
+    const prev = summaries[i - 1];
+    const cur = summaries[i];
+    if (prev.avgTemp != null && cur.avgTemp != null && cur.avgTemp - prev.avgTemp >= 2 && cur.avgTemp >= 22 && cur.fluidRate < prev.fluidRate) {
+      out.limiters.push({
+        title: "Fluid intake fell as it got hotter",
+        body: `Over km ${cur.sec.fromKm}–${cur.sec.toKm} the course averaged ${Math.round(cur.avgTemp)}°C — up from ${Math.round(prev.avgTemp)}°C — yet your fluid intake dropped to ${cur.fluidRate}ml/hr from ${prev.fluidRate}ml/hr. Hydration should rise with temperature, not fall.`,
+      });
+      break;
+    }
+  }
+}
+
 export function gatherDiagnosticData(race) {
   const key = race.splits?.[0]?.gapPace != null ? "gapPace" : "pace";
   const drift = paceDriftPct(race.splits);
@@ -152,7 +218,7 @@ export function gatherDiagnosticData(race) {
   }
 
   return {
-    race, durationMin, drift, hot, fuelingGap, fuelRange: fuel.carbsLabel,
+    race, durationMin, drift, hot, fuelingGap, fuelRange: fuel.carbsLabel, fuelLow: fuel.carbsLow,
     needsCarbs: fuel.needsCarbs, turnKm,
     firstPace: fmtPace(race.splits[0][key]),
     lastPace: fmtPace(race.splits[race.splits.length - 1][key]),

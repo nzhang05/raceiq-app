@@ -1,5 +1,6 @@
 import { T } from "../constants.js";
 import { hasElevationData, sportUsesGap, withGap } from "./pace.js";
+import { rollUpSections } from "./fuelingSections.js";
 
 export function derivePercentile(placement, field) {
   if (!placement || !field || field <= 0) return null;
@@ -91,10 +92,19 @@ export function enrichRace(raw) {
   const verdict = deriveVerdict(raw.splits, raw.tempC, raw.sport);
   const rating = deriveRating(percentile, raw.distanceKm);
   const headline = deriveHeadline(verdict, raw);
+
+  // When fuelling was logged by section, roll it up into the four scalar fields
+  // so every existing consumer keeps reading fueling.carbsPerHr et al. unchanged.
+  let fueling = raw.fueling;
+  if (fueling?.inputMode === "sections" && fueling.sections?.length) {
+    fueling = { ...fueling, ...rollUpSections(fueling.sections, raw.splits) };
+  }
+
   return {
     ...raw,
     splits,
     usesGap,
+    fueling,
     percentile: percentile ?? 50,
     verdict,
     rating,

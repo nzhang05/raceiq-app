@@ -78,20 +78,49 @@ export default function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
 
         <div>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 6 }}>Fueling log</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16 }}>What you took in during the race.</div>
-          <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: 20 }}>
-            {[
-              ["Carbohydrate", `${race.fueling.carbsPerHr} g/hr`],
-              ["Sodium", `${race.fueling.sodiumPerHr} mg/hr`],
-              ["Fluids", `${race.fueling.fluidsPerHr} ml/hr`],
-              ["Caffeine", `${race.fueling.caffeine} mg total`],
-            ].map(([k, v], i) => (
-              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none", fontFamily: FONT_MONO, fontSize: 13 }}>
-                <span style={{ color: T.inkDim }}>{k.toUpperCase()}</span>
-                <span style={{ color: T.paper }}>{v}</span>
-              </div>
-            ))}
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16 }}>
+            {race.fueling.inputMode === "sections" && race.fueling.sections?.length
+              ? "What you took in, by section of the race."
+              : "What you took in during the race."}
           </div>
+          {race.fueling.inputMode === "sections" && race.fueling.sections?.length ? (
+            <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "14px 16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, paddingBottom: 8, borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5, color: T.inkDim }}>
+                <div>SECTION</div><div>CARBS</div><div>NA</div><div>FLUID</div>
+              </div>
+              {(() => {
+                const bench = fuelingBenchmarks(race.finishTime);
+                return race.fueling.sections.map((s, i) => {
+                  const low = bench.needsCarbs && s.carbsPerHr < bench.carbsLow;
+                  return (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, padding: "9px 0", borderBottom: i < race.fueling.sections.length - 1 ? `1px solid ${T.line}33` : "none", alignItems: "baseline", fontFamily: FONT_MONO, fontSize: 12.5 }}>
+                      <span style={{ color: T.ink }}>km {s.fromKm}–{s.toKm}</span>
+                      <span style={{ color: low ? T.ember : T.paper }}>{s.carbsPerHr} g/hr</span>
+                      <span style={{ color: T.ink }}>{s.sodiumPerHr}</span>
+                      <span style={{ color: T.ink }}>{s.fluidsPerHr}</span>
+                    </div>
+                  );
+                });
+              })()}
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>
+                RACE AVG · {race.fueling.carbsPerHr} g/hr carbs · {race.fueling.caffeine} mg caffeine
+              </div>
+            </div>
+          ) : (
+            <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: 20 }}>
+              {[
+                ["Carbohydrate", `${race.fueling.carbsPerHr} g/hr`],
+                ["Sodium", `${race.fueling.sodiumPerHr} mg/hr`],
+                ["Fluids", `${race.fueling.fluidsPerHr} ml/hr`],
+                ["Caffeine", `${race.fueling.caffeine} mg total`],
+              ].map(([k, v], i) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none", fontFamily: FONT_MONO, fontSize: 13 }}>
+                  <span style={{ color: T.inkDim }}>{k.toUpperCase()}</span>
+                  <span style={{ color: T.paper }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ marginTop: 24 }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 10 }}>Fueling context</div>

@@ -102,7 +102,7 @@ function buildQuestionContext(intent, data, question, contextRaceId) {
   switch (intent.category) {
     case "diagnostic": {
       if (!data.race) { ctx += "DATA: No matching race found.\n"; break; }
-      const { race, durationMin, drift, hot, fuelingGap, fuelRange, needsCarbs, firstPace, lastPace, turnKm, limiters, strengths } = data;
+      const { race, durationMin, drift, hot, fuelingGap, fuelRange, fuelLow, needsCarbs, firstPace, lastPace, turnKm, limiters, strengths } = data;
       ctx += `DATA FOR THIS RACE:\n`;
       ctx += `Race: ${race.name} (${fmtDate(race.date)})\n`;
       ctx += `Sport: ${race.sport} · ${race.distanceKm}km · +${race.elevationM}m · ${race.surface}\n`;
@@ -116,6 +116,13 @@ function buildQuestionContext(intent, data, question, contextRaceId) {
         ctx += `Fueling: ${race.fueling.carbsPerHr}g carbs/hr (target for ${durationMin}-min effort: ${fuelRange}`;
         ctx += fuelingGap != null && fuelingGap < 0 ? `; ${Math.abs(fuelingGap)}g/hr below minimum)\n` : "; within range)\n";
         ctx += `Sodium: ${race.fueling.sodiumPerHr}mg/hr · Fluids: ${race.fueling.fluidsPerHr}ml/hr · Caffeine: ${race.fueling.caffeine}mg\n`;
+        if (race.fueling.inputMode === "sections" && race.fueling.sections?.length) {
+          ctx += `Fueling by section:\n`;
+          for (const s of race.fueling.sections) {
+            const flag = s.carbsPerHr < fuelLow ? "  ⚠ below range" : "";
+            ctx += `  ${s.fromKm}–${s.toKm}km: ${s.carbsPerHr}g carbs/hr, ${s.sodiumPerHr}mg Na/hr, ${s.fluidsPerHr}ml/hr${flag}\n`;
+          }
+        }
       }
       if (strengths.length) ctx += `\nSTRENGTHS: ${strengths.map(s => s.title).join("; ")}\n`;
       if (limiters.length) ctx += `LIMITERS: ${limiters.map(l => l.title).join("; ")}\n`;

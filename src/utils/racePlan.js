@@ -1,6 +1,7 @@
 import { heatPenalty, simulateHistoricalWeather, isNetworkBlockedError } from "./weather.js";
 import { runningCostMultiplier, cyclingCostMultiplier } from "./pace.js";
-import { fuelingBenchmarks } from "./fueling.js";
+import { fuelingBenchmarks, personalizeFueling } from "./fueling.js";
+import { buildCarryPlan, buildPacingSections } from "./aidStations.js";
 import { gatherLimiterPatterns } from "./analysis.js";
 import { parseClockToMinutes } from "./time.js";
 import { splitIntervalKm } from "./gpx.js";
@@ -68,7 +69,7 @@ export function estimateTargetTime(gpxData, sport, plannedWeather, allRaces) {
   return { minutes: estMinutes, clock: minutesToClock(estMinutes) };
 }
 
-export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces) {
+export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, aidStations = [], carryCapacityMl = null, manualFueling = {}) {
   const isCycling = isCyclingSport(sport);
   const costFn = isCycling ? cyclingCostMultiplier : runningCostMultiplier;
 
@@ -108,18 +109,27 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces) 
     }
   }
 
-  // Nutrition
-  const fueling = fuelingBenchmarks(minutesToClock(targetMinutes));
+  // Nutrition — personalised from the athlete's actual fueling in the reference races
+  // and any manual known-good rates, falling back to the research benchmark. See
+  // personalizeFueling for the per-metric precedence.
+  const benchmark = fuelingBenchmarks(minutesToClock(targetMinutes));
   const tempC = weather?.tempC ?? 18;
   const heatExtra = Math.max(0, tempC - 15);
-  const nutrition = {
-    carbsPerHr: fueling.needsCarbs ? `${fueling.carbsLow}–${fueling.carbsHigh}g` : "~30g",
-    sodiumMgHr: Math.round(500 + heatExtra * 50),
-    fluidsMlHr: Math.round(500 + heatExtra * 30),
-    caffeineMg: targetMinutes > 60 ? 200 : null,
-    rationale: fueling.rationale,
-    carbsLabel: fueling.carbsLabel,
-  };
+  const nutrition = personalizeFueling({
+    benchmark,
+    history: allRaces,
+    targetMinutes,
+    tempC,
+    manual: manualFueling,
+  });
+
+  // Aid-station carry plan — how much to carry between refill points (null when
+  // no stations were provided).
+  const carryPlan = buildCarryPlan(pacing, nutrition, aidStations, gpxData.distanceKm, targetMinutes, carryCapacityMl);
+
+  // Section-delimited pacing (one row per leg between aid stations); null when no
+  // stations were set, so the view falls back to the per-km pacing table.
+  const pacingSections = buildPacingSections(pacing, aidStations, gpxData.distanceKm);
 
   // Recommendations
   const { hotLimiters = [], underFueled = [] } = gatherLimiterPatterns(allRaces);
@@ -161,7 +171,9 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces) 
     targetMinutes,
     targetClock: minutesToClock(targetMinutes),
     pacing,
+    pacingSections,
     nutrition,
+    carryPlan,
     recommendations: recs,
     referenceRace,
     weather,

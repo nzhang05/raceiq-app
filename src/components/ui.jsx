@@ -1,29 +1,99 @@
 import { useState, useEffect, useRef } from "react";
-import { T, FONT_MONO, FONT_BODY, FONT_DISPLAY } from "../constants.js";
+import { T, R, FONT_MONO, FONT_BODY, FONT_DISPLAY } from "../constants.js";
 
 export const inputStyle = {
   width: "100%",
   fontFamily: FONT_MONO,
-  fontSize: 13,
+  fontSize: 13.5,
   color: T.paper,
-  background: T.bg2,
+  background: T.bg,
   border: `1px solid ${T.line}`,
-  borderRadius: 3,
-  padding: "9px 10px",
+  borderRadius: R.sm,
+  padding: "11px 12px",
   outline: "none",
+  transition: "border-color 140ms ease, box-shadow 140ms ease",
 };
 
 export function Field({ label, children, hint }) {
   return (
     <div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.7, color: T.inkDim, marginBottom: 6 }}>
-        {label.toUpperCase()}
+      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.ink, marginBottom: 7 }}>
+        {label}
       </div>
       {children}
       {hint && (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim, marginTop: 4 }}>{hint}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 5 }}>{hint}</div>
       )}
     </div>
+  );
+}
+
+/* Reusable card surface for the rounded-panel language. */
+export function Card({ children, style, className, ...rest }) {
+  return (
+    <div
+      className={className}
+      style={{
+        background: T.surface,
+        border: `1px solid ${T.line}`,
+        borderRadius: R.lg,
+        padding: 20,
+        ...style,
+      }}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* Primary / secondary / ghost pill button. */
+export function Button({ children, variant = "primary", style, ...rest }) {
+  const base = {
+    fontFamily: FONT_BODY,
+    fontSize: 13.5,
+    fontWeight: 600,
+    padding: "10px 18px",
+    borderRadius: R.pill,
+    cursor: "pointer",
+    transition: "all 140ms ease",
+    whiteSpace: "nowrap",
+  };
+  const variants = {
+    primary: { border: "none", background: T.brass, color: "#1A0E08" },
+    secondary: { border: `1px solid ${T.line}`, background: T.surface, color: T.paper },
+    ghost: { border: `1px solid ${T.brass}55`, background: `${T.brass}14`, color: T.brass },
+  };
+  return (
+    <button style={{ ...base, ...variants[variant], ...style }} {...rest}>
+      {children}
+    </button>
+  );
+}
+
+/* Small status pill (verdict, tags). */
+export function Pill({ color = T.ink, children, style }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontFamily: FONT_BODY,
+        fontSize: 12,
+        fontWeight: 600,
+        letterSpacing: 0.2,
+        color,
+        background: `${color}18`,
+        border: `1px solid ${color}33`,
+        borderRadius: R.pill,
+        padding: "4px 11px",
+        ...style,
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      {children}
+    </span>
   );
 }
 
@@ -32,8 +102,8 @@ export function TextInput(props) {
     <input
       {...props}
       style={inputStyle}
-      onFocus={(e) => (e.target.style.borderColor = T.brass)}
-      onBlur={(e) => (e.target.style.borderColor = T.line)}
+      onFocus={(e) => { e.target.style.borderColor = T.brass; e.target.style.boxShadow = `0 0 0 3px ${T.brass}22`; }}
+      onBlur={(e) => { e.target.style.borderColor = T.line; e.target.style.boxShadow = "none"; }}
     />
   );
 }
@@ -153,12 +223,13 @@ export function FormSectionTitle({ children }) {
     <div
       style={{
         fontFamily: FONT_DISPLAY,
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: 600,
+        letterSpacing: -0.2,
         color: T.paper,
-        marginTop: 32,
-        marginBottom: 14,
-        paddingBottom: 10,
+        marginTop: 34,
+        marginBottom: 16,
+        paddingBottom: 12,
         borderBottom: `1px solid ${T.line}`,
       }}
     >
@@ -170,15 +241,23 @@ export function FormSectionTitle({ children }) {
 export function Finding({ kind, title, body }) {
   const color = kind === "strength" ? T.green : kind === "limiter" ? T.ember : T.brass;
   return (
-    <div style={{ display: "flex", gap: 14, padding: "16px 0", borderBottom: `1px solid ${T.line}` }}>
-      <div style={{ flexShrink: 0, width: 8, paddingTop: 6 }}>
-        <span style={{ display: "block", width: 8, height: 8, borderRadius: "50%", background: color }} />
-      </div>
+    <div
+      style={{
+        display: "flex",
+        gap: 14,
+        padding: 16,
+        marginBottom: 10,
+        background: T.surface,
+        border: `1px solid ${T.line}`,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: R.md,
+      }}
+    >
       <div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 5, letterSpacing: 0.1 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 5, letterSpacing: -0.1 }}>
           {title}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.55, color: T.ink }}>{body}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.ink }}>{body}</div>
       </div>
     </div>
   );
@@ -187,14 +266,29 @@ export function Finding({ kind, title, body }) {
 export function Recommendation({ index, action, why }) {
   return (
     <div style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: `1px solid ${T.line}` }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.brass, flexShrink: 0, paddingTop: 2 }}>
-        {String(index).padStart(2, "0")}
+      <div
+        style={{
+          fontFamily: FONT_MONO,
+          fontSize: 13,
+          fontWeight: 500,
+          color: T.brass,
+          background: `${T.brass}18`,
+          borderRadius: R.pill,
+          width: 26,
+          height: 26,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {index}
       </div>
       <div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 500, color: T.paper, marginBottom: 4 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.1, color: T.paper, marginBottom: 4 }}>
           {action}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, lineHeight: 1.5 }}>{why}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, lineHeight: 1.55 }}>{why}</div>
       </div>
     </div>
   );

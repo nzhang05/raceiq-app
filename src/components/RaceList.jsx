@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORTS } from "../constants.js";
+import { T, R, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORTS } from "../constants.js";
 import { fmtDate } from "../utils/time.js";
 import { verdictColor, verdictLabel } from "../utils/ratings.js";
+import { Button, Pill } from "./ui.jsx";
 
-const ROW_COLS = "28px 1.2fr 0.7fr 0.55fr 0.5fr 0.55fr 0.45fr 0.6fr 28px";
+const ROW_COLS = "22px 1.7fr 0.7fr 0.75fr 0.8fr 0.8fr 112px 22px";
 
 function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index }) {
   const isCustom = race.id.startsWith("custom-");
@@ -16,11 +17,12 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
       className={`race-row${isSelected ? " is-selected" : ""}`}
       style={{
         display: "grid", gridTemplateColumns: ROW_COLS, alignItems: "center",
-        minHeight: 68, width: "100%", gap: 12, padding: "14px 18px",
-        background: isSelected ? "rgba(201,162,75,0.05)" : "transparent",
-        borderBottom: `1px solid ${T.line}`, cursor: "pointer",
+        minHeight: 66, width: "100%", gap: 14, padding: "12px 18px",
+        background: isSelected ? `${T.brass}12` : T.surface,
+        border: `1px solid ${isSelected ? `${T.brass}55` : T.line}`,
+        borderRadius: R.md, marginBottom: 8, cursor: "pointer",
         textAlign: "left", color: T.paper,
-        animation: `fadeIn 280ms ease both`, animationDelay: `${index * 45}ms`,
+        animation: `fadeIn 280ms ease both`, animationDelay: `${index * 40}ms`,
       }}
     >
       <div
@@ -29,37 +31,43 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
         style={{ display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
       >
         <div style={{
-          width: 14, height: 14, borderRadius: 2, flexShrink: 0,
+          width: 16, height: 16, borderRadius: 5, flexShrink: 0,
           border: `1.5px solid ${isSelected ? T.brass : T.inkDim}`,
           background: isSelected ? T.brass : "transparent",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          {isSelected && <span style={{ color: T.bg, fontSize: 9, lineHeight: 1, fontFamily: FONT_MONO }}>✓</span>}
+          {isSelected && <span style={{ color: T.bg, fontSize: 10, lineHeight: 1, fontWeight: 700 }}>✓</span>}
         </div>
       </div>
-      <div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 500, fontSize: 16, letterSpacing: 0.2 }}>{race.name}</div>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 3 }}>
+
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, letterSpacing: -0.2 }}>{race.name}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>
           {fmtDate(race.date)} · {race.sport}
         </div>
       </div>
+
       <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
-        {race.distanceKm} km
-        <div style={{ fontSize: 10, color: T.inkDim }}>+{race.elevationM}m</div>
+        {race.distanceKm}<span style={{ color: T.inkDim }}> km</span>
+        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>+{race.elevationM} m</div>
       </div>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600 }}>{race.finishTime}</div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink, lineHeight: 1.4 }}>
+
+      <div style={{ fontFamily: FONT_MONO, fontSize: 17, fontWeight: 500, color: T.paper }}>{race.finishTime}</div>
+
+      <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
         {race.placement}<span style={{ color: T.inkDim }}>/{race.field}</span>
+        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{race.percentile}th pct</div>
       </div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>{race.percentile}th pct</div>
+
       <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
         {race.tempC}°C
-        <div style={{ fontSize: 10, color: T.inkDim }}>{race.humidity}% hum</div>
+        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{race.humidity}% hum</div>
       </div>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.6, color: verdictColor(race.verdict), justifySelf: "start" }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: verdictColor(race.verdict), display: "inline-block", flexShrink: 0 }} />
-        {verdictLabel(race.verdict)}
+
+      <div>
+        <Pill color={verdictColor(race.verdict)}>{verdictLabel(race.verdict)}</Pill>
       </div>
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isCustom && (
           <button
@@ -67,7 +75,7 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
             aria-label={`Delete ${race.name}`}
             title="Delete race"
             className="delete-btn"
-            style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1, padding: "2px 4px", borderRadius: 3 }}
+            style={{ background: "none", border: "none", color: T.inkDim, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "2px 4px", borderRadius: 6 }}
           >
             ×
           </button>
@@ -86,23 +94,18 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
-        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 600, margin: 0, color: T.paper, letterSpacing: 0.2 }}>
-          Race History
-        </h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={onPlanRace}
-            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "9px 16px", borderRadius: 3, border: `1px solid ${T.brassDim}`, background: "transparent", color: T.brass, cursor: "pointer", fontWeight: 600 }}
-          >
-            PLAN A RACE
-          </button>
-          <button
-            onClick={onAddRace}
-            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "9px 16px", borderRadius: 3, border: "none", background: T.brass, color: T.bg, cursor: "pointer", fontWeight: 600 }}
-          >
-            + ADD RACE
-          </button>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, margin: 0, color: T.paper, letterSpacing: -0.6 }}>
+            Race history
+          </h1>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginTop: 4 }}>
+            Every race, and the story behind the result.
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button variant="secondary" onClick={onPlanRace}>Plan a race</Button>
+          <Button onClick={onAddRace}>+ Add race</Button>
         </div>
       </div>
 
@@ -111,41 +114,45 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
         const strengthCount = races.filter((r) => r.verdict === "strength").length;
         const limiterCount = races.filter((r) => r.verdict === "limiter").length;
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
             {[
-              { label: "Races Logged", value: races.length, bg: T.bg2, border: T.line, accent: T.paper },
-              { label: "Total Distance", value: `${totalDist}km`, bg: T.bg2, border: T.line, accent: T.paper },
-              { label: "Strength Tags", value: strengthCount, bg: T.greenDim, border: T.green + "40", accent: T.green },
-              { label: "Limiter Tags", value: limiterCount, bg: T.emberDim, border: T.ember + "40", accent: T.ember },
-            ].map(({ label, value, bg, border, accent }) => (
-              <div key={label} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: "16px 20px" }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim, marginBottom: 10 }}>{label.toUpperCase()}</div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, color: accent, lineHeight: 1 }}>{value}</div>
+              { label: "Races logged", value: races.length, accent: T.paper, tint: null },
+              { label: "Total distance", value: `${totalDist} km`, accent: T.paper, tint: null },
+              { label: "Strengths", value: strengthCount, accent: T.green, tint: T.green },
+              { label: "Limiters", value: limiterCount, accent: T.ember, tint: T.ember },
+            ].map(({ label, value, accent, tint }) => (
+              <div key={label} style={{
+                background: tint ? `${tint}12` : T.surface,
+                border: `1px solid ${tint ? `${tint}33` : T.line}`,
+                borderRadius: R.lg, padding: "18px 20px",
+              }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.inkDim, marginBottom: 12 }}>{label}</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 700, color: accent, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
               </div>
             ))}
           </div>
         );
       })()}
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
         {SPORTS.map((s) => (
           <button
             key={s}
             onClick={() => setSport(s)}
             style={{
-              fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "7px 12px", borderRadius: 3,
-              border: `1px solid ${sport === s ? T.brass : T.line}`,
-              background: sport === s ? "rgba(201,162,75,0.12)" : "transparent",
-              color: sport === s ? T.brass : T.inkDim, cursor: "pointer",
+              fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: R.pill,
+              border: `1px solid ${sport === s ? `${T.brass}66` : T.line}`,
+              background: sport === s ? `${T.brass}18` : "transparent",
+              color: sport === s ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease",
             }}
           >
-            {s.toUpperCase()}
+            {s}
           </button>
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: ROW_COLS, gap: 12, padding: "0 18px 10px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.8, color: T.inkDim }}>
-        <div /><div>RACE</div><div>DISTANCE</div><div>FINISH</div><div>PLACE</div><div>RESULT</div><div>CONDITIONS</div><div>DEBRIEF</div><div />
+      <div style={{ display: "grid", gridTemplateColumns: ROW_COLS, gap: 14, padding: "0 18px 10px", fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
+        <div /><div>Race</div><div>Distance</div><div>Finish</div><div>Place</div><div>Conditions</div><div>Debrief</div><div />
       </div>
 
       <div>
@@ -153,33 +160,27 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
           <RaceListRow key={r.id} race={r} onOpen={onOpen} onDelete={onDelete} onToggleSelect={onToggleSelect} isSelected={selectedIds.has(r.id)} index={i} />
         ))}
         {filtered.length === 0 && (
-          <div style={{ padding: "40px 18px", color: T.inkDim, fontFamily: FONT_BODY, fontSize: 15 }}>
-            No races logged in this sport yet. Import a race to start building your resume.
+          <div style={{ padding: "48px 18px", textAlign: "center", color: T.inkDim, fontFamily: FONT_BODY, fontSize: 15 }}>
+            No races logged in this sport yet. Add a race to start building your résumé.
           </div>
         )}
       </div>
 
       {selectedIds.size >= 2 && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: T.bg2, borderTop: `1px solid ${T.line}`, padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "center", gap: 16, boxShadow: "0 -4px 24px rgba(0,0,0,0.4)" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.ink, letterSpacing: 0.5 }}>
-            {selectedIds.size} RACES SELECTED
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 200, background: T.surfaceHi, border: `1px solid ${T.line}`, borderRadius: R.pill, padding: "10px 12px 10px 22px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 10px 34px rgba(20,26,33,0.16)" }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
+            {selectedIds.size} races selected
           </span>
-          <button
-            onClick={onCompare}
-            disabled={selectedIds.size > 3}
-            style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, fontWeight: 600, padding: "9px 20px", borderRadius: 3, border: "none", background: T.brass, color: T.bg, cursor: "pointer" }}
-          >
-            COMPARE →
-          </button>
+          {selectedIds.size > 3 && (
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.ember }}>Max 3</span>
+          )}
+          <Button onClick={onCompare} disabled={selectedIds.size > 3} style={{ opacity: selectedIds.size > 3 ? 0.5 : 1 }}>Compare →</Button>
           <button
             onClick={onClearSelection}
-            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "9px 14px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
+            style={{ fontFamily: FONT_BODY, fontSize: 13, padding: "8px 12px", borderRadius: R.pill, border: "none", background: "transparent", color: T.inkDim, cursor: "pointer" }}
           >
-            × CLEAR
+            Clear
           </button>
-          {selectedIds.size > 3 && (
-            <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.ember }}>Max 3 races</span>
-          )}
         </div>
       )}
     </div>

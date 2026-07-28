@@ -1,24 +1,74 @@
-export const T = {
-  bg: "#13201B",
-  bg2: "#0F1916",
-  paper: "#F4F0E4",
-  ink: "#B9C2B5",
-  inkDim: "#7C8A80",
-  line: "#28362E",
-  brass: "#C9A24B",
-  brassDim: "#8A7440",
-  green: "#4FAE8C",
-  greenDim: "#345F4E",
-  ember: "#FF6A39",
-  emberDim: "#7A3D26",
-  temp: "#7BB8C8",
+/* ---------------------------------------------------------
+   Design tokens — "modern sport-tech" (v2)
+   Cooler neutral-slate dark surfaces, soft depth, a single
+   vivid accent (coral-orange). Token *names* are unchanged
+   from v1 so every view re-skins for free; only values moved.
+     bg        app background (deepest)
+     surface   card / panel base
+     surfaceHi elevated + hover state
+     line      hairline dividers
+     paper     primary text (near-white)
+     ink       secondary text
+     inkDim    tertiary / captions
+     brass     THE accent — CTAs, scores, active states, "mixed"
+     green     strength   ember  limiter
+   --------------------------------------------------------- */
+
+/* Two palettes sharing identical token *names* so components read `T`
+   without caring about mode. `T` is the active theme; a future dark-mode
+   toggle swaps which object `T` points at (see project-design-system memo
+   — a runtime toggle will need CSS-variable/context theming since imports
+   are static). "paper" = primary text, "bg" = app background in both. */
+
+const LIGHT = {
+  bg: "#F4F6F8",       // app background (cool light gray)
+  bg2: "#FFFFFF",      // legacy alias — base card surface
+  surface: "#FFFFFF",
+  surfaceHi: "#EDF0F4", // elevated + hover
+  paper: "#151A21",    // primary text (near-black)
+  ink: "#525A64",      // secondary text
+  inkDim: "#8B939D",   // tertiary / captions
+  line: "#E3E7EC",     // hairline dividers
+  brass: "#E85D2C",    // vivid coral-orange accent (deepened for white)
+  brassDim: "#B45E38",
+  green: "#0E9E6E",
+  greenDim: "#BFE6D5",
+  ember: "#E24955",
+  emberDim: "#F3C2C4",
+  temp: "#3E90AA",
 };
+
+const DARK = {
+  bg: "#0E1217",
+  bg2: "#161C23",
+  surface: "#161C23",
+  surfaceHi: "#1E262F",
+  paper: "#F2F5F8",
+  ink: "#AAB4C0",
+  inkDim: "#6B7580",
+  line: "#242C35",
+  brass: "#F97C4A",
+  brassDim: "#8A4A30",
+  green: "#33D69A",
+  greenDim: "#16332B",
+  ember: "#F0555C",
+  emberDim: "#331B20",
+  temp: "#6FB6CC",
+};
+
+export const THEMES = { light: LIGHT, dark: DARK };
+
+// Active theme. Flip to THEMES.dark (or wire a toggle) for dark mode.
+export const T = LIGHT;
+
+// Radius scale for the rounded-card language
+export const R = { sm: 8, md: 12, lg: 16, pill: 999 };
 
 export const COMPARE_COLORS = [T.paper, T.green, T.brass];
 
-export const FONT_DISPLAY = "'Oswald', 'Arial Narrow', sans-serif";
-export const FONT_BODY = "'Source Serif 4', Georgia, serif";
-export const FONT_MONO = "'IBM Plex Mono', 'Courier New', monospace";
+export const FONT_DISPLAY = "'Space Grotesk', 'Inter', system-ui, sans-serif";
+export const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
+export const FONT_MONO = "'IBM Plex Mono', 'SFMono-Regular', monospace";
 
 export const SPORTS = ["All", "Road Running", "Trail Running", "Road Cycling", "Gravel Cycling"];
 export const SPORT_OPTIONS = SPORTS.filter((s) => s !== "All");

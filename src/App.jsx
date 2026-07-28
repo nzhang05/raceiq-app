@@ -11,7 +11,7 @@ import RacePlanView from "./components/RacePlanView.jsx";
 
 const FONT_IMPORT = (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
     :root {
       --bg: ${T.bg};
@@ -27,8 +27,14 @@ const FONT_IMPORT = (
     }
 
     * { box-sizing: border-box; }
-    html, body { background: ${T.bg}; margin: 0; }
-    ::selection { background: ${T.brass}; color: ${T.bg}; }
+    html, body {
+      background: ${T.bg};
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: ${T.brass}; color: #fff; }
 
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -47,9 +53,10 @@ const FONT_IMPORT = (
       position: sticky;
       top: 0;
       z-index: 100;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      background: rgba(19, 32, 27, 0.88) !important;
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      /* tracks light T.bg (#F4F6F8) at ~72% — update alongside theme toggle */
+      background: rgba(244, 246, 248, 0.72) !important;
     }
 
     .view-enter {
@@ -57,10 +64,11 @@ const FONT_IMPORT = (
     }
 
     .race-row {
-      transition: background 120ms ease, transform 120ms ease;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
     }
     .race-row:hover {
-      background: rgba(244, 240, 228, 0.04) !important;
+      background: ${T.surfaceHi} !important;
+      border-color: ${T.brass}44 !important;
       transform: translateY(-1px);
     }
     .race-row .delete-btn {
@@ -86,12 +94,14 @@ const FONT_IMPORT = (
 
     .score-badge {
       display: inline-block;
-      background: rgba(201, 162, 75, 0.1);
-      border: 1px solid ${T.brassDim};
-      border-radius: 4px;
+      background: ${T.brass}1A;
+      border: 1px solid ${T.brass}44;
+      border-radius: 999px;
       padding: 2px 10px;
       line-height: 1;
     }
+
+    button { font-family: inherit; }
 
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
@@ -175,60 +185,58 @@ export default function RaceIQApp() {
 
       <div className="app-header" style={{ borderBottom: `1px solid ${T.line}` }}>
         <div style={{ padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <button
-              onClick={() => setView("list")}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "baseline", gap: 0 }}
-            >
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 700, letterSpacing: 0.5, color: T.paper }}>RACE</span>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 700, letterSpacing: 0.5, color: T.brass, border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "0 4px", marginLeft: 1, lineHeight: 1 }}>IQ</span>
-            </button>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: T.inkDim, letterSpacing: 0.6, marginLeft: 8 }}>PROTOTYPE</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <button
+            onClick={() => setView("list")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "baseline", gap: 1 }}
+          >
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.paper }}>Race</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.brass }}>IQ</span>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               onClick={() => openCoach(null)}
-              style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "6px 14px", borderRadius: 3, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? "rgba(201,162,75,0.12)" : "transparent", color: view === "coach" ? T.brass : T.inkDim, cursor: "pointer" }}
+              style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 16px", borderRadius: 999, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? `${T.brass}1A` : "transparent", color: view === "coach" ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease" }}
             >
-              ASK RACEIQ
+              Ask RaceIQ
             </button>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim }}>
-              ALEX MORENO · RATING <span style={{ color: T.brass }}>1842</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: T.surface, border: `1px solid ${T.line}` }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>Alex Moreno</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}>1842</span>
             </div>
           </div>
         </div>
 
         {view !== "list" && (
-          <div style={{ padding: "0 32px 10px", display: "flex", alignItems: "center", gap: 6, fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5 }}>
-            <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}>
-              RACES
+          <div style={{ padding: "0 32px 12px", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
+            <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
+              Races
             </button>
             {(view === "debrief" || view === "add" || view === "coach" || view === "compare" || view === "plan" || view === "plan-view") && (
               <>
-                <span style={{ color: T.line, fontSize: 12 }}>›</span>
-                {view === "debrief" && activeRace && <span style={{ color: T.ink }}>{activeRace.name.toUpperCase()}</span>}
-                {view === "add" && <span style={{ color: T.ink }}>ADD RACE</span>}
-                {view === "compare" && <span style={{ color: T.ink }}>COMPARE</span>}
-                {view === "plan" && <span style={{ color: T.ink }}>PLAN A RACE</span>}
+                <span style={{ color: T.line }}>/</span>
+                {view === "debrief" && activeRace && <span style={{ color: T.ink }}>{activeRace.name}</span>}
+                {view === "add" && <span style={{ color: T.ink }}>Add race</span>}
+                {view === "compare" && <span style={{ color: T.ink }}>Compare</span>}
+                {view === "plan" && <span style={{ color: T.ink }}>Plan a race</span>}
                 {view === "plan-view" && (
                   <>
-                    <button onClick={() => setView("plan")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}>
-                      PLAN A RACE
+                    <button onClick={() => setView("plan")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
+                      Plan a race
                     </button>
-                    <span style={{ color: T.line, fontSize: 12 }}>›</span>
-                    <span style={{ color: T.ink }}>{planData?.course?.name?.toUpperCase() ?? "RACE PLAN"}</span>
+                    <span style={{ color: T.line }}>/</span>
+                    <span style={{ color: T.ink }}>{planData?.course?.name ?? "Race plan"}</span>
                   </>
                 )}
                 {view === "coach" && coachContextRace && (
                   <>
-                    <button onClick={() => setView("debrief")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}>
-                      {coachContextRace.name.toUpperCase()}
+                    <button onClick={() => setView("debrief")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
+                      {coachContextRace.name}
                     </button>
-                    <span style={{ color: T.line, fontSize: 12 }}>›</span>
-                    <span style={{ color: T.ink }}>ASK RACEIQ</span>
+                    <span style={{ color: T.line }}>/</span>
+                    <span style={{ color: T.ink }}>Ask RaceIQ</span>
                   </>
                 )}
-                {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>ASK RACEIQ</span>}
+                {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>Ask RaceIQ</span>}
               </>
             )}
           </div>

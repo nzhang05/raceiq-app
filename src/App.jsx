@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SEED_RACES } from "./constants.js";
-import { loadCustomRaces, saveCustomRaces } from "./utils/storage.js";
+import { loadCustomRaces, saveCustomRaces, migrateLocalRaces } from "./utils/storage.js";
+import { useAuth } from "./context/AuthContext.jsx";
+import SignIn from "./components/SignIn.jsx";
 import RaceList from "./components/RaceList.jsx";
 import AddRaceForm from "./components/AddRaceForm.jsx";
 import RaceDebrief from "./components/RaceDebrief.jsx";
@@ -110,6 +112,7 @@ const FONT_IMPORT = (
 );
 
 export default function RaceIQApp() {
+  const { ready, isConfigured, user, profile, signOut } = useAuth();
   const [view, setView] = useState("list");
   const [activeId, setActiveId] = useState(null);
   const [coachContextRaceId, setCoachContextRaceId] = useState(null);
@@ -118,12 +121,26 @@ export default function RaceIQApp() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [planData, setPlanData] = useState(null);
 
+  // Load races for the current context. When Supabase is configured, this
+  // re-runs on sign-in/out (keyed on user id) and imports any localStorage
+  // races into the account once, on first login.
   useEffect(() => {
-    loadCustomRaces().then((races) => {
-      setCustomRaces(races);
-      setLoaded(true);
-    });
-  }, []);
+    if (isConfigured && !user) {
+      setCustomRaces([]);
+      setLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      if (isConfigured && user) await migrateLocalRaces();
+      const races = await loadCustomRaces();
+      if (!cancelled) {
+        setCustomRaces(races);
+        setLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isConfigured, user?.id]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -179,6 +196,15 @@ export default function RaceIQApp() {
     else setView("list");
   }
 
+  // Auth gate (only when a backend is configured). While the session resolves
+  // we render a neutral background; unauthenticated users get the SignIn screen.
+  if (isConfigured && !ready) {
+    return <div style={{ minHeight: "100vh", background: T.bg }}>{FONT_IMPORT}</div>;
+  }
+  if (isConfigured && !user) {
+    return <>{FONT_IMPORT}<SignIn /></>;
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.paper, fontFamily: FONT_BODY, padding: "0" }}>
       {FONT_IMPORT}
@@ -200,9 +226,21 @@ export default function RaceIQApp() {
               Ask RaceIQ
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: T.surface, border: `1px solid ${T.line}` }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>Alex Moreno</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}>1842</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
+                {profile?.display_name ?? user?.email ?? "Alex Moreno"}
+              </span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}>
+                {profile?.rating ?? 1842}
+              </span>
             </div>
+            {isConfigured && user && (
+              <button
+                onClick={signOut}
+                style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 999, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer", transition: "all 140ms ease" }}
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
 

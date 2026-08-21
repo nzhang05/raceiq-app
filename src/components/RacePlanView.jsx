@@ -3,6 +3,7 @@ import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../constants.js";
 import { Recommendation } from "./ui.jsx";
 import { FUEL_ITEMS, tallyKit } from "../utils/fuelKit.js";
 import { printPlan } from "../utils/planPdf.js";
+import { useNarrative } from "../hooks/useNarrative.js";
 
 function fmtPace(minPerKm) {
   if (!minPerKm || minPerKm <= 0) return "—";
@@ -68,8 +69,17 @@ function KitProgress({ label, value, target, unit }) {
   );
 }
 
-export default function RacePlanView({ plan, onBack, onLogRace, onAskCoach }) {
+export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskCoach }) {
   const { course, targetClock, pacing, pacingSections, nutrition, carryPlan, recommendations, referenceRace, weather, raceDate } = plan;
+
+  // Rule-engine recommendations render immediately; the analysis — which reads
+  // this athlete's full race history against this course and forecast —
+  // replaces them once it arrives, and is skipped entirely when the athlete is
+  // signed out or the service is unavailable.
+  const args = useMemo(() => ({ plan, races: allRaces ?? [] }), [plan, allRaces]);
+  const { narrative, status } = useNarrative("plan", args);
+  const shownRecs = narrative?.recommendations?.length ? narrative.recommendations : recommendations;
+  const narrativeNote = status === "loading" ? "ANALYSING…" : status === "ready" ? "AI ANALYSIS" : null;
 
   const [kitQty, setKitQty] = useState({});
   const kit = useMemo(() => tallyKit(kitQty), [kitQty]);
@@ -337,11 +347,21 @@ export default function RacePlanView({ plan, onBack, onLogRace, onAskCoach }) {
 
       {/* Tactical Recommendations */}
       <div style={{ marginBottom: 36 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper, marginBottom: 4, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
-          Tactical Recommendations
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>
+            Tactical Recommendations
+          </div>
+          {narrativeNote && (
+            <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.5, color: T.inkDim }}>{narrativeNote}</span>
+          )}
         </div>
-        {recommendations.map((rec, i) => (
-          <Recommendation key={i} index={i + 1} action={rec.action} why={rec.why} />
+        {narrative?.headline && (
+          <div style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.6, color: T.ink, margin: "14px 0 6px", maxWidth: 680 }}>
+            {narrative.headline}
+          </div>
+        )}
+        {shownRecs.map((rec, i) => (
+          <Recommendation key={i} index={i + 1} action={rec.action} why={rec.why} evidence={rec.evidence} />
         ))}
       </div>
 

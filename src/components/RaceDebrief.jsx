@@ -5,24 +5,44 @@ import { parseClockToMinutes } from "../utils/time.js";
 import { verdictColor, verdictLabel } from "../utils/ratings.js";
 import { fuelingBenchmarks } from "../utils/fueling.js";
 import { buildDebrief } from "../utils/analysis.js";
+import { useNarrative } from "../hooks/useNarrative.js";
 import PaceHeatStrip from "./PaceHeatStrip.jsx";
 import { Finding, Recommendation, Card, Button, Pill } from "./ui.jsx";
 
-function SectionHeader({ title, sub }) {
+function SectionHeader({ title, sub, note }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: -0.3, color: T.paper }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: -0.3, color: T.paper }}>{title}</div>
+        {note && <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.5, color: T.inkDim }}>{note}</span>}
+      </div>
       {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginTop: 4, maxWidth: 620 }}>{sub}</div>}
     </div>
   );
 }
 
-export default function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
+export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, onEdit }) {
   const { strengths, limiters, recs } = useMemo(() => buildDebrief(race), [race]);
-  const allFindings = [
-    ...strengths.map((s) => ({ ...s, kind: "strength" })),
-    ...limiters.map((s) => ({ ...s, kind: "limiter" })),
-  ];
+
+  // Memoised because the hook re-requests whenever this identity changes.
+  const args = useMemo(
+    () => ({ race, races: allRaces ?? [], plan: plan ?? null }),
+    [race, allRaces, plan],
+  );
+  const { narrative, status } = useNarrative("debrief", args);
+
+  // The rule-engine findings render immediately and stand on their own. The
+  // full analysis — which also sees the raw splits, this athlete's other races,
+  // and the pre-race plan — replaces them when it arrives.
+  const allFindings = narrative?.findings?.length
+    ? narrative.findings
+    : [
+        ...strengths.map((s) => ({ ...s, kind: "strength" })),
+        ...limiters.map((s) => ({ ...s, kind: "limiter" })),
+      ];
+  const shownRecs = narrative?.recommendations?.length ? narrative.recommendations : recs;
+  const headline = narrative?.headline || race.headline;
+  const analysisNote = status === "loading" ? "ANALYSING…" : status === "ready" ? "AI ANALYSIS" : null;
   const vColor = verdictColor(race.verdict);
 
   return (
@@ -47,7 +67,7 @@ export default function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
         <div style={{ width: 3, alignSelf: "stretch", background: vColor, borderRadius: 2, flexShrink: 0 }} />
         <div>
           <div style={{ marginBottom: 12 }}><Pill color={vColor}>{verdictLabel(race.verdict)}</Pill></div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.32, color: T.paper, maxWidth: 680, letterSpacing: -0.3 }}>{race.headline}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.32, color: T.paper, maxWidth: 680, letterSpacing: -0.3 }}>{headline}</div>
         </div>
       </div>
 
@@ -76,9 +96,11 @@ export default function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1.35fr 1fr", gap: 44, marginBottom: 8 }}>
         <div>
-          <SectionHeader title="Findings" sub="What the data shows, in order of impact on the result." />
+          <SectionHeader title="Findings" sub="What the data shows, in order of impact on the result." note={analysisNote} />
           <div>
-            {allFindings.map((f, i) => <Finding key={i} kind={f.kind} title={f.title} body={f.body} />)}
+            {allFindings.map((f, i) => (
+              <Finding key={i} kind={f.kind} title={f.title} body={f.body} evidence={f.evidence} />
+            ))}
           </div>
         </div>
 
@@ -156,9 +178,11 @@ export default function RaceDebrief({ race, onBack, onAskCoach, onEdit }) {
       </div>
 
       <div style={{ marginTop: 48 }}>
-        <SectionHeader title="Recommendations for next time" sub="Specific, evidence-backed changes — not general advice." />
+        <SectionHeader title="Recommendations for next time" sub="Specific, evidence-backed changes — not general advice." note={analysisNote} />
         <div>
-          {recs.map((r, i) => <Recommendation key={i} index={i + 1} action={r.action} why={r.why} />)}
+          {shownRecs.map((r, i) => (
+            <Recommendation key={i} index={i + 1} action={r.action} why={r.why} evidence={r.evidence} />
+          ))}
         </div>
       </div>
 

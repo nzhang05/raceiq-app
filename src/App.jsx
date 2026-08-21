@@ -111,8 +111,17 @@ const FONT_IMPORT = (
   `}</style>
 );
 
+// RaceIQ used to ask athletes for their own Anthropic key and keep it in
+// localStorage. Claude calls now run server-side (api/claude.js), so any key
+// left behind by that flow is a credential sitting in the browser for no
+// reason — clear it once, on load.
+function purgeLegacyApiKey() {
+  try { localStorage.removeItem("raceiq:apikey"); } catch {}
+}
+
 export default function RaceIQApp() {
   const { ready, isConfigured, user, profile, signOut } = useAuth();
+  useEffect(purgeLegacyApiKey, []);
   const [view, setView] = useState("list");
   const [activeId, setActiveId] = useState(null);
   const [coachContextRaceId, setCoachContextRaceId] = useState(null);
@@ -312,6 +321,11 @@ export default function RaceIQApp() {
         {view === "debrief" && activeRace && (
           <RaceDebrief
             race={activeRace}
+            allRaces={allRaces}
+            // The in-memory plan is only the athlete's most recent one, so pass
+            // it as planned-vs-actual context only when the course actually
+            // matches this race. Plans aren't persisted or linked to a race yet.
+            plan={planData?.course?.name === activeRace.name ? planData : null}
             onBack={() => setView("list")}
             onAskCoach={() => openCoach(activeRace.id)}
             onEdit={activeRace.id.startsWith("custom-") ? () => setView("edit") : undefined}
@@ -330,6 +344,7 @@ export default function RaceIQApp() {
         {view === "plan-view" && planData && (
           <RacePlanView
             plan={planData}
+            allRaces={allRaces}
             onBack={() => setView("list")}
             onLogRace={() => setView("add")}
             onAskCoach={() => openCoach(null)}

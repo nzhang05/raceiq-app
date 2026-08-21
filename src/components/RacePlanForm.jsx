@@ -7,8 +7,8 @@ import { fuelingBenchmarks, personalizeFueling } from "../utils/fueling.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
 import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete, inputStyle } from "./ui.jsx";
 import ElevationProfile from "./ElevationProfile.jsx";
-
-const APIKEY_STORAGE_KEY = "raceiq:apikey";
+import { useAuth } from "../context/AuthContext.jsx";
+import { estimateFinishTime } from "../lib/coachApi.js";
 
 let stationSeq = 0;
 const uid = () => `as-${Date.now()}-${stationSeq++}`;
@@ -32,70 +32,8 @@ function StationToggle({ on, onClick }) {
   );
 }
 
-async function estimateWithClaude(apiKey, gpxData, sport, plannedTempC, races) {
-  const sorted = [...races].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
-  const isCycling = isCyclingSport(sport);
-
-  const historyText = sorted.map(r => {
-    const min = parseClockToMinutes(r.finishTime);
-    const pace = min / r.distanceKm;
-    const paceStr = isCycling
-      ? `${(r.distanceKm / (min / 60)).toFixed(1)} km/h`
-      : `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")} min/km`;
-    return `- ${r.date || "unknown date"}: ${r.distanceKm} km, +${r.elevationM ?? 0}m elev, ${r.finishTime} (${paceStr}), ~${r.tempC ?? "?"}°C`;
-  }).join("\n");
-
-  const elevDensity = gpxData.distanceKm > 0 ? (gpxData.elevationM / gpxData.distanceKm).toFixed(1) : "?";
-
-  const prompt = `You are a sports performance analyst estimating a finish time for an endurance athlete.
-
-PAST ${sport.toUpperCase()} RACES (chronological, all selected by the athlete as reference):
-${historyText || "None."}
-
-UPCOMING RACE:
-- Distance: ${gpxData.distanceKm} km
-- Elevation: +${gpxData.elevationM}m (${elevDensity} m/km density)
-- Temp: ${plannedTempC}°C
-- Course: ${gpxData.name || "unknown"}
-
-Instructions:
-1. If there are 2+ races, assess whether there is a meaningful improvement trend (pace improving race to race at comparable distances/elevation). If yes, project that trend forward. If the trend is noisy or inconsistent, anchor to the best performance instead.
-2. Adjust for the distance difference using the Riegel exponent (1.06 for running, 1.0 for cycling).
-3. Add ~1 min per 100m of elevation gain above the reference race's elevation.
-4. Apply a small heat penalty if temp > 20°C.
-5. Be realistic — do not over-extrapolate a trend beyond what the data supports.
-
-Return ONLY valid JSON: {"estimatedMinutes": <number>, "reasoning": "<one concise sentence explaining the key factor — trend, best result, or course adjustment>"}`;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 300,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error?.message || `API error ${res.status}`);
-  }
-  const json = await res.json();
-  const text = json.content?.[0]?.text ?? "";
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("No JSON in Claude response");
-  const parsed = JSON.parse(match[0]);
-  if (typeof parsed.estimatedMinutes !== "number") throw new Error("Missing estimatedMinutes");
-  return { minutes: parsed.estimatedMinutes, reasoning: parsed.reasoning || "" };
-}
-
 export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
+  const { user, profile } = useAuth();
   const [sport, setSport] = useState(SPORT_OPTIONS[0]);
   const [raceDate, setRaceDate] = useState(new Date().toISOString().slice(0, 10));
   const [gpxData, setGpxData] = useState(null);
@@ -234,29 +172,31 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       setEstimateSource("fallback");
     }
 
-    const apiKey = (() => { try { return localStorage.getItem(APIKEY_STORAGE_KEY); } catch { return null; } })();
-
-    if (apiKey && selectedRaces.length > 0) {
+    // The AI estimate runs server-side (see api/claude.js) and needs a signed-in
+    // athlete. Any failure — signed out, unconfigured, rate limited, offline —
+    // falls back to the deterministic estimate rather than surfacing an error.
+    if (user && selectedRaces.length > 0) {
       setEstimateSource("loading");
       setDerivedNote("");
-      estimateWithClaude(apiKey, gpxData, sport, plannedTempC, selectedRaces)
-        .then(({ minutes, reasoning }) => {
-          const h = Math.floor(minutes / 60);
-          const m = Math.floor(minutes % 60);
-          const s = Math.round((minutes * 60) % 60);
-          const clock = h > 0
-            ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-            : `${m}:${String(s).padStart(2, "0")}`;
-          setDerivedClock(clock);
-          setTargetClock(clock);
-          setDerivedNote(reasoning);
+      estimateFinishTime({
+        course: gpxData,
+        sport,
+        tempC: plannedTempC,
+        races: selectedRaces,
+        isCycling: isCyclingSport(sport),
+        profile,
+      })
+        .then(({ estimatedMinutes, reasoning }) => {
+          setDerivedClock(minutesToClock(estimatedMinutes));
+          setTargetClock(minutesToClock(estimatedMinutes));
+          setDerivedNote(reasoning || "");
           setEstimateSource("ai");
         })
         .catch(() => applyDeterministic());
     } else {
       applyDeterministic();
     }
-  }, [gpxData, sport, tempC, selectedRaces]);
+  }, [gpxData, sport, tempC, selectedRaces, user, profile]);
 
   async function handleFileImport(e) {
     const file = e.target.files?.[0];

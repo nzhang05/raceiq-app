@@ -238,7 +238,34 @@ export function FormSectionTitle({ children }) {
   );
 }
 
-export function Finding({ kind, title, body }) {
+// `evidence` is the list of data points a finding rests on. It's what makes an
+// AI-written claim checkable, so it renders rather than staying in the payload.
+export function EvidenceList({ items }) {
+  if (!items?.length) return null;
+  return (
+    <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {items.map((item, i) => (
+        <span
+          key={i}
+          style={{
+            fontFamily: FONT_MONO,
+            fontSize: 10.5,
+            lineHeight: 1.5,
+            color: T.inkDim,
+            background: T.surfaceHi,
+            border: `1px solid ${T.line}`,
+            borderRadius: R.sm,
+            padding: "3px 8px",
+          }}
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function Finding({ kind, title, body, evidence }) {
   const color = kind === "strength" ? T.green : kind === "limiter" ? T.ember : T.brass;
   return (
     <div
@@ -258,12 +285,13 @@ export function Finding({ kind, title, body }) {
           {title}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.ink }}>{body}</div>
+        <EvidenceList items={evidence} />
       </div>
     </div>
   );
 }
 
-export function Recommendation({ index, action, why }) {
+export function Recommendation({ index, action, why, evidence }) {
   return (
     <div style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: `1px solid ${T.line}` }}>
       <div
@@ -289,6 +317,7 @@ export function Recommendation({ index, action, why }) {
           {action}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, lineHeight: 1.55 }}>{why}</div>
+        <EvidenceList items={evidence} />
       </div>
     </div>
   );

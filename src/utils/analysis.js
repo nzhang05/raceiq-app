@@ -202,26 +202,31 @@ function addSectionFuelingFindings(race, sections, fuel, m, durationMin, out) {
 }
 
 export function gatherDiagnosticData(race) {
-  const key = race.splits?.[0]?.gapPace != null ? "gapPace" : "pace";
-  const drift = paceDriftPct(race.splits);
+  // Races entered by hand may carry no splits and no fueling log, so every read
+  // below is guarded — this runs server-side for the coach, where a throw is a
+  // 500 rather than a blank panel.
+  const splits = race.splits ?? [];
+  const key = splits[0]?.gapPace != null ? "gapPace" : "pace";
+  const drift = paceDriftPct(splits);
   const fuel = fuelingBenchmarks(race.finishTime);
   const durationMin = Math.round(parseClockToMinutes(race.finishTime));
   const hot = race.tempC >= 24;
-  const fuelingGap = fuel.needsCarbs ? race.fueling.carbsPerHr - fuel.carbsLow : null;
+  const carbsTaken = race.fueling?.carbsPerHr;
+  const fuelingGap = fuel.needsCarbs && carbsTaken != null ? carbsTaken - fuel.carbsLow : null;
   const { strengths, limiters, recs } = buildDebrief(race);
 
   let turnKm = null;
   let maxJump = -Infinity;
-  for (let i = 1; i < race.splits.length; i++) {
-    const jump = race.splits[i][key] - race.splits[i - 1][key];
-    if (jump > maxJump) { maxJump = jump; turnKm = race.splits[i].km; }
+  for (let i = 1; i < splits.length; i++) {
+    const jump = splits[i][key] - splits[i - 1][key];
+    if (jump > maxJump) { maxJump = jump; turnKm = splits[i].km; }
   }
 
   return {
     race, durationMin, drift, hot, fuelingGap, fuelRange: fuel.carbsLabel, fuelLow: fuel.carbsLow,
     needsCarbs: fuel.needsCarbs, turnKm,
-    firstPace: fmtPace(race.splits[0][key]),
-    lastPace: fmtPace(race.splits[race.splits.length - 1][key]),
+    firstPace: splits.length ? fmtPace(splits[0][key]) : "—",
+    lastPace: splits.length ? fmtPace(splits[splits.length - 1][key]) : "—",
     strengths, limiters, recs,
   };
 }
@@ -285,7 +290,7 @@ export function gatherLimiterPatterns(races) {
     hotLimiters: limiters.filter(r => r.tempC >= 24),
     underFueled: limiters.filter(r => {
       const fuel = fuelingBenchmarks(r.finishTime);
-      return fuel.needsCarbs && r.fueling.carbsPerHr < fuel.carbsLow;
+      return fuel.needsCarbs && r.fueling?.carbsPerHr != null && r.fueling.carbsPerHr < fuel.carbsLow;
     }),
     coolStrengths: strengths.filter(r => r.tempC <= 14),
   };

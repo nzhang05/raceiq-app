@@ -3,6 +3,7 @@ import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SEED_RACES } from "./constants.j
 import { loadCustomRaces, saveCustomRaces, migrateLocalRaces } from "./utils/storage.js";
 import { useAuth } from "./context/AuthContext.jsx";
 import SignIn from "./components/SignIn.jsx";
+import ProfileForm from "./components/ProfileForm.jsx";
 import RaceList from "./components/RaceList.jsx";
 import AddRaceForm from "./components/AddRaceForm.jsx";
 import RaceDebrief from "./components/RaceDebrief.jsx";
@@ -234,14 +235,17 @@ export default function RaceIQApp() {
             >
               Ask RaceIQ
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: T.surface, border: `1px solid ${T.line}` }}>
+            <button
+              onClick={() => setView("profile")}
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: view === "profile" ? T.surfaceHi : T.surface, border: `1px solid ${view === "profile" ? T.brass : T.line}`, cursor: "pointer", transition: "all 140ms ease" }}
+            >
               <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
                 {profile?.display_name ?? user?.email ?? "Alex Moreno"}
               </span>
               <span style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}>
                 {profile?.rating ?? 1842}
               </span>
-            </div>
+            </button>
             {isConfigured && user && (
               <button
                 onClick={signOut}
@@ -258,6 +262,7 @@ export default function RaceIQApp() {
             <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
               Races
             </button>
+            {view === "profile" && <><span style={{ color: T.line }}>/</span><span style={{ color: T.ink }}>Profile</span></>}
             {(view === "debrief" || view === "add" || view === "coach" || view === "compare" || view === "plan" || view === "plan-view") && (
               <>
                 <span style={{ color: T.line }}>/</span>
@@ -311,6 +316,9 @@ export default function RaceIQApp() {
             onOpenDebrief={(id) => { setActiveId(id); setView("debrief"); }}
             onAskCoach={() => openCoach(null)}
           />
+        )}
+        {view === "profile" && (
+          <ProfileForm onBack={() => setView("list")} />
         )}
         {view === "add" && (
           <AddRaceForm onSave={handleSaveRace} onCancel={() => setView("list")} />

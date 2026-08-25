@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------
    Design tokens — "modern sport-tech" (v2)
    Cooler neutral-slate dark surfaces, soft depth, a single
-   vivid accent (coral-orange). Token *names* are unchanged
+   vivid accent (teal). Token *names* are unchanged
    from v1 so every view re-skins for free; only values moved.
      bg        app background (deepest)
      surface   card / panel base
@@ -29,8 +29,8 @@ const LIGHT = {
   ink: "#525A64",      // secondary text
   inkDim: "#8B939D",   // tertiary / captions
   line: "#E3E7EC",     // hairline dividers
-  brass: "#E85D2C",    // vivid coral-orange accent (deepened for white)
-  brassDim: "#B45E38",
+  brass: "#0E8C9E",    // vivid teal accent (deepened for contrast on white)
+  brassDim: "#0A6675",
   green: "#0E9E6E",
   greenDim: "#BFE6D5",
   ember: "#E24955",
@@ -47,8 +47,8 @@ const DARK = {
   ink: "#AAB4C0",
   inkDim: "#6B7580",
   line: "#242C35",
-  brass: "#F97C4A",
-  brassDim: "#8A4A30",
+  brass: "#35C2D6",
+  brassDim: "#14545F",
   green: "#33D69A",
   greenDim: "#16332B",
   ember: "#F0555C",

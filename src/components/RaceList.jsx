@@ -4,7 +4,7 @@ import { fmtDate } from "../utils/time.js";
 import { verdictColor, verdictLabel } from "../utils/ratings.js";
 import { Button, Pill } from "./ui.jsx";
 
-const ROW_COLS = "22px 1.7fr 0.7fr 0.75fr 0.8fr 0.8fr 112px 22px";
+const ROW_COLS = "22px 1.7fr 0.7fr 0.75fr 0.8fr 112px 22px";
 
 function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index }) {
   const isCustom = race.id.startsWith("custom-");
@@ -53,11 +53,6 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
       </div>
 
       <div style={{ fontFamily: FONT_MONO, fontSize: 17, fontWeight: 500, color: T.paper }}>{race.finishTime}</div>
-
-      <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
-        {race.placement}<span style={{ color: T.inkDim }}>/{race.field}</span>
-        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{race.percentile}th pct</div>
-      </div>
 
       <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
         {race.tempC}°C
@@ -152,7 +147,7 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: ROW_COLS, gap: 14, padding: "0 18px 10px", fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
-        <div /><div>Race</div><div>Distance</div><div>Finish</div><div>Place</div><div>Conditions</div><div>Debrief</div><div />
+        <div /><div>Race</div><div>Distance</div><div>Finish</div><div>Conditions</div><div>Debrief</div><div />
       </div>
 
       <div>

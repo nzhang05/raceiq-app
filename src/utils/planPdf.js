@@ -1,28 +1,10 @@
-// Print/export the race plan as a clean, light-theme document. Rather than pull in
-// a PDF library, we render a self-contained HTML document into a hidden iframe and
-// trigger the browser's print dialog — every platform's print dialog offers
-// "Save as PDF", including mobile Safari and Chrome. Keeps the prototype dep-free.
+// The athlete's race plan as a clean, light-theme printable document. The
+// iframe/print mechanics and the shared stylesheet live in ./printDoc.js, which
+// the crew sheet (./crewPdf.js) also uses so the two documents match.
 
 import { recText, fuelNoteText } from "../i18n/render.js";
 import { activeLocale } from "../i18n/index.js";
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-}
-
-function fmtPace(minPerKm) {
-  if (!minPerKm || minPerKm <= 0) return "—";
-  const m = Math.floor(minPerKm);
-  const s = Math.round((minPerKm - m) * 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
-}
-
-function fmtDuration(min) {
-  if (min == null || min <= 0) return "—";
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  return h > 0 ? `${h}:${String(m).padStart(2, "0")}` : `${m} min`;
-}
+import { esc, fmtPace, fmtDuration, printDocument, PRINT_CSS } from "./printDoc.js";
 
 // `t` is the caller's translation function and `lang` the active locale — the
 // export is a finished document rather than a render tree, so injecting `t`
@@ -30,10 +12,15 @@ function fmtDuration(min) {
 // engine hyphenates correctly.
 export function buildPlanHtml(plan, kit, t, lang = "en") {
   const P = (key, opts) => t(key, { ns: "plan", ...opts });
-  const { course, targetClock, pacing, pacingSections, nutrition, carryPlan, recommendations, referenceRace, weather, raceDate } = plan;
+  const { course, targetClock, pacing, pacingSections, nutrition, carryPlan, recommendations, referenceRace, weather, raceDate,
+          schedule, stopMinutes, movingClock } = plan;
 
   const summaryRows = [
     [P("pdf.summary.targetTime"), targetClock],
+    // Only shown once there is a split worth showing — a road plan looks exactly
+    // as it did before.
+    ...(stopMinutes > 0 ? [[P("pdf.summary.moving"), P("pdf.summary.movingValue", { moving: movingClock, stopped: Math.round(stopMinutes) })]] : []),
+    ...(schedule ? [[P("pdf.summary.startFinish"), `${schedule.startClock} → ${schedule.finishClock}${schedule.finishDayOffset > 0 ? ` (+${schedule.finishDayOffset}d)` : ""}`]] : []),
     [P("pdf.summary.distance"), `${course.distanceKm} km`],
     [P("pdf.summary.elevation"), `+${course.elevationM ?? 0} m`],
     [P("pdf.summary.conditions"), weather?.tempC != null
@@ -50,16 +37,17 @@ export function buildPlanHtml(plan, kit, t, lang = "en") {
   const pacingBySection = pacingSections?.length;
   const th = (key) => `<th>${esc(P(key))}</th>`;
   const pacingHead = pacingBySection
-    ? `<tr>${th("view.pacing.colSection")}${th("view.pacing.colDist")}${th("view.pacing.colGrade")}${th("view.pacing.colTargetPace")}${th("view.pacing.colTime")}</tr>`
+    ? `<tr>${th("view.pacing.colSection")}${th("view.pacing.colDist")}${th("view.pacing.colGrade")}${th("view.pacing.colTargetPace")}${th("view.pacing.colTime")}${schedule ? th("view.schedule.colArrive") : ""}</tr>`
     : `<tr>${th("view.pacing.colKm")}${th("view.pacing.colElev")}${th("view.pacing.colGrade")}${th("view.pacing.colTargetPace")}${th("view.pacing.colSegment")}</tr>`;
   const pacingRows = pacingBySection
-    ? pacingSections.map((s) => `
+    ? pacingSections.map((s, i) => `
         <tr>
           <td>${esc(s.fromName)} → ${esc(s.toName)}<br><span class="muted">km ${esc(s.fromKm)}–${esc(s.toKm)}${s.elevGainM > 0 ? ` · +${esc(s.elevGainM)}m` : ""}</span></td>
           <td>${esc(s.distanceKm)} km</td>
           <td>${s.gradePct > 0 ? "+" : ""}${esc(s.gradePct)}%</td>
           <td>${fmtPace(s.suggestedPace)}</td>
           <td>${fmtDuration(s.minutes)}</td>
+          ${schedule ? `<td>${esc(schedule.points[i + 1]?.arrivalClock ?? "—")}${schedule.legs[i]?.inDarkness ? ` <span class="muted">${esc(P("view.schedule.darkShort"))}</span>` : ""}</td>` : ""}
         </tr>`).join("")
     : (pacing || []).map((s) => `
         <tr>
@@ -123,6 +111,23 @@ export function buildPlanHtml(plan, kit, t, lang = "en") {
       </tbody>
     </table>` : "";
 
+  const scheduleSection = schedule ? `
+    <h2>${esc(P("view.schedule.title"))}</h2>
+    <table>
+      <thead><tr>${th("view.schedule.colPoint")}${th("view.schedule.colKm")}${th("view.schedule.colArrive")}${th("view.schedule.colStop")}${th("view.schedule.colDepart")}${th("view.schedule.colCutoff")}</tr></thead>
+      <tbody>
+        ${schedule.points.map((pt) => `
+          <tr>
+            <td>${esc(pt.name)}${pt.crewAccess ? `<br><span class="muted">${esc(P("view.schedule.crew"))}</span>` : ""}</td>
+            <td>${esc(pt.km)}</td>
+            <td>${esc(pt.arrivalClock)}${pt.dayOffset > 0 ? ` (+${pt.dayOffset}d)` : ""}${pt.window ? `<br><span class="muted">${esc(pt.window.earlyClock)}–${esc(pt.window.lateClock)}</span>` : ""}</td>
+            <td>${pt.stopMinutes > 0 ? esc(P("view.schedule.minutes", { minutes: pt.stopMinutes })) : "—"}</td>
+            <td>${esc(pt.departClock ?? "—")}</td>
+            <td${pt.atCutoffRisk ? ' class="warn"' : ""}>${esc(pt.cutoff ?? "—")}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>` : "";
+
   const recsSection = (recommendations || []).length ? `
     <h2>${esc(P("view.recommendations.title"))}</h2>
     <ol class="recs">
@@ -138,26 +143,7 @@ export function buildPlanHtml(plan, kit, t, lang = "en") {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(P("pdf.title", { course: course.name }))}</title>
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a; margin: 0; padding: 28px 26px; }
-  h1 { font-family: Arial, sans-serif; font-size: 24px; margin: 0 0 2px; }
-  h2 { font-family: Arial, sans-serif; font-size: 15px; letter-spacing: 0.4px; text-transform: uppercase; color: #8a6d20; border-bottom: 1.5px solid #d8cfa8; padding-bottom: 5px; margin: 26px 0 10px; }
-  .sub { font-family: 'Courier New', monospace; font-size: 12px; color: #666; margin-bottom: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  th { font-family: Arial, sans-serif; text-align: left; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: #888; border-bottom: 1px solid #ccc; padding: 6px 8px; }
-  td { padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-  tr.total td { font-family: Arial, sans-serif; font-weight: bold; border-top: 1.5px solid #ccc; border-bottom: none; }
-  .muted { color: #999; font-size: 11px; }
-  .warn { color: #c0392b; font-weight: bold; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
-  .grid div { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; font-size: 12.5px; }
-  .grid div span:first-child { color: #888; font-family: Arial, sans-serif; font-size: 11px; }
-  .recs { padding-left: 18px; }
-  .recs li { margin-bottom: 10px; font-size: 13px; }
-  .rationale { font-size: 12.5px; color: #444; margin-top: 8px; line-height: 1.5; }
-  @media print { body { padding: 0; } h2 { break-after: avoid; } tr { break-inside: avoid; } }
-</style>
+<style>${PRINT_CSS}</style>
 </head>
 <body>
   <div class="sub">${esc(P("view.eyebrow"))}${raceDate ? ` · ${esc(raceDate)}` : ""}</div>
@@ -181,6 +167,7 @@ export function buildPlanHtml(plan, kit, t, lang = "en") {
   ${nutrition.basedOnRaces > 0 ? `<div class="rationale">${esc(P("view.nutrition.personalised", { count: nutrition.basedOnRaces }))}</div>` : ""}
   ${(nutrition.notes || []).map((n) => `<div class="rationale">${esc(fuelNoteText(t, n))}</div>`).join("")}
 
+  ${scheduleSection}
   ${carrySection}
   ${kitSection}
   ${recsSection}
@@ -189,23 +176,5 @@ export function buildPlanHtml(plan, kit, t, lang = "en") {
 }
 
 export function printPlan(plan, kit, t) {
-  const html = buildPlanHtml(plan, kit, t, activeLocale());
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  Object.assign(iframe.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0" });
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentWindow.document;
-  doc.open();
-  doc.write(html);
-  doc.close();
-
-  const cleanup = () => { if (iframe.parentNode) document.body.removeChild(iframe); };
-  // Give the iframe a tick to lay out before printing; clean up after the dialog.
-  setTimeout(() => {
-    iframe.contentWindow.focus();
-    iframe.contentWindow.onafterprint = cleanup;
-    iframe.contentWindow.print();
-    setTimeout(cleanup, 60000); // fallback cleanup if onafterprint never fires
-  }, 300);
+  printDocument(buildPlanHtml(plan, kit, t, activeLocale()));
 }

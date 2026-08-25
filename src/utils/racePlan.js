@@ -1,7 +1,8 @@
 import { heatPenalty, simulateHistoricalWeather, isNetworkBlockedError } from "./weather.js";
 import { runningCostMultiplier, cyclingCostMultiplier } from "./pace.js";
 import { fuelingBenchmarks, personalizeFueling } from "./fueling.js";
-import { buildCarryPlan, buildPacingSections, sanitizeAidStations, DEFAULT_POINT_LABELS } from "./aidStations.js";
+import { buildCarryPlan, buildPacingSections, buildRoutePoints, sanitizeAidStations, totalStopMinutes, DEFAULT_POINT_LABELS } from "./aidStations.js";
+import { buildSchedule } from "./schedule.js";
 import { gatherLimiterPatterns } from "./analysis.js";
 import { parseClockToMinutes } from "./time.js";
 import { splitIntervalKm } from "./gpx.js";
@@ -18,14 +19,26 @@ export function minutesToClock(min) {
 
 export async function forecastWeather(lat, lon, dateStr) {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
+    // sunrise/sunset ride along on the daily call we already make — they cost no
+    // extra request and drive the darkness markers in the ultra schedule.
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,sunrise,sunset&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("forecast API error");
     const data = await res.json();
     const d = data.daily;
     const tempC = Math.round(((d.temperature_2m_max[0] + d.temperature_2m_min[0]) / 2) * 10) / 10;
     const wind = d.windspeed_10m_max?.[0] != null ? Math.round(d.windspeed_10m_max[0]) : null;
-    return { tempC, humidity: null, wind, simulated: false };
+    // "2026-08-29T06:41" → "06:41". Null when absent, which makes the schedule
+    // omit darkness rather than guess at it.
+    const clockPart = (v) => (typeof v === "string" && v.includes("T") ? v.split("T")[1].slice(0, 5) : null);
+    return {
+      tempC,
+      humidity: null,
+      wind,
+      sunrise: clockPart(d.sunrise?.[0]),
+      sunset: clockPart(d.sunset?.[0]),
+      simulated: false,
+    };
   } catch (err) {
     if (isNetworkBlockedError(err)) {
       return { ...simulateHistoricalWeather(lat, lon, Date.now(), Date.now()), simulated: true };
@@ -69,9 +82,36 @@ export function estimateTargetTime(gpxData, sport, plannedWeather, allRaces) {
   return { minutes: estMinutes, clock: minutesToClock(estMinutes) };
 }
 
-export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, aidStations = [], carryCapacityMl = null, manualFueling = {}, pointLabels = DEFAULT_POINT_LABELS) {
+/*
+  `options` carries everything past the core five: aid stations, carry capacity,
+  manual fuelling overrides, the rendered point labels, and the ultra additions
+  (`startTimeOfDay` for wall-clock ETAs).
+
+  Time model — see docs/design-ultra-planning.md §4. `targetMinutes` is the
+  athlete's total *elapsed* finish time, which is what they type in and what
+  every reference race records. Time planned at aid stations is subtracted from
+  it before pacing is solved, so the plan doesn't quietly assume you teleport
+  through every checkpoint. With no stop times set the subtraction is zero and
+  the output is identical to a pre-ultra plan.
+*/
+export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, options = {}) {
+  const {
+    aidStations = [],
+    carryCapacityMl = null,
+    manualFueling = {},
+    pointLabels = DEFAULT_POINT_LABELS,
+    startTimeOfDay = null,
+  } = options;
+
   const isCycling = isCyclingSport(sport);
   const costFn = isCycling ? cyclingCostMultiplier : runningCostMultiplier;
+
+  const stopMinutes = totalStopMinutes(aidStations, gpxData.distanceKm, pointLabels);
+  // Guard: a stop budget over half the target time would produce an absurd
+  // moving pace. Clamp and tell the athlete rather than emitting nonsense.
+  const stopBudgetExceeded = stopMinutes > targetMinutes * 0.5;
+  const appliedStopMinutes = stopBudgetExceeded ? targetMinutes * 0.5 : stopMinutes;
+  const movingMinutes = targetMinutes - appliedStopMinutes;
 
   // Pacing splits
   const splits = gpxData.splits ?? [];
@@ -92,7 +132,7 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
       totalWeightedCost += segKm * cost;
     }
 
-    const baseMinPerKm = totalWeightedCost > 0 ? targetMinutes / totalWeightedCost : targetMinutes / gpxData.distanceKm;
+    const baseMinPerKm = totalWeightedCost > 0 ? movingMinutes / totalWeightedCost : movingMinutes / gpxData.distanceKm;
 
     for (const { curr, gradePct, cost } of segCosts) {
       const suggestedPace = baseMinPerKm * cost;
@@ -102,7 +142,7 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
       pacing.push({ km: curr.km, elevM: curr.elevM, gradePct: Math.round(gradePct * 10) / 10, suggestedPace, label });
     }
   } else {
-    const pacePerKm = targetMinutes / gpxData.distanceKm;
+    const pacePerKm = movingMinutes / gpxData.distanceKm;
     const interval = splitIntervalKm(sport);
     for (let km = interval; km <= gpxData.distanceKm + 0.01; km += interval) {
       pacing.push({ km: Math.min(Math.round(km * 10) / 10, gpxData.distanceKm), elevM: null, gradePct: 0, suggestedPace: pacePerKm, label: "FLAT" });
@@ -125,11 +165,23 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
 
   // Aid-station carry plan — how much to carry between refill points (null when
   // no stations were provided).
-  const carryPlan = buildCarryPlan(pacing, nutrition, aidStations, gpxData.distanceKm, targetMinutes, carryCapacityMl, pointLabels);
+  const carryPlan = buildCarryPlan(pacing, nutrition, aidStations, gpxData.distanceKm, movingMinutes, carryCapacityMl, pointLabels);
 
   // Section-delimited pacing (one row per leg between aid stations); null when no
   // stations were set, so the view falls back to the per-km pacing table.
   const pacingSections = buildPacingSections(pacing, aidStations, gpxData.distanceKm, pointLabels);
+
+  // Wall-clock schedule. Needs a start time-of-day to anchor to; without one
+  // every clock-dependent piece of UI stays hidden. The leg moving-times come
+  // from whichever section view exists so the two can't drift apart.
+  const routePoints = buildRoutePoints(aidStations, gpxData.distanceKm, pointLabels);
+  const legMinutes = (pacingSections ?? carryPlan?.legs)?.map((l) => l.minutes) ?? [movingMinutes];
+  const schedule = buildSchedule(routePoints, legMinutes, {
+    startTimeOfDay,
+    targetMinutes,
+    sunrise: weather?.sunrise ?? null,
+    sunset: weather?.sunset ?? null,
+  });
 
   // Recommendations
   const { hotLimiters = [], underFueled = [] } = gatherLimiterPatterns(allRaces);
@@ -167,6 +219,18 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
     },
     targetMinutes,
     targetClock: minutesToClock(targetMinutes),
+    // The elapsed/moving split. `stopMinutes` is what the athlete planned;
+    // `appliedStopMinutes` is what the pace solver could honour.
+    stopMinutes,
+    appliedStopMinutes,
+    movingMinutes,
+    movingClock: minutesToClock(movingMinutes),
+    stopBudgetExceeded,
+    startTimeOfDay,
+    schedule,
+    // The cleaned station list, so the view and the crew sheet read the same
+    // stations the planning modules did rather than re-sanitizing raw input.
+    stations: sanitizeAidStations(aidStations, gpxData.distanceKm, pointLabels),
     pacing,
     pacingSections,
     nutrition,

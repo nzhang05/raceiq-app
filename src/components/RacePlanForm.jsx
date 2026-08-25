@@ -10,13 +10,24 @@ import { fuelingBenchmarks, personalizeFueling } from "../utils/fueling.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
 import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete, inputStyle } from "./ui.jsx";
 import { fuelNoteText, errorText } from "../i18n/render.js";
+import { suggestAllBags } from "../utils/dropBags.js";
+import { isUltra } from "../utils/schedule.js";
 import ElevationProfile from "./ElevationProfile.jsx";
 import CourseMap from "./CourseMap.jsx";
+import FuelItemPicker from "./FuelItemPicker.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { estimateFinishTime } from "../lib/coachApi.js";
 
 let stationSeq = 0;
 const uid = () => `as-${Date.now()}-${stationSeq++}`;
+
+// One place defining a station's shape, so a row typed by hand and a row lifted
+// out of a course file carry the same ultra fields (stop, sleep, cutoff, bag).
+const newStation = (patch) => ({
+  id: uid(), km: "", name: "", water: true, food: true,
+  stopMinutes: "", sleepMinutes: "", crewAccess: false, cutoff: "", dropBag: null,
+  ...patch,
+});
 
 // Aid stations a parsed course file supplied, in the shape the form's station
 // list uses. sanitizeAidStations already handles range-clipping, dedup and
@@ -27,11 +38,9 @@ function stationsFromParsed(parsed) {
   if (!parsed?.waypoints) return [];
   const found = parsed.waypoints.filter((w) => w.isStation && w.km != null);
   const ambiguousKm = new Set(found.filter((w) => w.ambiguous).map((w) => w.km));
-  return sanitizeAidStations(found, parsed.distanceKm).map((s) => ({
-    id: uid(),
-    ...s,
-    ambiguous: ambiguousKm.has(s.km),
-  }));
+  return sanitizeAidStations(found, parsed.distanceKm).map((s) =>
+    newStation({ ...s, ambiguous: ambiguousKm.has(s.km) })
+  );
 }
 
 // The sentence appended to the import message about what the file's waypoints
@@ -68,6 +77,196 @@ function StationToggle({ on, onClick }) {
     >
       {on ? "YES" : "NO"}
     </button>
+  );
+}
+
+// Small labelled number/text cell used inside the expanded station panel.
+function MiniField({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+/*
+  One aid station.
+
+  Collapsed it is the original compact row — km, name, water, food — so a road
+  marathon sees exactly what it saw before. Expanding reveals the ultra fields:
+  stop time, sleep, cutoff, crew access and the drop bag. Nine fields per station
+  in a flat grid would be unusable; this keeps data entry proportional to the
+  race being planned.
+*/
+function StationRow({ station, index, distanceKm, showUltra, expanded, onToggleExpand, onUpdate, onRemove, suggestions }) {
+  const { t } = useTranslation();
+  const P = (key, opts) => t(key, { ns: "plan", ...opts });
+  const kmNum = parseFloat(station.km);
+  const outOfRange = distanceKm && !isNaN(kmNum) && (kmNum <= 0 || kmNum >= distanceKm);
+  const bag = station.dropBag;
+  // inputStyle is content-box; inside the panel's narrow columns that overflows,
+  // so the panel's own inputs opt into border-box.
+  const panelInput = { ...inputStyle, padding: "7px 8px", boxSizing: "border-box" };
+  const cols = showUltra ? "70px 1fr auto auto auto 32px" : "80px 1fr auto auto 32px";
+
+  // Compact summary of what's configured underneath, so the athlete can scan the
+  // collapsed list and see where the long stops and the bags are.
+  const badges = [
+    station.stopMinutes > 0 ? P("form.ultra.badgeStop", { minutes: station.stopMinutes }) : null,
+    station.sleepMinutes > 0 ? P("form.ultra.badgeSleep") : null,
+    bag ? P("form.ultra.badgeBag") : null,
+    station.crewAccess ? P("form.ultra.badgeCrew") : null,
+    station.cutoff ? P("form.ultra.badgeCutoff", { cutoff: station.cutoff }) : null,
+  ].filter(Boolean);
+
+  function bumpBagItem(key, delta) {
+    const items = { ...(bag?.items ?? {}) };
+    items[key] = Math.max(0, (items[key] || 0) + delta);
+    if (items[key] === 0) delete items[key];
+    onUpdate({ dropBag: { ...(bag ?? { gear: [], notes: "" }), items } });
+  }
+  function updateGear(i, value) {
+    const gear = [...(bag?.gear ?? [])];
+    gear[i] = value;
+    onUpdate({ dropBag: { ...bag, gear } });
+  }
+  function addGear(value = "") {
+    onUpdate({ dropBag: { ...(bag ?? { items: {}, notes: "" }), gear: [...(bag?.gear ?? []), value] } });
+  }
+  function removeGear(i) {
+    onUpdate({ dropBag: { ...bag, gear: (bag?.gear ?? []).filter((_, j) => j !== i) } });
+  }
+  function acceptSuggestion(s) {
+    if (s.kind === "item") bumpBagItem(s.itemKey, s.qty);
+    else addGear(P(s.key));
+  }
+
+  return (
+    <div style={{ borderBottom: `1px solid ${T.line}33` }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: 10, padding: "9px 12px", alignItems: "center" }}>
+        <input
+          type="number"
+          value={station.km}
+          // Editing the distance is the athlete resolving the ambiguity,
+          // so the flag — and its warning border — retires with the edit.
+          onChange={(e) => onUpdate({ km: e.target.value, ambiguous: false })}
+          placeholder="km"
+          title={station.ambiguous ? P("form.waypoints.ambiguousTitle") : ""}
+          style={{ ...inputStyle, padding: "7px 8px", borderColor: outOfRange ? T.ember : station.ambiguous ? T.brass : T.line }}
+        />
+        <div>
+          <input
+            value={station.name}
+            onChange={(e) => onUpdate({ name: e.target.value })}
+            placeholder={P("point.aid", { n: index + 1 })}
+            style={{ ...inputStyle, padding: "7px 8px" }}
+          />
+          {showUltra && badges.length > 0 && !expanded && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+              {badges.map((b) => (
+                <span key={b} style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.brass, background: "rgba(201,162,75,0.1)", borderRadius: 2, padding: "1px 5px" }}>{b}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <StationToggle on={station.water} onClick={() => onUpdate({ water: !station.water })} />
+        <StationToggle on={station.food} onClick={() => onUpdate({ food: !station.food })} />
+        {showUltra && (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-expanded={expanded}
+            style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5, padding: "6px 9px", borderRadius: 3, border: `1px solid ${expanded ? T.brassDim : T.line}`, background: "transparent", color: expanded ? T.brass : T.inkDim, cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            {expanded ? P("form.ultra.collapse") : P("form.ultra.expand")}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={P("form.removeStation")}
+          style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1, padding: 0 }}
+        >
+          ×
+        </button>
+      </div>
+
+      {showUltra && expanded && (
+        <div style={{ padding: "4px 12px 16px", background: "rgba(0,0,0,0.15)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
+            <MiniField label={P("form.ultra.stop")}>
+              <input type="number" min="0" value={station.stopMinutes ?? ""} onChange={(e) => onUpdate({ stopMinutes: e.target.value })} placeholder="0" style={panelInput} />
+            </MiniField>
+            <MiniField label={P("form.ultra.sleep")}>
+              <input type="number" min="0" value={station.sleepMinutes ?? ""} onChange={(e) => onUpdate({ sleepMinutes: e.target.value })} placeholder="0" style={panelInput} />
+            </MiniField>
+            <MiniField label={P("form.ultra.cutoff")}>
+              <input value={station.cutoff ?? ""} onChange={(e) => onUpdate({ cutoff: e.target.value })} placeholder="HH:MM" style={panelInput} />
+            </MiniField>
+            <MiniField label={P("form.ultra.crew")}>
+              <StationToggle on={station.crewAccess === true} onClick={() => onUpdate({ crewAccess: !station.crewAccess })} />
+            </MiniField>
+          </div>
+
+          {station.sleepMinutes > 0 && station.sleepMinutes > (station.stopMinutes || 0) && (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.ember, marginBottom: 12 }}>
+              {P("form.ultra.sleepExceedsStop")}
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: bag ? 12 : 0 }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim }}>{P("form.ultra.dropBag")}</span>
+            <StationToggle on={!!bag} onClick={() => onUpdate({ dropBag: bag ? null : { items: {}, gear: [], notes: "" } })} />
+          </div>
+
+          {bag && (
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+              <FuelItemPicker quantities={bag.items} onBump={bumpBagItem} dense />
+              <div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.gear")}</div>
+                {(bag.gear ?? []).map((line, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                    <input value={line} onChange={(e) => updateGear(i, e.target.value)} placeholder={P("form.ultra.gearPlaceholder")} style={{ ...panelInput, padding: "6px 8px", flex: 1, minWidth: 0 }} />
+                    <button type="button" onClick={() => removeGear(i)} aria-label={P("form.ultra.removeGear")} style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 15, padding: 0 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addGear()} style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5, padding: "5px 9px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}>
+                  {P("form.ultra.addGear")}
+                </button>
+
+                <input
+                  value={bag.notes ?? ""}
+                  onChange={(e) => onUpdate({ dropBag: { ...bag, notes: e.target.value } })}
+                  placeholder={P("form.ultra.notesPlaceholder")}
+                  style={{ ...panelInput, marginTop: 10 }}
+                />
+
+                {/* Derived suggestions — one tap to accept, never auto-inserted. */}
+                {suggestions?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.suggested")}</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => acceptSuggestion(s)}
+                          title={s.values ? P(s.key, s.values) : ""}
+                          style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.4, padding: "5px 9px", borderRadius: 3, border: `1px dashed ${T.brassDim}`, background: "transparent", color: T.brass, cursor: "pointer" }}
+                        >
+                          + {s.kind === "item" ? P("form.ultra.suggestItem", { qty: s.qty, item: P(`fuelItem.${s.itemKey}`) }) : P(s.key)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -122,6 +321,9 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   const [tempC, setTempC] = useState("");
   const [humidity, setHumidity] = useState("");
   const [wind, setWind] = useState("");
+  // Sunrise/sunset for the race date, from the same forecast call. Drives the
+  // darkness markers; stays null when the lookup was skipped or unavailable.
+  const [forecastSun, setForecastSun] = useState({ sunrise: null, sunset: null });
 
   // Target time
   const [targetClock, setTargetClock] = useState("");
@@ -157,6 +359,17 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   const [aidStations, setAidStations] = useState([]);
   const [carryCapacity, setCarryCapacity] = useState("");
   const [showOtherWaypoints, setShowOtherWaypoints] = useState(false);
+  const [expandedStation, setExpandedStation] = useState(null);
+  // Race start time-of-day. Without it there are no wall-clock ETAs, so the
+  // whole schedule/crew-sheet layer stays switched off.
+  const [startTime, setStartTime] = useState("");
+
+  // Ultra fields show themselves for long races and hide behind a link for short
+  // ones; `showUltraOverride` is the athlete pulling rank either way.
+  const [showUltraOverride, setShowUltraOverride] = useState(null);
+  const targetMinutes = useMemo(() => parseClockToMinutes(targetClock) || 0, [targetClock]);
+  const ultraByCourse = isUltra(gpxData?.distanceKm, targetMinutes);
+  const showUltra = showUltraOverride ?? ultraByCourse;
 
   // Waypoints the file classified as aid stations, in the shape the form uses.
   // sanitizeAidStations already handles range-clipping, dedup and default naming,
@@ -175,7 +388,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   }, [gpxData]);
 
   function addStation() {
-    setAidStations((prev) => [...prev, { id: uid(), km: "", name: "", water: true, food: true }]);
+    setAidStations((prev) => [...prev, newStation({})]);
   }
   function updateStation(idx, patch) {
     setAidStations((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
@@ -188,7 +401,14 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     const spacing = isCyclingSport(sport) ? 25 : 8;
     const next = [];
     for (let km = spacing; km < gpxData.distanceKm - 0.5; km += spacing) {
-      next.push({ id: uid(), km: Math.round(km * 10) / 10, name: "", water: true, food: true });
+      next.push(newStation({ km: Math.round(km * 10) / 10 }));
+    }
+    // Seed plausible stop times on an ultra so the athlete edits numbers rather
+    // than inventing them: 5 minutes normally, 15 once fatigue and real food
+    // enter the picture. Estimated from the target pace, before any plan exists.
+    if (ultraByCourse && targetMinutes > 0) {
+      const perKm = targetMinutes / gpxData.distanceKm;
+      for (const s of next) s.stopMinutes = s.km * perKm >= 480 ? 15 : 5;
     }
     setAidStations(next);
   }
@@ -207,7 +427,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     setAidStations((prev) =>
       isPromoted(w)
         ? prev.filter((s) => Math.abs(parseFloat(s.km) - w.km) >= 0.01)
-        : [...prev, { id: uid(), km: w.km, name: w.name || "", water: true, food: true }].sort(
+        : [...prev, newStation({ km: w.km, name: w.name || "" })].sort(
             (a, b) => (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0)
           )
     );
@@ -215,7 +435,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
 
   // Profile-driven mutations (by station id), kept sorted by km for tidy rows.
   function addStationAtKm(km) {
-    setAidStations((prev) => [...prev, { id: uid(), km, name: "", water: true, food: true }].sort((a, b) => (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0)));
+    setAidStations((prev) => [...prev, newStation({ km })].sort((a, b) => (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0)));
   }
   function moveStation(id, km) {
     setAidStations((prev) => prev.map((s) => (s.id === id ? { ...s, km } : s)));
@@ -223,6 +443,60 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   function removeStationById(id) {
     setAidStations((prev) => prev.filter((s) => s.id !== id));
   }
+
+  // Generated point names (Start / Finish / Aid N) are rendered here rather than
+  // inside the pure planning modules — see src/utils/aidStations.js.
+  const pointLabels = useMemo(() => ({
+    start: P("point.start"),
+    finish: P("point.finish"),
+    aid: (n) => P("point.aid", { n }),
+  }), [t]);
+
+  const carryCapacityMl = carryCapacity !== "" ? parseFloat(carryCapacity) : null;
+  const manualFueling = useMemo(() => ({
+    carbsPerHr: fuelCarbs !== "" ? parseFloat(fuelCarbs) : null,
+    sodiumPerHr: fuelSodium !== "" ? parseFloat(fuelSodium) : null,
+    fluidsPerHr: fuelFluids !== "" ? parseFloat(fuelFluids) : null,
+    caffeineMg: fuelCaffeine !== "" ? parseFloat(fuelCaffeine) : null,
+  }), [fuelCarbs, fuelSodium, fuelFluids, fuelCaffeine]);
+
+  const plannedWeather = useMemo(() => ({
+    tempC: parseFloat(tempC) || 18,
+    humidity: parseFloat(humidity) || null,
+    wind: parseFloat(wind) || null,
+    sunrise: forecastSun.sunrise,
+    sunset: forecastSun.sunset,
+  }), [tempC, humidity, wind, forecastSun]);
+
+  const racesForPlan = selectedRaces.length > 0 ? selectedRaces : allRaces;
+
+  const planOptions = useMemo(() => ({
+    aidStations,
+    carryCapacityMl,
+    manualFueling,
+    pointLabels,
+    startTimeOfDay: startTime || null,
+  }), [aidStations, carryCapacityMl, manualFueling, pointLabels, startTime]);
+
+  /*
+    A throwaway plan built from what's on screen, purely to power the drop-bag
+    suggestions. buildRacePlan is pure and does no I/O, so running it as the
+    athlete edits is cheap — and it's the only way the editor can know that the
+    leg out of Station 4 runs in the dark before the plan is built.
+  */
+  const bagSuggestions = useMemo(() => {
+    if (!gpxData || !targetMinutes || !showUltra) return new Map();
+    try {
+      const preview = buildRacePlan(gpxData, sport, plannedWeather, targetMinutes, racesForPlan, planOptions);
+      return suggestAllBags({
+        stations: sanitizeAidStations(aidStations, gpxData.distanceKm, pointLabels),
+        carryPlan: preview.carryPlan,
+        schedule: preview.schedule,
+      });
+    } catch {
+      return new Map();
+    }
+  }, [gpxData, targetMinutes, showUltra, sport, plannedWeather, racesForPlan, planOptions, aidStations, pointLabels]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -316,6 +590,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       if (forecast.tempC != null) setTempC(String(forecast.tempC));
       if (forecast.humidity != null) setHumidity(String(forecast.humidity));
       if (forecast.wind != null) setWind(String(forecast.wind));
+      setForecastSun({ sunrise: forecast.sunrise ?? null, sunset: forecast.sunset ?? null });
       if (forecast.simulated || place.simulated) {
         setWeatherStatus("simulated");
         setWeatherMessage(`SIMULATED — can't reach the forecast service from here; conditions are estimated.`);
@@ -340,24 +615,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     if (!targetClock.trim()) { setError(P("form.errorNoTarget")); return; }
     setError("");
     setSubmitting(true);
-    const targetMinutes = parseClockToMinutes(targetClock);
-    const weather = { tempC: parseFloat(tempC) || 18, humidity: parseFloat(humidity) || null, wind: parseFloat(wind) || null };
-    const racesForPlan = selectedRaces.length > 0 ? selectedRaces : allRaces;
-    const carryCapacityMl = carryCapacity !== "" ? parseFloat(carryCapacity) : null;
-    const manualFueling = {
-      carbsPerHr: fuelCarbs !== "" ? parseFloat(fuelCarbs) : null,
-      sodiumPerHr: fuelSodium !== "" ? parseFloat(fuelSodium) : null,
-      fluidsPerHr: fuelFluids !== "" ? parseFloat(fuelFluids) : null,
-      caffeineMg: fuelCaffeine !== "" ? parseFloat(fuelCaffeine) : null,
-    };
-    // Generated point names (Start / Finish / Aid N) are rendered here rather
-    // than inside the pure planning modules — see src/utils/aidStations.js.
-    const pointLabels = {
-      start: P("point.start"),
-      finish: P("point.finish"),
-      aid: (n) => P("point.aid", { n }),
-    };
-    const plan = buildRacePlan(gpxData, sport, weather, targetMinutes, racesForPlan, aidStations, carryCapacityMl, manualFueling, pointLabels);
+    const plan = buildRacePlan(gpxData, sport, plannedWeather, parseClockToMinutes(targetClock), racesForPlan, planOptions);
     plan.raceDate = raceDate;
     onPlanGenerated(plan);
   }
@@ -379,7 +637,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       {/* Section 1 — Course */}
       <FormSectionTitle>{P("form.section.course")}</FormSectionTitle>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
         <Field label={P("form.sport")}>
           <Select
             value={sport}
@@ -396,6 +654,9 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
             onFocus={(e) => (e.target.style.borderColor = T.brass)}
             onBlur={(e) => (e.target.style.borderColor = T.line)}
           />
+        </Field>
+        <Field label={P("form.startTime")} hint={P("form.startTimeHint")}>
+          <TextInput value={startTime} onChange={(e) => setStartTime(e.target.value)} placeholder="e.g. 05:00" />
         </Field>
       </div>
 
@@ -723,43 +984,42 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
 
       {aidStations.length > 0 && (
         <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>
-            <div>{P("form.colKm")}</div><div>{P("form.colName")}</div><div>{P("form.colWater")}</div><div>{P("form.colFood")}</div><div />
+          <div style={{ display: "grid", gridTemplateColumns: showUltra ? "70px 1fr auto auto auto 32px" : "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>
+            <div>{P("form.colKm")}</div><div>{P("form.colName")}</div><div>{P("form.colWater")}</div><div>{P("form.colFood")}</div>{showUltra && <div>{P("form.colUltra")}</div>}<div />
           </div>
-          {aidStations.map((s, i) => {
-            const kmNum = parseFloat(s.km);
-            const outOfRange = gpxData && !isNaN(kmNum) && (kmNum <= 0 || kmNum >= gpxData.distanceKm);
-            return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", alignItems: "center", borderBottom: i < aidStations.length - 1 ? `1px solid ${T.line}33` : "none" }}>
-                <input
-                  type="number"
-                  value={s.km}
-                  // Editing the distance is the athlete resolving the ambiguity,
-                  // so the flag — and its warning border — retires with the edit.
-                  onChange={(e) => updateStation(i, { km: e.target.value, ambiguous: false })}
-                  placeholder="km"
-                  title={s.ambiguous ? P("form.waypoints.ambiguousTitle") : ""}
-                  style={{ ...inputStyle, padding: "7px 8px", borderColor: outOfRange ? T.ember : s.ambiguous ? T.brass : T.line }}
-                />
-                <input
-                  value={s.name}
-                  onChange={(e) => updateStation(i, { name: e.target.value })}
-                  placeholder={P("point.aid", { n: i + 1 })}
-                  style={{ ...inputStyle, padding: "7px 8px" }}
-                />
-                <StationToggle on={s.water} onClick={() => updateStation(i, { water: !s.water })} />
-                <StationToggle on={s.food} onClick={() => updateStation(i, { food: !s.food })} />
-                <button
-                  type="button"
-                  onClick={() => removeStation(i)}
-                  aria-label={P("form.removeStation")}
-                  style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1, padding: 0 }}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
+          {aidStations.map((station, i) => (
+            <StationRow
+              key={station.id ?? i}
+              station={station}
+              index={i}
+              distanceKm={gpxData?.distanceKm}
+              showUltra={showUltra}
+              expanded={expandedStation === (station.id ?? i)}
+              onToggleExpand={() => setExpandedStation((prev) => (prev === (station.id ?? i) ? null : station.id ?? i))}
+              onUpdate={(patch) => updateStation(i, patch)}
+              onRemove={() => removeStation(i)}
+              suggestions={bagSuggestions.get(Math.round((parseFloat(station.km) || 0) * 100) / 100)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Ultra options are shown by default past 50 km / 6 h and revealed by
+          hand otherwise — never hard-gated on distance. */}
+      {aidStations.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={() => setShowUltraOverride(!showUltra)}
+            style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer", textDecoration: "underline" }}
+          >
+            {P(showUltra ? "form.ultra.hide" : "form.ultra.show")}
+          </button>
+          {showUltra && (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim, marginTop: 8, lineHeight: 1.5 }}>
+              {P(startTime ? "form.ultra.intro" : "form.ultra.introNoStart")}
+            </div>
+          )}
         </div>
       )}
 

@@ -64,7 +64,11 @@ export function AuthProvider({ children }) {
         password,
         options: { data: { display_name: displayName } },
       }),
-    signInWithOAuth: (provider) => supabase.auth.signInWithOAuth({ provider }),
+    signInWithOAuth: (provider) =>
+      supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.origin },
+      }),
     resetPassword: (email) => supabase.auth.resetPasswordForEmail(email),
     updateProfile: async (patch) => {
       const { data, error } = await supabase

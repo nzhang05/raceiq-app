@@ -32,7 +32,7 @@ function CoachMessage({ msg }) {
   const isCoach = msg.role === "coach";
   return (
     <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: isCoach ? "flex-start" : "flex-end" }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>
         {isCoach ? "RACEIQ COACH" : "YOU"} · {new Date(msg.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
       </div>
       <div style={{ maxWidth: "82%", padding: "14px 18px", borderRadius: 4, fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.65, color: isCoach ? T.ink : T.bg, background: isCoach ? T.bg2 : T.brass, border: isCoach ? `1px solid ${T.line}` : "none", whiteSpace: "pre-wrap" }}>
@@ -40,9 +40,11 @@ function CoachMessage({ msg }) {
       </div>
       {isCoach && msg.sources?.length > 0 && !OOS_INTENTS.has(msg.intentCategory) && (
         <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 9.5, color: T.inkDim, letterSpacing: 0.5 }}>BASED ON:</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>BASED ON:</span>
+          {/* Text is `brass`, not `brassDim`: brassDim is a border-weight colour
+              and inverts to a dark green in the dark palette. */}
           {msg.sources.map((r) => (
-            <span key={r.id} style={{ fontFamily: FONT_MONO, fontSize: 9.5, color: T.brassDim, background: "rgba(201,162,75,0.1)", border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "2px 8px", letterSpacing: 0.3 }}>
+            <span key={r.id} style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, background: `${T.brass}1A`, border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "2px 8px", letterSpacing: 0.3 }}>
               {r.name} · {fmtDate(r.date)}
             </span>
           ))}
@@ -54,8 +56,8 @@ function CoachMessage({ msg }) {
 
 function SignInNotice() {
   return (
-    <div style={{ padding: "16px 20px", marginBottom: 24, background: "rgba(201,162,75,0.07)", border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>SIGN IN REQUIRED</div>
+    <div style={{ padding: "16px 20px", marginBottom: 24, background: `${T.brass}12`, border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>SIGN IN REQUIRED</div>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, lineHeight: 1.55 }}>
         The AI coach analyses your logged races on RaceIQ's servers. Sign in to use it — your race data is only ever sent for questions you ask.
       </div>
@@ -148,14 +150,14 @@ export default function CoachView({ races, contextRace, onBack }) {
           {hasMessages && (
             <button
               onClick={() => { if (window.confirm("Clear conversation history?")) setHistory([]); }}
-              style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.4, padding: "6px 12px", cursor: "pointer" }}
+              style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "6px 12px", cursor: "pointer" }}
             >
               CLEAR HISTORY
             </button>
           )}
         </div>
         {contextRace && (
-          <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", background: "rgba(201,162,75,0.1)", border: `1px solid ${T.brassDim}`, borderRadius: 3, fontFamily: FONT_MONO, fontSize: 10.5, color: T.brass }}>
+          <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", background: `${T.brass}1A`, border: `1px solid ${T.brassDim}`, borderRadius: 3, fontFamily: FONT_MONO, fontSize: 11, color: T.brass }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.brass, display: "inline-block" }} />
             CONTEXT: {contextRace.name}
           </div>
@@ -170,7 +172,7 @@ export default function CoachView({ races, contextRace, onBack }) {
             <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.inkDim, marginBottom: 28, lineHeight: 1.6 }}>
               Ask anything about your race history, {athleteName}. Every answer is drawn from your logged data.
             </div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>TRY ASKING</div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>TRY ASKING</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {SUGGESTED_QUESTIONS.map((q) => (
                 <button
@@ -191,7 +193,7 @@ export default function CoachView({ races, contextRace, onBack }) {
             {history.map((msg) => <CoachMessage key={msg.id} msg={msg} />)}
             {loading && (
               <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>RACEIQ COACH</div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>RACEIQ COACH</div>
                 <div style={{ padding: "14px 18px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4 }}>
                   <span style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim, letterSpacing: 0.5 }}>Analyzing your data…</span>
                 </div>
@@ -201,7 +203,7 @@ export default function CoachView({ races, contextRace, onBack }) {
           </div>
         )}
         {error && (
-          <div style={{ padding: "10px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5, marginBottom: 16 }}>
+          <div style={{ padding: "10px 16px", background: `${T.ember}14`, border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5, marginBottom: 16 }}>
             {error}
           </div>
         )}
@@ -228,7 +230,7 @@ export default function CoachView({ races, contextRace, onBack }) {
             {loading ? "…" : "SEND"}
           </button>
         </div>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 8, letterSpacing: 0.3 }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 8, letterSpacing: 0.3 }}>
           Enter to send · Shift+Enter for new line
         </div>
       </div>

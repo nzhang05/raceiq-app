@@ -22,9 +22,9 @@ export default function FuelingSectionEditor({
       type="button"
       onClick={() => setEntryMode(mode)}
       style={{
-        fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.4, padding: "6px 12px", borderRadius: 3, cursor: "pointer",
+        fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "6px 12px", borderRadius: 3, cursor: "pointer",
         border: `1px solid ${entryMode === mode ? T.brass : T.line}`,
-        background: entryMode === mode ? "rgba(201,162,75,0.12)" : "transparent",
+        background: entryMode === mode ? `${T.brass}1F` : "transparent",
         color: entryMode === mode ? T.brass : T.inkDim,
       }}
     >
@@ -54,7 +54,7 @@ export default function FuelingSectionEditor({
 
       {/* Entry mode toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>ENTER AS</span>
+        <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>ENTER AS</span>
         {modeBtn("rate", "RATE / HR")}
         {modeBtn("amount", "TOTAL AMOUNT")}
         {amount && (
@@ -65,7 +65,7 @@ export default function FuelingSectionEditor({
       </div>
 
       {/* Grid header */}
-      <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "0 0 8px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5, color: T.inkDim }}>
+      <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "0 0 8px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>
         <div>SECTION</div><div>TO KM</div><div>CARBS ({units.c})</div><div>SODIUM ({units.s})</div><div>FLUIDS ({units.f})</div><div>CAFF (mg)</div><div />
       </div>
 
@@ -75,7 +75,7 @@ export default function FuelingSectionEditor({
           <div key={sec.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "9px 0", borderBottom: `1px solid ${T.line}22`, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.brass }}>S{i + 1}</div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 1 }}>from {sec.fromKm}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 1 }}>from {sec.fromKm}</div>
             </div>
             {isLast ? (
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.inkDim }}>{sec.toKm}</div>

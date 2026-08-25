@@ -36,7 +36,7 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
           background: isSelected ? T.brass : "transparent",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          {isSelected && <span style={{ color: T.bg, fontSize: 10, lineHeight: 1, fontWeight: 700 }}>✓</span>}
+          {isSelected && <span style={{ color: T.bg, fontSize: 11, lineHeight: 1, fontWeight: 700 }}>✓</span>}
         </div>
       </div>
 

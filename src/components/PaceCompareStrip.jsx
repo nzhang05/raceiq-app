@@ -87,17 +87,17 @@ export default function PaceCompareStrip({ races }) {
             <svg width="16" height="10" style={{ display: "block", flexShrink: 0 }}>
               <line x1="0" y1="5" x2="16" y2="5" stroke={COMPARE_COLORS[i]} strokeWidth={i === 0 ? 2.5 : 2} />
             </svg>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.ink }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.ink }}>
               {r.name.toUpperCase()} · {shortDate(r.date)}
             </span>
           </div>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.inkDim, letterSpacing: 0.5 }}>TEMP:</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>TEMP:</span>
           <button
             onClick={() => setShowTempFor(-1)}
             style={{
-              fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.3, padding: "2px 7px",
+              fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.3, padding: "2px 7px",
               borderRadius: 2, border: `1px solid ${showTempFor === -1 ? T.inkDim : T.line}`,
               background: "transparent", color: showTempFor === -1 ? T.ink : T.inkDim, cursor: "pointer",
             }}
@@ -109,7 +109,7 @@ export default function PaceCompareStrip({ races }) {
               key={r.id}
               onClick={() => setShowTempFor(i)}
               style={{
-                fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.3, padding: "2px 7px",
+                fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.3, padding: "2px 7px",
                 borderRadius: 2, border: `1px solid ${showTempFor === i ? T.temp : T.line}`,
                 background: showTempFor === i ? "rgba(123,184,200,0.12)" : "transparent",
                 color: showTempFor === i ? T.temp : T.inkDim, cursor: "pointer",
@@ -173,13 +173,13 @@ export default function PaceCompareStrip({ races }) {
           </text>
         ))}
 
-        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">fast</text>
-        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">slow</text>
+        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="10">fast</text>
+        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="10">slow</text>
 
         {tempSplits && tempValues.length > 0 && (
           <>
-            <text x={padL + plotW + 5} y={yTemp(maxTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="9" opacity="0.85">{maxTemp}°</text>
-            <text x={padL + plotW + 5} y={yTemp(minTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="9" opacity="0.85">{minTemp}°</text>
+            <text x={padL + plotW + 5} y={yTemp(maxTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="10" opacity="0.85">{maxTemp}°</text>
+            <text x={padL + plotW + 5} y={yTemp(minTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="10" opacity="0.85">{minTemp}°</text>
           </>
         )}
       </svg>
@@ -197,7 +197,7 @@ export default function PaceCompareStrip({ races }) {
             minWidth: 150, boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
           }}
         >
-          <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
             {usePercent ? `${Math.round(hoveredX)}% DIST` : `KM ${hoveredX.toFixed(1)}`}
           </div>
           {races.map((r, ri) => {

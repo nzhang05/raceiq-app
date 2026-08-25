@@ -1,17 +1,58 @@
 import { useState, useEffect, useMemo } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORT_OPTIONS, isCyclingSport } from "../constants.js";
 import { parseRouteFile } from "../utils/gpx.js";
+import { MAX_PROMOTABLE } from "../utils/waypoints.js";
+import { sanitizeAidStations } from "../utils/aidStations.js";
 import { geocodeLocation } from "../utils/weather.js";
 import { forecastWeather, estimateTargetTime, buildRacePlan, minutesToClock } from "../utils/racePlan.js";
 import { fuelingBenchmarks, personalizeFueling } from "../utils/fueling.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
 import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete, inputStyle } from "./ui.jsx";
 import ElevationProfile from "./ElevationProfile.jsx";
+import CourseMap from "./CourseMap.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { estimateFinishTime } from "../lib/coachApi.js";
 
 let stationSeq = 0;
 const uid = () => `as-${Date.now()}-${stationSeq++}`;
+
+// Aid stations a parsed course file supplied, in the shape the form's station
+// list uses. sanitizeAidStations already handles range-clipping, dedup and
+// default naming, so an imported station goes through exactly the same
+// validation as a typed one — the `ambiguous` flag is re-attached afterwards
+// because sanitizing drops fields it doesn't know about.
+function stationsFromParsed(parsed) {
+  if (!parsed?.waypoints) return [];
+  const found = parsed.waypoints.filter((w) => w.isStation && w.km != null);
+  const ambiguousKm = new Set(found.filter((w) => w.ambiguous).map((w) => w.km));
+  return sanitizeAidStations(found, parsed.distanceKm).map((s) => ({
+    id: uid(),
+    ...s,
+    ambiguous: ambiguousKm.has(s.km),
+  }));
+}
+
+// The sentence appended to the import message about what the file's waypoints
+// yielded. Stays silent when the file had none, so the common case reads exactly
+// as it did before this feature existed.
+function describeWaypointImport(parsed, stations, seeded) {
+  const total = parsed.waypoints?.length ?? 0;
+  if (total === 0) return "";
+
+  if (stations.length === 0) {
+    return ` Found ${total} waypoint${total === 1 ? "" : "s"} in the file, none recognisable as aid stations — check them in Section 6.`;
+  }
+
+  const n = stations.length;
+  const unsure = stations.filter((s) => s.ambiguous).length;
+  const lead = seeded
+    ? ` Found ${n} aid station${n === 1 ? "" : "s"} in the file and filled in Section 6.`
+    : ` Found ${n} aid station${n === 1 ? "" : "s"} in the file — import ${n === 1 ? "it" : "them"} from Section 6 to replace your current list.`;
+  const caveat = unsure > 0
+    ? ` ${unsure} sit${unsure === 1 ? "s" : ""} near the course more than once, so the distance is a guess — check ${unsure === 1 ? "it" : "them"}.`
+    : "";
+  return lead + caveat;
+}
 
 // Compact on/off pill used for the water / food refill flags on each aid station.
 function StationToggle({ on, onClick }) {
@@ -20,10 +61,10 @@ function StationToggle({ on, onClick }) {
       type="button"
       onClick={onClick}
       style={{
-        fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, fontWeight: 600,
+        fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, fontWeight: 600,
         width: 42, padding: "5px 0", borderRadius: 3, cursor: "pointer",
         border: `1px solid ${on ? T.brassDim : T.line}`,
-        background: on ? "rgba(201,162,75,0.12)" : "transparent",
+        background: on ? `${T.brass}1F` : "transparent",
         color: on ? T.brass : T.inkDim,
       }}
     >
@@ -115,6 +156,23 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   // Aid stations & carry capacity
   const [aidStations, setAidStations] = useState([]);
   const [carryCapacity, setCarryCapacity] = useState("");
+  const [showOtherWaypoints, setShowOtherWaypoints] = useState(false);
+
+  // Waypoints the file classified as aid stations, in the shape the form uses.
+  // sanitizeAidStations already handles range-clipping, dedup and default naming,
+  // so importing reuses the same validation an athlete's typing goes through.
+  const fileStations = useMemo(() => stationsFromParsed(gpxData), [gpxData]);
+
+  // Everything else in the file — cols, parking, viewpoints, and anything whose
+  // naming we simply don't recognise. Offered for manual promotion rather than
+  // dropped, so an organiser with an unusual vocabulary costs a click.
+  const otherWaypoints = useMemo(() => {
+    if (!gpxData?.waypoints) return [];
+    return gpxData.waypoints
+      .filter((w) => !w.isStation)
+      .sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity))
+      .slice(0, MAX_PROMOTABLE);
+  }, [gpxData]);
 
   function addStation() {
     setAidStations((prev) => [...prev, { id: uid(), km: "", name: "", water: true, food: true }]);
@@ -133,6 +191,26 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       next.push({ id: uid(), km: Math.round(km * 10) / 10, name: "", water: true, food: true });
     }
     setAidStations(next);
+  }
+
+  // Replace the list with what the file supplied. Guarded when the athlete has
+  // already put work in — an import must never silently destroy typed input.
+  function importFileStations() {
+    if (fileStations.length === 0) return;
+    if (aidStations.length > 0 && !window.confirm(`Replace your ${aidStations.length} station${aidStations.length === 1 ? "" : "s"} with the ${fileStations.length} from the course file?`)) return;
+    setAidStations(fileStations.map((s) => ({ ...s, id: uid() })));
+  }
+
+  const isPromoted = (w) => aidStations.some((s) => Math.abs(parseFloat(s.km) - w.km) < 0.01);
+
+  function togglePromoted(w) {
+    setAidStations((prev) =>
+      isPromoted(w)
+        ? prev.filter((s) => Math.abs(parseFloat(s.km) - w.km) >= 0.01)
+        : [...prev, { id: uid(), km: w.km, name: w.name || "", water: true, food: true }].sort(
+            (a, b) => (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0)
+          )
+    );
   }
 
   // Profile-driven mutations (by station id), kept sorted by km for tidy rows.
@@ -207,10 +285,20 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     try {
       const parsed = await parseRouteFile(file, sport);
       setGpxData(parsed);
+      setShowOtherWaypoints(false);
+
+      // Seed the station list only when there's nothing to lose. If the athlete
+      // has already entered stations, the IMPORT button in Section 6 offers the
+      // swap explicitly instead.
+      const stations = stationsFromParsed(parsed);
+      const seeded = stations.length > 0 && aidStations.length === 0;
+      if (seeded) setAidStations(stations);
+
       setImportStatus("done");
       setImportMessage(
         `Loaded ${parsed.distanceKm} km course with ${parsed.elevationM}m elevation gain.` +
-          (!parsed.hasTime ? " Route-only file (no timestamps) — pacing will use flat distribution." : "")
+          (!parsed.hasTime ? " Route-only file (no timestamps) — pacing will use flat distribution." : "") +
+          describeWaypointImport(parsed, stations, seeded)
       );
     } catch (err) {
       setImportStatus("error");
@@ -319,7 +407,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
             { label: "Profile", value: gpxData.elevationM > 500 ? "Hilly" : gpxData.elevationM > 150 ? "Rolling" : "Flat" },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "10px 14px" }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label.toUpperCase()}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label.toUpperCase()}</div>
               <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>{value}</div>
             </div>
           ))}
@@ -342,7 +430,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
             <button
               type="button"
               onClick={toggleAll}
-              style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "5px 10px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
+              style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "5px 10px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
             >
               {allSelected ? "DESELECT ALL" : "SELECT ALL"}
             </button>
@@ -362,7 +450,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                     gap: 12,
                     padding: "11px 14px",
                     cursor: "pointer",
-                    background: checked ? "rgba(201,162,75,0.05)" : "transparent",
+                    background: checked ? `${T.brass}0D` : "transparent",
                     borderBottom: i < candidateRaces.length - 1 ? `1px solid ${T.line}` : "none",
                     transition: "background 100ms",
                   }}
@@ -372,7 +460,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                       width: 14, height: 14, borderRadius: 2, border: `1.5px solid ${checked ? T.brass : T.inkDim}`,
                       background: checked ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                      {checked && <span style={{ color: T.bg, fontSize: 9, lineHeight: 1, fontFamily: FONT_MONO }}>✓</span>}
+                      {checked && <span style={{ color: T.bg, fontSize: 11, lineHeight: 1, fontFamily: FONT_MONO }}>✓</span>}
                     </div>
                   </div>
                   <div>
@@ -445,12 +533,12 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       {(derivedClock || estimateSource === "loading") && (
         <div style={{ background: T.bg2, border: `1px solid ${estimateSource === "ai" ? T.brassDim : T.line}`, borderRadius: 4, padding: "14px 16px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>ESTIMATE</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>ESTIMATE</span>
             {estimateSource === "ai" && (
-              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.brass, background: "rgba(201,162,75,0.12)", border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "1px 6px" }}>AI</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.brass, background: `${T.brass}1F`, border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "1px 6px" }}>AI</span>
             )}
             {estimateSource === "loading" && (
-              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.inkDim }}>THINKING…</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>THINKING…</span>
             )}
           </div>
           {estimateSource === "loading"
@@ -512,7 +600,14 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       </p>
 
       {gpxData ? (
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
+          {/* Segments repaint live as stations are placed on the profile below. */}
+          <CourseMap
+            path={gpxData.path}
+            distanceKm={gpxData.distanceKm}
+            stations={aidStations}
+            height={260}
+          />
           <ElevationProfile
             splits={gpxData.splits}
             distanceKm={gpxData.distanceKm}
@@ -521,6 +616,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
             onAdd={addStationAtKm}
             onMove={moveStation}
             onRemove={removeStationById}
+            colorByGradient
           />
         </div>
       ) : (
@@ -533,24 +629,82 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         <button
           type="button"
           onClick={addStation}
-          style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}
+          style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}
         >
           + ADD STATION
         </button>
+        {fileStations.length > 0 && (
+          <button
+            type="button"
+            onClick={importFileStations}
+            title="Use the aid stations marked in the uploaded course file"
+            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.brassDim}`, background: `${T.brass}1F`, color: T.brass, cursor: "pointer" }}
+          >
+            IMPORT {fileStations.length} FROM FILE
+          </button>
+        )}
         <button
           type="button"
           onClick={autoSpaceStations}
           disabled={!gpxData}
-          title={gpxData ? "" : "Upload a course first"}
-          style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: gpxData ? T.ink : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
+          title={gpxData ? "Space stations evenly — a fallback for files that don't mark them" : "Upload a course first"}
+          style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: gpxData ? T.ink : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
         >
           AUTO-SPACE
         </button>
       </div>
 
+      {otherWaypoints.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={() => setShowOtherWaypoints((v) => !v)}
+            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer" }}
+          >
+            {showOtherWaypoints ? "▾" : "▸"} {otherWaypoints.length} OTHER WAYPOINT{otherWaypoints.length === 1 ? "" : "S"} IN THIS FILE
+          </button>
+
+          {showOtherWaypoints && (
+            <div style={{ marginTop: 10, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ padding: "8px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, lineHeight: 1.45 }}>
+                Cols, parking and anything RaceIQ didn't recognise. Tick one to add it as a station.
+              </div>
+              {otherWaypoints.map((w, i) => {
+                const offCourse = w.km == null;
+                return (
+                  <label
+                    key={i}
+                    style={{ display: "grid", gridTemplateColumns: "24px 70px 1fr", gap: 10, padding: "8px 12px", alignItems: "center", cursor: offCourse ? "default" : "pointer", borderBottom: i < otherWaypoints.length - 1 ? `1px solid ${T.line}33` : "none" }}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={offCourse}
+                      checked={!offCourse && isPromoted(w)}
+                      onChange={() => togglePromoted(w)}
+                      style={{ accentColor: T.brass, cursor: offCourse ? "default" : "pointer" }}
+                    />
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: offCourse ? T.inkDim : T.ink }}>
+                      {offCourse ? "—" : `${w.km} km`}
+                    </span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: offCourse ? T.inkDim : T.paper }}>
+                      {w.name || "Unnamed waypoint"}
+                      {offCourse && (
+                        <span style={{ color: T.inkDim }}>
+                          {" "}— not on this course{w.distanceFromCourseM != null ? ` (${w.distanceFromCourseM}m away)` : ""}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {aidStations.length > 0 && (
         <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>
+          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>
             <div>KM</div><div>NAME</div><div>WATER</div><div>FOOD</div><div />
           </div>
           {aidStations.map((s, i) => {
@@ -561,9 +715,12 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                 <input
                   type="number"
                   value={s.km}
-                  onChange={(e) => updateStation(i, { km: e.target.value })}
+                  // Editing the distance is the athlete resolving the ambiguity,
+                  // so the flag — and its warning border — retires with the edit.
+                  onChange={(e) => updateStation(i, { km: e.target.value, ambiguous: false })}
                   placeholder="km"
-                  style={{ ...inputStyle, padding: "7px 8px", borderColor: outOfRange ? T.ember : T.line }}
+                  title={s.ambiguous ? "This waypoint passes close to the course more than once — check the distance is the right one." : ""}
+                  style={{ ...inputStyle, padding: "7px 8px", borderColor: outOfRange ? T.ember : s.ambiguous ? T.brass : T.line }}
                 />
                 <input
                   value={s.name}

@@ -61,6 +61,51 @@ export const THEMES = { light: LIGHT, dark: DARK };
 // Active theme. Flip to THEMES.dark (or wire a toggle) for dark mode.
 export const T = LIGHT;
 
+/* ---------------------------------------------------------
+   Course-visualisation scales (map + elevation profile)
+
+   Two different colour *jobs*, so two different structures:
+
+   - SEGMENT_RAMP is ORDINAL. Segments run S1→Sn along the
+     course, so their order carries meaning; a one-hue ramp
+     (light→dark in light mode, dark→light in dark mode) lets
+     the reader see course progression in the colour itself,
+     and unlike a fixed categorical palette it extends to a
+     course with many aid stations without ever cycling.
+   - GRADE_SCALE is DIVERGING. Gradient has a natural zero, so
+     it takes two hues either side of a neutral grey midpoint:
+     cool/blue for descent, warm/red for climb. Near the
+     midpoint hue carries the sign; at the extremes lightness
+     does. Never a rainbow.
+
+   Both were validated (not eyeballed) against the surfaces
+   they actually render on — white cards in light mode,
+   #161C23 in dark: the ramp passes monotone-lightness,
+   ΔL ≥ 0.06 step gaps, light-end ≥ 2:1; each diverging arm is
+   monotone outward from the midpoint with every step ≥ 2:1.
+   Re-run the dataviz validator if you touch these values.
+   --------------------------------------------------------- */
+
+const SEGMENT_RAMP_LIGHT = ["#55C0D1", "#2BA5B9", "#0C8E9F", "#0A7686", "#095E6C", "#074954"];
+const SEGMENT_RAMP_DARK = ["#8FE4F2", "#63CFE1", "#3FB8CB", "#2C9BAE", "#22808F", "#1A6773"];
+
+// Diverging gradient arms, listed mild → strong away from the neutral midpoint.
+const GRADE_SCALE_LIGHT = {
+  flat: "#AAB0B8",
+  descent: ["#7FB0E8", "#3E86D8", "#1B5FA8"],
+  climb: ["#EC9578", "#E1603F", "#B62F2C"],
+};
+const GRADE_SCALE_DARK = {
+  flat: "#5A626C",
+  descent: ["#3D7CC4", "#5E9AE2", "#A8CCF5"],
+  climb: ["#CC4A40", "#E4744F", "#F3B49F"],
+};
+
+// Selected per mode alongside `T` — dark is its own set of steps for the dark
+// surface, not an automatic flip of the light one.
+export const SEGMENT_RAMP = T === LIGHT ? SEGMENT_RAMP_LIGHT : SEGMENT_RAMP_DARK;
+export const GRADE_SCALE = T === LIGHT ? GRADE_SCALE_LIGHT : GRADE_SCALE_DARK;
+
 // Radius scale for the rounded-card language
 export const R = { sm: 8, md: 12, lg: 16, pill: 999 };
 

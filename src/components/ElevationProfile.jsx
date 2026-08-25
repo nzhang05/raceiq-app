@@ -1,11 +1,27 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { T, FONT_MONO } from "../constants.js";
+import { T, FONT_MONO, FONT_BODY } from "../constants.js";
+import { gradeColor, GRADE_LEGEND } from "../utils/courseColors.js";
 
 // Interactive elevation profile. Click to drop an aid station, drag a marker to
 // move it, double-click to remove. Stations slice the course into labelled
 // segments (S1, S2, …). Reads/writes the same aid-station state the form owns —
 // the numeric rows below stay in sync.
-export default function ElevationProfile({ splits, distanceKm, elevationM, stations, onAdd, onMove, onRemove }) {
+//
+// `colorByGradient` fills the band per slice on the diverging grade scale
+// (descent → flat → climb) instead of a flat accent wash, so the shape of the
+// course and how hard each part of it is read at the same time.
+// `readOnly` drops the editing affordances for the generated-plan view.
+export default function ElevationProfile({
+  splits,
+  distanceKm,
+  elevationM,
+  stations,
+  onAdd,
+  onMove,
+  onRemove,
+  colorByGradient = false,
+  readOnly = false,
+}) {
   const W = 640;
   const H = 190;
   const padL = 8;
@@ -55,6 +71,23 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
     return Math.max(0.1, Math.min(distanceKm - 0.1, Math.round(km * 10) / 10));
   }
 
+  // Per-slice grade, used both to colour the band and to report the gradient
+  // under the cursor. One entry per gap between elevation points.
+  const slices = useMemo(() => {
+    if (points.length < 2) return [];
+    return points.slice(1).map((b, i) => {
+      const a = points[i];
+      const distM = (b.km - a.km) * 1000;
+      const gradePct = distM > 0 ? ((b.elev - a.elev) / distM) * 100 : 0;
+      return { a, b, gradePct };
+    });
+  }, [points]);
+
+  const gradeAtKm = (km) => {
+    const s = slices.find((sl) => km <= sl.b.km) ?? slices[slices.length - 1];
+    return s ? s.gradePct : 0;
+  };
+
   // Drag handling via window listeners so the marker keeps tracking outside the SVG.
   useEffect(() => {
     if (dragId == null) return;
@@ -97,8 +130,12 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
         <span style={{ color: T.paper, fontWeight: 500 }}>{distanceKm} km</span>
         <span style={{ color: T.green }}>+{elevationM} m</span>
         <span style={{ color: T.inkDim }}>Alt {Math.round(minElev)}–{Math.round(maxElev)} m</span>
-        <span style={{ marginLeft: "auto", color: T.inkDim, fontSize: 10 }}>
-          {hoverKm != null ? `km ${hoverKm} · ${Math.round(elevAtKm(hoverKm))} m` : "click to place · drag to move · double-click to remove"}
+        <span style={{ marginLeft: "auto", color: T.inkDim, fontSize: 11 }}>
+          {hoverKm != null
+            ? `km ${hoverKm} · ${Math.round(elevAtKm(hoverKm))} m · ${gradeAtKm(hoverKm) > 0 ? "+" : ""}${gradeAtKm(hoverKm).toFixed(1)}%`
+            : readOnly
+              ? "hover for elevation and gradient"
+              : "click to place · drag to move · double-click to remove"}
         </span>
       </div>
 
@@ -107,7 +144,7 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
         viewBox={`0 0 ${W} ${H}`}
         width="100%"
         height={H}
-        style={{ display: "block", cursor: "crosshair" }}
+        style={{ display: "block", cursor: readOnly ? "default" : "crosshair" }}
         onMouseMove={(e) => setHoverKm(kmFromClientX(e.clientX))}
         onMouseLeave={() => setHoverKm(null)}
       >
@@ -118,15 +155,30 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
           </linearGradient>
         </defs>
 
-        {/* Clickable band — placing a station */}
-        <polygon points={bandPoints} fill="url(#elev-band)" />
+        {colorByGradient ? (
+          // One filled quad per slice, on the diverging grade scale. Contiguous
+          // by design — these are slices of one continuous area, not stacked
+          // categories, so a spacer between them would read as a gap in the course.
+          slices.map((s, i) => (
+            <polygon
+              key={`slice-${i}`}
+              points={`${x(s.a.km)},${padT + plotH} ${x(s.a.km)},${y(s.a.elev)} ${x(s.b.km)},${y(s.b.elev)} ${x(s.b.km)},${padT + plotH}`}
+              fill={gradeColor(s.gradePct)}
+              fillOpacity="0.55"
+            />
+          ))
+        ) : (
+          <polygon points={bandPoints} fill="url(#elev-band)" />
+        )}
         <polyline points={topLine} fill="none" stroke={T.paper} strokeWidth="1.5" strokeLinejoin="round" />
-        <rect
-          x={padL} y={padT} width={plotW} height={plotH}
-          fill="transparent"
-          style={{ cursor: "copy" }}
-          onClick={(e) => onAdd(kmFromClientX(e.clientX))}
-        />
+        {!readOnly && (
+          <rect
+            x={padL} y={padT} width={plotW} height={plotH}
+            fill="transparent"
+            style={{ cursor: "copy" }}
+            onClick={(e) => onAdd(kmFromClientX(e.clientX))}
+          />
+        )}
 
         {/* Hover guide */}
         {hoverKm != null && dragId == null && (
@@ -139,7 +191,7 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
           return (
             <g key={`seg-${i}`} style={{ pointerEvents: "none" }}>
               <rect x={x(midKm) - 13} y={padT - 20} width={26} height={15} rx={2} fill={T.bg} stroke={T.line} />
-              <text x={x(midKm)} y={padT - 9} textAnchor="middle" fill={T.ink} fontFamily={FONT_MONO} fontSize="9.5">
+              <text x={x(midKm)} y={padT - 9} textAnchor="middle" fill={T.ink} fontFamily={FONT_MONO} fontSize="10">
                 S{i + 1}
               </text>
             </g>
@@ -153,16 +205,27 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
             <circle
               cx={x(s.kmNum)} cy={y(elevAtKm(s.kmNum))} r="5"
               fill={T.brass} stroke={T.bg} strokeWidth="1.5"
-              style={{ cursor: dragId === s.id ? "grabbing" : "grab" }}
-              onPointerDown={(e) => { e.stopPropagation(); setDragId(s.id); }}
-              onDoubleClick={(e) => { e.stopPropagation(); onRemove(s.id); }}
+              style={readOnly ? { pointerEvents: "none" } : { cursor: dragId === s.id ? "grabbing" : "grab" }}
+              onPointerDown={readOnly ? undefined : (e) => { e.stopPropagation(); setDragId(s.id); }}
+              onDoubleClick={readOnly ? undefined : (e) => { e.stopPropagation(); onRemove(s.id); }}
             />
-            <text x={x(s.kmNum)} y={padT + plotH + 15} textAnchor="middle" fill={T.brass} fontFamily={FONT_MONO} fontSize="9">
+            <text x={x(s.kmNum)} y={padT + plotH + 15} textAnchor="middle" fill={T.brass} fontFamily={FONT_MONO} fontSize="10">
               {s.kmNum}
             </text>
           </g>
         ))}
       </svg>
+
+      {colorByGradient && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", padding: "9px 12px", borderTop: `1px solid ${T.line}` }}>
+          {GRADE_LEGEND.map(({ label, color }) => (
+            <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: FONT_BODY, fontSize: 11, color: T.ink }}>
+              <span style={{ width: 11, height: 11, borderRadius: 2, background: color, flexShrink: 0 }} />
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

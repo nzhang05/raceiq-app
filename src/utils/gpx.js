@@ -1,5 +1,18 @@
 import { isCyclingSport } from "../constants.js";
 
+/*
+  Failures carry a catalog key (in the `plan` namespace) rather than a sentence,
+  so this module stays language-free. Callers render it with
+  parseErrorText() from src/i18n/render.js.
+*/
+export class ParseError extends Error {
+  constructor(key) {
+    super(key);
+    this.name = "ParseError";
+    this.key = key;
+  }
+}
+
 const EARTH_RADIUS_M = 6371000;
 
 // Chart/split sampling cadence: running races get a point every km,
@@ -90,11 +103,11 @@ export async function parseRouteFile(file, sport) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "application/xml");
   if (xmlDoc.getElementsByTagName("parsererror").length) {
-    throw new Error("Could not read this file — make sure it's a valid GPX or TCX export.");
+    throw new ParseError("errors.unreadableFile");
   }
   const isTcx = file.name.toLowerCase().endsWith(".tcx") || xmlDoc.getElementsByTagName("TrainingCenterDatabase").length > 0;
   const rawPoints = isTcx ? parseTcxPoints(xmlDoc) : parseGpxPoints(xmlDoc);
-  if (rawPoints.length < 2) throw new Error("No track points found in this file.");
+  if (rawPoints.length < 2) throw new ParseError("errors.noTrackPoints");
 
   const points = pointsToCumulativeDistance(rawPoints);
   const totalKm = points[points.length - 1].cumKm;
@@ -128,14 +141,14 @@ export async function parseTrackFile(file, sport) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "application/xml");
   if (xmlDoc.getElementsByTagName("parsererror").length) {
-    throw new Error("Could not read this file — make sure it's a valid GPX or TCX export.");
+    throw new ParseError("errors.unreadableFile");
   }
 
   const isTcx = file.name.toLowerCase().endsWith(".tcx") || xmlDoc.getElementsByTagName("TrainingCenterDatabase").length > 0;
   const rawPoints = isTcx ? parseTcxPoints(xmlDoc) : parseGpxPoints(xmlDoc);
 
   if (rawPoints.length < 2) {
-    throw new Error("No track points found in this file.");
+    throw new ParseError("errors.noTrackPoints");
   }
 
   const points = pointsToCumulativeDistance(rawPoints);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { T, R, FONT_DISPLAY, FONT_BODY } from "../constants.js";
 import { Card, Button, TextInput, Field } from "./ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -8,6 +9,7 @@ import { useAuth } from "../context/AuthContext.jsx";
   design tokens and ui primitives. See docs/design-auth-and-profiles.md.
 */
 export default function SignIn() {
+  const { t } = useTranslation();
   const { signInWithPassword, signUp, resetPassword, signInWithOAuth } = useAuth();
   const [mode, setMode] = useState("login"); // 'login' | 'signup' | 'reset'
   const [displayName, setDisplayName] = useState("");
@@ -26,11 +28,11 @@ export default function SignIn() {
       if (mode === "reset") {
         const { error } = await resetPassword(email);
         if (error) throw error;
-        setNotice("Check your email for a password reset link.");
+        setNotice(t("signIn.resetSent"));
       } else if (mode === "signup") {
         const { error } = await signUp(email, password, displayName.trim());
         if (error) throw error;
-        setNotice("Account created. Check your email to confirm, then log in.");
+        setNotice(t("signIn.accountCreated"));
         setMode("login");
       } else {
         const { error } = await signInWithPassword(email, password);
@@ -38,7 +40,7 @@ export default function SignIn() {
         // On success the AuthProvider swaps this screen out automatically.
       }
     } catch (err) {
-      setError(err.message ?? "Something went wrong.");
+      setError(err.message ?? t("signIn.genericError"));
     } finally {
       setBusy(false);
     }
@@ -52,13 +54,13 @@ export default function SignIn() {
     // session (supabase-js parses it from the URL). No further code needed here.
     const { error } = await signInWithOAuth("google");
     if (error) {
-      setError(error.message ?? "Could not start Google sign-in.");
+      setError(error.message ?? t("signIn.googleError"));
       setBusy(false);
     }
   }
 
-  const title = mode === "signup" ? "Create your account" : mode === "reset" ? "Reset password" : "Welcome back";
-  const cta = mode === "signup" ? "Sign up" : mode === "reset" ? "Send reset link" : "Log in";
+  const title = t(`signIn.title.${mode}`);
+  const cta = t(`signIn.cta.${mode}`);
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: T.bg, padding: 24 }}>
@@ -75,11 +77,11 @@ export default function SignIn() {
             <>
               <button type="button" onClick={handleGoogle} disabled={busy} style={googleBtn}>
                 <GoogleG />
-                Continue with Google
+                {t("signIn.google")}
               </button>
               <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0" }}>
                 <span style={{ flex: 1, height: 1, background: T.line }} />
-                <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: T.inkDim }}>or</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: T.inkDim }}>{t("signIn.or")}</span>
                 <span style={{ flex: 1, height: 1, background: T.line }} />
               </div>
             </>
@@ -87,15 +89,15 @@ export default function SignIn() {
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {mode === "signup" && (
-              <Field label="Name">
+              <Field label={t("signIn.name")}>
                 <TextInput value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex Moreno" autoComplete="name" />
               </Field>
             )}
-            <Field label="Email">
-              <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
+            <Field label={t("signIn.email")}>
+              <TextInput type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("signIn.emailPlaceholder")} autoComplete="email" />
             </Field>
             {mode !== "reset" && (
-              <Field label="Password">
+              <Field label={t("signIn.password")}>
                 <TextInput type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={mode === "signup" ? "new-password" : "current-password"} />
               </Field>
             )}
@@ -111,15 +113,15 @@ export default function SignIn() {
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8, fontFamily: FONT_BODY, fontSize: 12.5, color: T.ink }}>
             {mode === "login" && (
               <>
-                <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "reset")} style={linkBtn}>Forgot your password?</button>
-                <div>New here? <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "signup")} style={linkBtnAccent}>Create an account</button></div>
+                <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "reset")} style={linkBtn}>{t("signIn.forgot")}</button>
+                <div>{t("signIn.newHere")}{" "}<button type="button" onClick={() => switchMode(setMode, setError, setNotice, "signup")} style={linkBtnAccent}>{t("signIn.createAccount")}</button></div>
               </>
             )}
             {mode === "signup" && (
-              <div>Already have an account? <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "login")} style={linkBtnAccent}>Log in</button></div>
+              <div>{t("signIn.haveAccount")}{" "}<button type="button" onClick={() => switchMode(setMode, setError, setNotice, "login")} style={linkBtnAccent}>{t("signIn.cta.login")}</button></div>
             )}
             {mode === "reset" && (
-              <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "login")} style={linkBtn}>Back to log in</button>
+              <button type="button" onClick={() => switchMode(setMode, setError, setNotice, "login")} style={linkBtn}>{t("signIn.backToLogin")}</button>
             )}
           </div>
         </Card>

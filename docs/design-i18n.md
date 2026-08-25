@@ -1,6 +1,6 @@
 # Design Doc: Internationalization (English + French)
 
-**Status:** Draft
+**Status:** Implemented (`feat/i18n-en-fr`)
 **Date:** 2026-08-17
 
 ---
@@ -102,20 +102,46 @@ Why this and not "pass `t` into `buildDebrief()`":
 that differs in FR. Because each finding is one whole sentence keyed independently, the
 translator can restructure freely. Never split a sentence across two keys.
 
+**Deferred references.** One value is itself catalog text: the duration-banded fuelling
+rationale, which the debrief's fuelling recommendation quotes. `analysis.js` emits it as
+`{ $key: "plan:fuelRationale.under240" }` and `resolveValues()` in `render.js` expands it
+just before interpolation. i18next's own `$t()` nesting was tried first and rejected:
+nesting *inside an interpolated value* depends on `interpolation.skipOnVariables`, which
+is off by default and did not apply on the fixed-locale server instance — it rendered the
+literal `$t(...)` into the sentence.
+
+**Pure modules take labels, not `t`.** `aidStations.js` generates the display names
+Start / Finish / Aid N, and `racePlan.js` passes them through. Rather than import i18n
+there, both take a `labels` argument (`{ start, finish, aid(n) }`) that the calling
+component builds from `t`, defaulting to English. Leg notes follow the finding pattern:
+`{ noteKey, noteValues }`, rendered by `legNoteText()`.
+
 ### 3.3 Catalog layout
 
 ```
 src/i18n/
-  index.js            # i18next init, detector config, Intl formatters
+  index.js            # browser i18next init (detector + react binding)
+  server.js           # React-free fixed-locale instance for api/
+  resources.js        # the catalogs, shared by both instances
+  format.js           # Intl date/number/list formatters
+  render.js           # {key,values} → text, for findings/recs/notes/errors
   en/
-    common.json       # nav, buttons, form labels, errors
-    debrief.json      # ~35 finding/recommendation templates from analysis.js
-    plan.json         # racePlan.js + aidStations.js + planPdf.js
-    coach.json        # UI chrome, canned replies, refusals
+    common.js         # nav, race list, debrief view, compare, profile, charts, add-race form
+    debrief.js        # ~30 finding/recommendation templates from analysis.js
+    plan.js           # racePlan.js + aidStations.js + fueling.js + plan form/view + planPdf.js
+    coach.js          # chat chrome, canned refusals, API errors, prompt directive
   fr/  (same four files)
 ```
 
-Namespaces are lazily loadable later; for now bundle all six JSON files (they're small).
+**Catalogs are `.js` modules, not `.json`.** `api/_lib/prompts.js` needs the English
+catalog server-side, and JSON imports in the Node function runtime need import
+assertions or a loader. `export default { … }` costs a translator nothing and removes
+a whole class of build risk.
+
+Two i18next instances, not one: `index.js` installs the browser language detector and
+the react-i18next binding, both of which touch `document`/`localStorage` and have no
+business in a serverless function. `server.js` is a bare `createInstance()` exposing
+`tFor(locale)`.
 
 ### 3.4 Locale-aware formatting
 
@@ -147,7 +173,7 @@ formatters in `src/i18n/format.js`:
 - Detection order: `localStorage` → `navigator` → fallback `en`. Supported: `['en','fr']`,
   with `fr-CA`/`fr-FR` both resolving to `fr` via i18next's `load: 'languageOnly'`.
 
-### 3.6 The AI Coach
+### 3.6 The AI Coach and the server-side narratives
 
 Three separate concerns:
 1. **UI chrome** (headers, placeholders, the "Ask RaceIQ" label) — normal `t()`.
@@ -156,10 +182,21 @@ Three separate concerns:
    Note the *intent classifier* that routes to them matches English keywords; it needs a
    FR keyword set too, or it will silently stop catching medical questions asked in
    French. **This is a safety-relevant path, not a cosmetic one.**
-3. **LLM output** — append to the system prompt: `Respond in French.` / `Respond in
-   English.` keyed off the active locale, and keep the DATA block in English (it's
-   structured data; translating field names would only confuse the model). Verify the
-   model doesn't drift back to English on long answers.
+3. **LLM output** — a `LANGUAGE` block is appended to all three system prompts
+   (`buildCoachSystem`, `buildNarrativeSystem`, `buildEstimateSystem`) from
+   `coach:systemDirective`, keyed off the locale the browser sends on every request. The
+   DATA block stays English: it's structured data, and translating field labels only
+   degrades grounding. Verify the model doesn't drift back to English on long answers.
+4. **Cache key** — narrative results are content-addressed in localStorage
+   (`coachApi.js`). The locale is now part of the seed (`debrief:v3` / `plan:v3`);
+   without it a French athlete gets served the cached English narrative.
+5. **Server errors** — `api/claude.js` returns `{ error, errorKey, errorValues }`.
+   `CoachApiError` carries the key and `Coach.jsx` renders it with `t()`; `error` keeps
+   the English text for logs.
+6. **Rule-engine grounding** — `engineBlock()` in `prompts.js` feeds the deterministic
+   findings to Claude as prose. Since `buildDebrief()` now returns keys, that block
+   renders them through `tFor("en")` — deliberately English, like the rest of the
+   grounding context.
 
 ### 3.7 Seed data and stored races
 
@@ -218,8 +255,11 @@ Phases 2 and 3 are parallelizable; phase 4 is the critical path and should start
   and adding one is a separate decision.
 - **Pseudo-locale** (`en-XX` that wraps every string in `⟦…⟧` and pads 30%): catches both
   untranslated literals and layout overflow in one pass. Cheap to add to the i18next init,
-  dev-only.
-- **Manual QA in FR** on the debrief, plan, and Coach views.
+  dev-only. **Not built** — worth adding before the layout pass below.
+- **Manual QA in FR** on the debrief, plan, and Coach views. **Not done** — the work so
+  far is verified by `npm run build`, the parity check, and a headless render of every
+  debrief finding, plan section, carry note and PDF heading in both locales. Nobody has
+  looked at the rendered pages in French yet, and the length risk in §6 is unaddressed.
 
 ## 6. Risks
 
@@ -239,3 +279,19 @@ Phases 2 and 3 are parallelizable; phase 4 is the critical path and should start
   *fractionné*, *seuil* (threshold). Build a short glossary at the top of the FR catalog
   before phase 7 and hold to it, or the copy will read as machine-translated to the
   target audience.
+
+## 7. What shipped vs. this plan
+
+Built as described, with the deviations noted inline above (`.js` catalogs, two i18next
+instances, `$key` deferred references, `labels` arguments instead of `t` injection).
+
+Two things grew beyond the original plan, both because `api/` landed between the plan and
+the implementation: the **server-side narrative prompts** (§3.6 items 3–6) and the
+**`api/claude.js` error surface**. Neither existed when §4's phase table was written.
+
+Still open:
+- No pseudo-locale, and **no human has viewed the app in French**. French runs 15–25%
+  longer than English; the tight spots called out in §6 (debrief stat tiles, `Pill`
+  components, plan-export table headers) have not been checked or adjusted.
+- The FR copy is a first pass against the §6 glossary, not a reviewed translation.
+- `SEED_RACES` demo race *names* stay English — they are proper nouns for fictional races.

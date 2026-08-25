@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { T, FONT_MONO } from "../constants.js";
 import { hasElevationData } from "../utils/pace.js";
 
 export default function PaceHeatStrip({ race }) {
+  const { t } = useTranslation();
   const W = 720;
   const H = 220;
   const padL = 46;
@@ -102,10 +104,10 @@ export default function PaceHeatStrip({ race }) {
   const tooltipFlip = tooltipLeftPct > 62;
 
   const legendItems = [
-    { key: "pace", label: showGap ? "GAP" : "PACE", color: T.paper, dash: null, thick: true },
-    ...(showGap ? [{ key: "rawPace", label: "RAW PACE", color: T.ink, dash: "1 3", thick: false, dim: true }] : []),
-    { key: "temp", label: "TEMP", color: T.temp, dash: "3 3", thick: false },
-    ...(showElev ? [{ key: "elev", label: "ELEV", color: T.brass, isRect: true }] : []),
+    { key: "pace", label: t(showGap ? "chart.legend.gap" : "chart.legend.pace"), color: T.paper, dash: null, thick: true },
+    ...(showGap ? [{ key: "rawPace", label: t("chart.legend.rawPace"), color: T.ink, dash: "1 3", thick: false, dim: true }] : []),
+    { key: "temp", label: t("chart.legend.temp"), color: T.temp, dash: "3 3", thick: false },
+    ...(showElev ? [{ key: "elev", label: t("chart.legend.elev"), color: T.brass, isRect: true }] : []),
   ];
 
   return (
@@ -115,7 +117,7 @@ export default function PaceHeatStrip({ race }) {
           <button
             key={item.key}
             onClick={() => toggle(item.key)}
-            title={visible[item.key] ? `Hide ${item.label}` : `Show ${item.label}`}
+            title={t(visible[item.key] ? "chart.hideSeries" : "chart.showSeries", { series: item.label })}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: "none", border: "none", padding: "2px 0", cursor: "pointer",
@@ -142,7 +144,7 @@ export default function PaceHeatStrip({ race }) {
         width="100%"
         height={H}
         role="img"
-        aria-label={`${showGap ? "Grade-adjusted pace" : "Pace"} and temperature${showElev ? " and elevation" : ""} across the race`}
+        aria-label={t("chart.ariaLabel", { context: showGap ? (showElev ? "gapElev" : "gap") : (showElev ? "elev" : undefined) })}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredIdx(null)}
         style={{ cursor: "crosshair", display: "block" }}
@@ -199,7 +201,7 @@ export default function PaceHeatStrip({ race }) {
           <g>
             <line x1={x(turnSplit.km)} y1={yPace(turnSplit[primaryKey])} x2={x(turnSplit.km)} y2={padT - 2} stroke={T.ember} strokeWidth="1" strokeDasharray="2 2" />
             <text x={x(turnSplit.km)} y={padT - 8} textAnchor="middle" fill={T.ember} fontFamily={FONT_MONO} fontSize="10" letterSpacing="0.5">
-              KM {turnSplit.km} — TURN
+              {t("chart.turnLabel", { km: turnSplit.km })}
             </text>
           </g>
         )}
@@ -212,8 +214,8 @@ export default function PaceHeatStrip({ race }) {
           ) : null
         )}
 
-        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">fast</text>
-        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">slow</text>
+        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.fast")}</text>
+        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.slow")}</text>
 
         {visible.temp && (
           <>
@@ -237,32 +239,32 @@ export default function PaceHeatStrip({ race }) {
           }}
         >
           <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
-            KM {hoveredSplit.km}
+            {t("chart.tooltipKm", { km: hoveredSplit.km })}
           </div>
           {visible.pace && (
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.paper, marginBottom: 4 }}>
-              <span style={{ color: T.inkDim }}>{showGap ? "GAP " : "PACE"} </span>
+              <span style={{ color: T.inkDim }}>{t(showGap ? "chart.tooltip.gap" : "chart.tooltip.pace")} </span>
               {fmtPaceStr(hoveredSplit[primaryKey])}
             </div>
           )}
           {showGap && visible.rawPace && hoveredSplit.pace != null && (
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginBottom: 4 }}>
-              <span>RAW  </span>{fmtPaceStr(hoveredSplit.pace)}
+              <span>{t("chart.tooltip.raw")}  </span>{fmtPaceStr(hoveredSplit.pace)}
             </div>
           )}
           {visible.temp && hoveredSplit.tempC != null && (
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.temp, marginBottom: 4 }}>
-              <span style={{ color: T.inkDim }}>TEMP </span>{hoveredSplit.tempC}°C
+              <span style={{ color: T.inkDim }}>{t("chart.tooltip.temp")} </span>{hoveredSplit.tempC}°C
             </div>
           )}
           {showElev && visible.elev && hoveredSplit.elevM != null && (
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, marginBottom: showGap && hoveredSplit.gradePct != null ? 4 : 0 }}>
-              <span style={{ color: T.inkDim }}>ELEV </span>{hoveredSplit.elevM}m
+              <span style={{ color: T.inkDim }}>{t("chart.tooltip.elev")} </span>{hoveredSplit.elevM}m
             </div>
           )}
           {showGap && hoveredSplit.gradePct != null && (
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>
-              <span>GRD  </span>{hoveredSplit.gradePct > 0 ? "+" : ""}{hoveredSplit.gradePct}%
+              <span>{t("chart.tooltip.grade")} </span>{hoveredSplit.gradePct > 0 ? "+" : ""}{hoveredSplit.gradePct}%
             </div>
           )}
         </div>

@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { T, FONT_DISPLAY, FONT_BODY, SPORT_OPTIONS } from "../constants.js";
 import { Card, Button, TextInput, Field, Select } from "./ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { LOCALES, changeLocale, activeLocale } from "../i18n/index.js";
 
 /*
   Athlete profile editor. Identity + the physiological attributes the engine
@@ -12,8 +14,9 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 const LB_PER_KG = 2.2046226218;
 const KM_PER_MI = 1.609344;
-const SEX_OPTIONS = ["—", "M", "F", "other"];
-const SPORT_CHOICES = ["—", ...SPORT_OPTIONS];
+const SEX_VALUES = ["—", "M", "F", "other"];
+const SPORT_VALUES = ["—", ...SPORT_OPTIONS];
+const LOCALE_NAMES = { en: "English", fr: "Français" };
 
 // sec/km (canonical) → "mm:ss" in the athlete's unit; "" when unset.
 function fmtPaceInput(secPerKm, units) {
@@ -51,7 +54,9 @@ function intOrNull(str) {
 }
 
 export default function ProfileForm({ onBack }) {
+  const { t } = useTranslation();
   const { profile, updateProfile } = useAuth();
+  const [locale, setLocale] = useState(profile?.locale ?? activeLocale());
   const [units, setUnits] = useState(profile?.units ?? "metric");
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
   const [defaultSport, setDefaultSport] = useState(profile?.default_sport ?? "—");
@@ -77,8 +82,15 @@ export default function ProfileForm({ onBack }) {
     setThresholdPace(fmtPaceInput(curPace, next));
   }
 
-  const paceLabel = units === "imperial" ? "min/mi" : "min/km";
-  const weightUnit = units === "imperial" ? "lb" : "kg";
+  const paceLabel = t(units === "imperial" ? "units.perMi" : "units.perKm");
+  const weightUnit = t(units === "imperial" ? "units.lb" : "units.kg");
+
+  // The language switch applies immediately — waiting for a save would leave
+  // the form half-translated while the athlete reads it.
+  function pickLocale(next) {
+    setLocale(next);
+    changeLocale(next);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -88,7 +100,7 @@ export default function ProfileForm({ onBack }) {
 
     const paceValid = !thresholdPace.trim() || parsePaceInput(thresholdPace, units) != null;
     if (!paceValid) {
-      setError(`Threshold pace must look like m:ss (${paceLabel}).`);
+      setError(t("profile.paceFormatError", { unit: paceLabel }));
       setBusy(false);
       return;
     }
@@ -96,6 +108,7 @@ export default function ProfileForm({ onBack }) {
     const patch = {
       display_name: displayName.trim() || null,
       units,
+      locale,
       default_sport: defaultSport === "—" ? null : defaultSport,
       sex: sex === "—" ? null : sex,
       weight_kg: parseWeight(weight, units),
@@ -107,64 +120,87 @@ export default function ProfileForm({ onBack }) {
 
     const { error } = await updateProfile(patch);
     setBusy(false);
-    if (error) setError(error.message ?? "Could not save profile.");
+    if (error) setError(error.message ?? t("profile.saveError"));
     else setSaved(true);
   }
 
   return (
     <div style={{ animation: "slideUp 300ms ease both" }}>
       <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 600, letterSpacing: -0.3, color: T.paper, margin: "0 0 4px" }}>
-        Athlete profile
+        {t("profile.title")}
       </h1>
       <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.ink, margin: "0 0 24px" }}>
-        Everything here is optional. Fill in what you know — it sharpens fueling, analysis, and race plans.
+        {t("profile.intro")}
       </p>
 
       <form onSubmit={handleSubmit}>
         <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Field label="Display name">
+          <Field label={t("profile.displayName")}>
             <TextInput value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex Moreno" />
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Field label="Units">
-              <Select value={units === "imperial" ? "Imperial" : "Metric"} onChange={(e) => changeUnits(e.target.value === "Imperial" ? "imperial" : "metric")} options={["Metric", "Imperial"]} />
+            <Field label={t("profile.units")}>
+              <Select
+                value={units}
+                onChange={(e) => changeUnits(e.target.value)}
+                options={[
+                  { value: "metric", label: t("units.metric") },
+                  { value: "imperial", label: t("units.imperial") },
+                ]}
+              />
             </Field>
-            <Field label="Default sport">
-              <Select value={defaultSport} onChange={(e) => setDefaultSport(e.target.value)} options={SPORT_CHOICES} />
+            <Field label={t("profile.language")}>
+              <Select
+                value={locale}
+                onChange={(e) => pickLocale(e.target.value)}
+                options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l] }))}
+              />
             </Field>
           </div>
+
+          <Field label={t("profile.defaultSport")}>
+            <Select
+              value={defaultSport}
+              onChange={(e) => setDefaultSport(e.target.value)}
+              options={SPORT_VALUES.map((v) => ({ value: v, label: v === "—" ? t("units.none") : t(`sport.${v}`) }))}
+            />
+          </Field>
         </Card>
 
         <Card style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: T.inkDim }}>
-            Fitness
+            {t("profile.fitness")}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Field label={`Body weight (${weightUnit})`}>
+            <Field label={t("profile.bodyWeight", { unit: weightUnit })}>
               <TextInput inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder={units === "imperial" ? "150" : "68"} />
             </Field>
-            <Field label={`Threshold pace (${paceLabel})`} hint="Running — the pace you can hold ~1hr.">
+            <Field label={t("profile.thresholdPace", { unit: paceLabel })} hint={t("profile.thresholdPaceHint")}>
               <TextInput value={thresholdPace} onChange={(e) => setThresholdPace(e.target.value)} placeholder="4:15" />
             </Field>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Field label="FTP (watts)" hint="Cycling functional threshold power.">
+            <Field label={t("profile.ftp")} hint={t("profile.ftpHint")}>
               <TextInput inputMode="numeric" value={ftp} onChange={(e) => setFtp(e.target.value)} placeholder="265" />
             </Field>
-            <Field label="Max HR (bpm)">
+            <Field label={t("profile.maxHr")}>
               <TextInput inputMode="numeric" value={maxHr} onChange={(e) => setMaxHr(e.target.value)} placeholder="188" />
             </Field>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Field label="Birth year">
+            <Field label={t("profile.birthYear")}>
               <TextInput inputMode="numeric" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} placeholder="1992" />
             </Field>
-            <Field label="Sex">
-              <Select value={sex} onChange={(e) => setSex(e.target.value)} options={SEX_OPTIONS} />
+            <Field label={t("profile.sex")}>
+              <Select
+                value={sex}
+                onChange={(e) => setSex(e.target.value)}
+                options={SEX_VALUES.map((v) => ({ value: v, label: v === "—" ? t("units.none") : t(`sex.${v}`) }))}
+              />
             </Field>
           </div>
         </Card>
@@ -173,10 +209,10 @@ export default function ProfileForm({ onBack }) {
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 24 }}>
           <Button type="submit" disabled={busy} style={{ opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Saving…" : "Save profile"}
+            {busy ? t("actions.saving") : t("profile.save")}
           </Button>
-          <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
-          {saved && <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.green }}>Saved ✓</span>}
+          <Button type="button" variant="secondary" onClick={onBack}>{t("actions.back")}</Button>
+          {saved && <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.green }}>{t("profile.saved")}</span>}
         </div>
       </form>
     </div>

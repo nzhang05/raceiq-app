@@ -206,12 +206,15 @@ export function LocationAutocomplete({ value, onChange, onSelect, placeholder, o
   );
 }
 
+/* `options` accepts plain strings, or { value, label } when the stored value is
+   data (a sport, a locale) and the label is translated. */
 export function Select({ value, onChange, options }) {
+  const items = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
   return (
     <select value={value} onChange={onChange} style={{ ...inputStyle, cursor: "pointer" }}>
-      {options.map((o) => (
-        <option key={o} value={o} style={{ background: T.bg }}>
-          {o}
+      {items.map((o) => (
+        <option key={o.value} value={o.value} style={{ background: T.bg }}>
+          {o.label}
         </option>
       ))}
     </select>

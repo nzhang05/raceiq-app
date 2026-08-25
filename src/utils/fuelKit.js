@@ -2,6 +2,9 @@
 // athlete actually carries, so the plan's abstract "carry 145 g carbs" can be
 // assembled into "3 gels + 1 flask + 1 bar." Values are typical/representative —
 // the point is planning, not label-accurate nutrition tracking.
+// `label` is the English fallback and a readable identifier for this table; the
+// UI renders t(`plan:fuelItem.${key}`) instead, so translations live in the
+// catalogs alongside everything else.
 export const FUEL_ITEMS = [
   { key: "gel",    label: "Energy gel",              carbs: 25, sodiumMg: 50,  fluidMl: 0 },
   { key: "flask",  label: "Flask w/ sports mix",     carbs: 40, sodiumMg: 400, fluidMl: 500 },

@@ -33,17 +33,31 @@ import {
   fallbackAnswer,
 } from "./_lib/prompts.js";
 import { buildDebrief } from "../src/utils/analysis.js";
+import { tFor, normalizeLocale } from "../src/i18n/server.js";
 
 const MAX_HISTORY_TURNS = 6;
+
+/*
+  Errors go back as a catalog key plus its values, so the browser renders them
+  in the athlete's language (see CoachApiError in src/lib/coachApi.js). `error`
+  carries the English text too, for logs and for any client that predates this.
+*/
+function fail(res, status, key, values = {}) {
+  return send(res, status, {
+    error: tFor("en")(key, { ns: "coach", ...values }),
+    errorKey: key,
+    errorValues: values,
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
-    return send(res, 405, { error: "Method not allowed." });
+    return fail(res, 405, "errors.methodNotAllowed");
   }
 
   if (!isClaudeConfigured()) {
-    return send(res, 503, { error: "The AI coach is not configured on this server." });
+    return fail(res, 503, "errors.notConfigured");
   }
 
   const auth = await authenticate(req);
@@ -52,14 +66,14 @@ export default async function handler(req, res) {
   const limit = checkRateLimit(auth.user.id);
   if (!limit.ok) {
     res.setHeader("retry-after", String(limit.retryAfter));
-    return send(res, 429, { error: `Too many requests — try again in ${limit.retryAfter}s.` });
+    return fail(res, 429, "errors.rateLimited", { seconds: limit.retryAfter });
   }
 
   let body;
   try {
     body = await readJsonBody(req);
   } catch {
-    return send(res, 400, { error: "Malformed request body." });
+    return fail(res, 400, "errors.malformedBody");
   }
 
   try {
@@ -68,16 +82,17 @@ export default async function handler(req, res) {
       case "debrief": return send(res, 200, await handleNarrative(body, "debrief"));
       case "plan": return send(res, 200, await handleNarrative(body, "plan"));
       case "estimate": return send(res, 200, await handleEstimate(body));
-      default: return send(res, 400, { error: `Unknown task "${body.task}".` });
+      default: return fail(res, 400, "errors.unknownTask", { task: String(body.task) });
     }
   } catch (err) {
     if (err instanceof ClaudeError) return send(res, err.status, { error: err.message });
     console.error("[api/claude]", err);
-    return send(res, 500, { error: "Something went wrong generating that answer." });
+    return fail(res, 500, "errors.serverError");
   }
 }
 
-async function handleCoach({ question, races = [], contextRaceId = null, history = [], profile = null }) {
+async function handleCoach({ question, races = [], contextRaceId = null, history = [], profile = null, locale }) {
+  const lng = normalizeLocale(locale);
   if (typeof question !== "string" || !question.trim()) {
     return { error: "Ask a question first." };
   }
@@ -87,7 +102,7 @@ async function handleCoach({ question, races = [], contextRaceId = null, history
   // Medical and training-plan questions are refused deterministically — no
   // reason to spend a token round-trip to say the same sentence.
   if (OOS_INTENTS.has(intent.category)) {
-    return { answer: fallbackAnswer(intent, {}), intent: intent.category, sourceRaceIds: [] };
+    return { answer: fallbackAnswer(intent, {}, lng), intent: intent.category, sourceRaceIds: [] };
   }
 
   const contextRace = races.find((r) => r.id === contextRaceId) || null;
@@ -99,7 +114,7 @@ async function handleCoach({ question, races = [], contextRaceId = null, history
     .map((m) => ({ role: m.role === "coach" ? "assistant" : "user", content: String(m.content) }));
 
   const { text, usage } = await callClaude({
-    system: buildCoachSystem(races, profile),
+    system: buildCoachSystem(races, profile, lng),
     messages: [...priorMessages, { role: "user", content: buildCoachContext(intent, data, question, contextRaceId) }],
     effort: "low", // conversational answers; the analysis is already computed
   });
@@ -112,12 +127,12 @@ async function handleCoach({ question, races = [], contextRaceId = null, history
   };
 }
 
-async function handleEstimate({ course, sport, tempC, races = [], isCycling = false, profile = null }) {
+async function handleEstimate({ course, sport, tempC, races = [], isCycling = false, profile = null, locale }) {
   if (!course?.distanceKm) return { error: "No course supplied." };
   if (!races.length) return { error: "Select at least one reference race." };
 
   const { data } = await callClaudeJson({
-    system: buildEstimateSystem(profile),
+    system: buildEstimateSystem(profile, normalizeLocale(locale)),
     messages: [{ role: "user", content: buildEstimateContext({ course, sport, tempC, races, isCycling }) }],
     schema: ESTIMATE_SCHEMA,
     effort: "low",
@@ -156,7 +171,7 @@ async function handleNarrative(body, kind) {
   }
 
   const { data, usage } = await callClaudeJson({
-    system: buildNarrativeSystem(body.profile),
+    system: buildNarrativeSystem(body.profile, normalizeLocale(body.locale)),
     messages: [{ role: "user", content: context }],
     schema: NARRATIVE_SCHEMA,
     // Measured on seed data: "high" costs ~43s and ~2.7k output tokens, "medium"

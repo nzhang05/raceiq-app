@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import i18n, { changeLocale, LOCALES } from "../i18n/index.js";
 
 /*
   Auth + athlete-profile session state for RaceIQ.
@@ -29,6 +30,13 @@ export function AuthProvider({ children }) {
       .eq("id", userId)
       .maybeSingle();
     setProfile(data ?? null);
+
+    // The stored preference wins over browser detection once we know who this
+    // is. A profile with no locale yet inherits whatever the athlete picked
+    // while signed out, and that choice is written back on first save.
+    if (data?.locale && LOCALES.includes(data.locale)) {
+      i18n.changeLanguage(data.locale);
+    }
   }, []);
 
   useEffect(() => {
@@ -77,12 +85,18 @@ export function AuthProvider({ children }) {
         .eq("id", session?.user?.id)
         .select()
         .single();
-      if (!error) setProfile(data);
+      if (!error) {
+        setProfile(data);
+        if (data?.locale) changeLocale(data.locale);
+      }
       return { data, error };
     },
     signOut: async () => {
       await supabase.auth.signOut();
       setProfile(null);
+      // The language is not reset: it lives in localStorage independently of
+      // the profile row, so the sign-in screen stays in the language they were
+      // just using.
     },
   };
 

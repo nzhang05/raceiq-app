@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { T, FONT_MONO } from "../constants.js";
 
@@ -6,6 +7,7 @@ import { T, FONT_MONO } from "../constants.js";
 // segments (S1, S2, …). Reads/writes the same aid-station state the form owns —
 // the numeric rows below stay in sync.
 export default function ElevationProfile({ splits, distanceKm, elevationM, stations, onAdd, onMove, onRemove }) {
+  const { t } = useTranslation();
   const W = 640;
   const H = 190;
   const padL = 8;
@@ -85,7 +87,7 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
   if (!hasProfile) {
     return (
       <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 16px", background: T.bg2, fontFamily: "inherit", fontSize: 13, color: T.inkDim }}>
-        This file has no elevation data — place aid stations by km in the list below instead.
+        {t("elevation.noProfile")}
       </div>
     );
   }
@@ -96,9 +98,9 @@ export default function ElevationProfile({ splits, distanceKm, elevationM, stati
       <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11 }}>
         <span style={{ color: T.paper, fontWeight: 500 }}>{distanceKm} km</span>
         <span style={{ color: T.green }}>+{elevationM} m</span>
-        <span style={{ color: T.inkDim }}>Alt {Math.round(minElev)}–{Math.round(maxElev)} m</span>
+        <span style={{ color: T.inkDim }}>{t("elevation.altRange", { min: Math.round(minElev), max: Math.round(maxElev) })}</span>
         <span style={{ marginLeft: "auto", color: T.inkDim, fontSize: 10 }}>
-          {hoverKm != null ? `km ${hoverKm} · ${Math.round(elevAtKm(hoverKm))} m` : "click to place · drag to move · double-click to remove"}
+          {hoverKm != null ? t("elevation.hoverReadout", { km: hoverKm, elev: Math.round(elevAtKm(hoverKm)) }) : t("elevation.hint")}
         </span>
       </div>
 

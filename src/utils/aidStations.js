@@ -8,10 +8,19 @@
 const GEL_G = 25;       // grams of carbohydrate per typical gel
 const BOTTLE_ML = 500;  // volume of a typical soft-flask / bottle
 
+// `labels` supplies the display names for generated points. Passing them in
+// (rather than importing i18n here) keeps this module pure and language-free;
+// callers build them from `t`. The English defaults keep direct callers working.
+export const DEFAULT_POINT_LABELS = {
+  start: "Start",
+  finish: "Finish",
+  aid: (n) => `Aid ${n}`,
+};
+
 // Keep only usable stations: a positive km strictly inside the course, sorted,
 // de-duplicated. Anything out of range is silently dropped so bad input can't
 // produce a nonsensical leg.
-export function sanitizeAidStations(stations, distanceKm) {
+export function sanitizeAidStations(stations, distanceKm, labels = DEFAULT_POINT_LABELS) {
   const seen = new Set();
   return (stations || [])
     .map((s) => ({
@@ -27,7 +36,7 @@ export function sanitizeAidStations(stations, distanceKm) {
       return true;
     })
     .sort((a, b) => a.km - b.km)
-    .map((s, i) => ({ ...s, name: s.name || `Aid ${i + 1}` }));
+    .map((s, i) => ({ ...s, name: s.name || labels.aid(i + 1) }));
 }
 
 // Cumulative-time lookup built from the pacing segments. Each pacing entry is a
@@ -70,8 +79,8 @@ const round1 = (n) => Math.round(n * 10) / 10;
 // segment's distance/time is clipped to the section it falls in, so a segment that
 // straddles a station boundary contributes proportionally to both sides. Returns
 // null when there are no stations — callers fall back to the flat pacing table.
-export function buildPacingSections(pacing, aidStations, distanceKm) {
-  const clean = sanitizeAidStations(aidStations, distanceKm);
+export function buildPacingSections(pacing, aidStations, distanceKm, labels = DEFAULT_POINT_LABELS) {
+  const clean = sanitizeAidStations(aidStations, distanceKm, labels);
   if (clean.length === 0 || !pacing || pacing.length === 0) return null;
 
   // Rebuild explicit [startKm, endKm] spans from the segment endpoints.
@@ -83,7 +92,7 @@ export function buildPacingSections(pacing, aidStations, distanceKm) {
   }
 
   const boundaries = [0, ...clean.map((s) => s.km), distanceKm];
-  const names = ["Start", ...clean.map((s) => s.name), "Finish"];
+  const names = [labels.start, ...clean.map((s) => s.name), labels.finish];
   const sections = [];
 
   for (let i = 0; i < boundaries.length - 1; i++) {
@@ -134,8 +143,8 @@ export function buildPacingSections(pacing, aidStations, distanceKm) {
 // Build the carry plan: one leg per gap between refill points (start → aid 1 →
 // … → finish). Each leg reports how much to carry out of the point that begins
 // it, flagging legs whose fluid need exceeds the athlete's carry capacity.
-export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targetMinutes, carryCapacityMl) {
-  const clean = sanitizeAidStations(aidStations, distanceKm);
+export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targetMinutes, carryCapacityMl, labels = DEFAULT_POINT_LABELS) {
+  const clean = sanitizeAidStations(aidStations, distanceKm, labels);
   if (clean.length === 0) return null;
 
   const timeAtKm = makeTimeAtKm(pacing, distanceKm, targetMinutes);
@@ -145,9 +154,9 @@ export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targe
   const capacity = carryCapacityMl && carryCapacityMl > 0 ? carryCapacityMl : null;
 
   const points = [
-    { km: 0, name: "Start", water: true, food: true, isStart: true },
+    { km: 0, name: labels.start, water: true, food: true, isStart: true },
     ...clean,
-    { km: distanceKm, name: "Finish", isFinish: true },
+    { km: distanceKm, name: labels.finish, isFinish: true },
   ];
 
   const legs = [];
@@ -167,17 +176,13 @@ export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targe
     const bottles = Math.round((fluidsMl / BOTTLE_ML) * 10) / 10;
     const overCapacity = capacity != null && fluidsMl > capacity;
 
-    let note;
-    if (from.isStart) {
-      note = "Leave the start line carrying this.";
-    } else if (from.food === false) {
-      note = `${from.name} is water-only — carry the carbs out from your previous stop.`;
-    } else {
-      note = `Restock at ${from.name}.`;
-    }
-    if (overCapacity) {
-      note += ` Leg needs ${fluidsMl} ml but you carry ${capacity} ml — plan to drink to empty and refill.`;
-    }
+    // The note is emitted as a key + values, not prose — legNoteText() in
+    // src/i18n/render.js renders it, appending the over-capacity sentence.
+    let noteKey;
+    if (from.isStart) noteKey = "leg.fromStart";
+    else if (from.food === false) noteKey = "leg.waterOnly";
+    else noteKey = "leg.restock";
+    const noteValues = { name: from.name, fluidsMl, capacity };
 
     totals.carbsG += carbsG;
     totals.fluidsMl += fluidsMl;
@@ -198,7 +203,8 @@ export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targe
       water: from.water !== false,
       food: from.food !== false,
       overCapacity,
-      note,
+      noteKey,
+      noteValues,
     });
   }
 

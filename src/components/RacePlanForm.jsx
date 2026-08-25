@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect, useMemo } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORT_OPTIONS, isCyclingSport } from "../constants.js";
 import { parseRouteFile } from "../utils/gpx.js";
@@ -6,6 +7,7 @@ import { forecastWeather, estimateTargetTime, buildRacePlan, minutesToClock } fr
 import { fuelingBenchmarks, personalizeFueling } from "../utils/fueling.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
 import { Field, TextInput, Select, FormSectionTitle, LocationAutocomplete, inputStyle } from "./ui.jsx";
+import { fuelNoteText, errorText } from "../i18n/render.js";
 import ElevationProfile from "./ElevationProfile.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { estimateFinishTime } from "../lib/coachApi.js";
@@ -33,6 +35,8 @@ function StationToggle({ on, onClick }) {
 }
 
 export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
+  const { t } = useTranslation();
+  const P = (key, opts) => t(key, { ns: "plan", ...opts });
   const { user, profile } = useAuth();
   const [sport, setSport] = useState(SPORT_OPTIONS[0]);
   const [raceDate, setRaceDate] = useState(new Date().toISOString().slice(0, 10));
@@ -106,10 +110,10 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   }, [targetClock, tempC, selectedRaces]);
 
   function fuelHint(metric) {
-    if (!derivedFueling) return "Enter a target time to derive this.";
+    if (!derivedFueling) return P("form.fuelHint.needTarget");
     const src = derivedFueling.sources[metric];
-    if (src === "history") return `Your average across ${derivedFueling.basedOnRaces} reference race${derivedFueling.basedOnRaces === 1 ? "" : "s"}.`;
-    return "Research default — no history to draw from.";
+    if (src === "history") return P("form.fuelHint.history", { count: derivedFueling.basedOnRaces });
+    return P("form.fuelHint.generic");
   }
 
   // Aid stations & carry capacity
@@ -160,14 +164,14 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       setDerivedClock(result.clock);
       setTargetClock(result.clock);
       if (selectedRaces.length === 0) {
-        setDerivedNote(`No races selected — using a generic pace of ${isCyclingSport(sport) ? "25 km/h" : "5:00/km"}.`);
+        setDerivedNote(P("form.genericPaceNote", { pace: P(isCyclingSport(sport) ? "form.genericPaceRide" : "form.genericPaceRun") }));
       } else {
         const ref = [...selectedRaces].sort((a, b) => {
           const aPace = parseClockToMinutes(a.finishTime) / a.distanceKm;
           const bPace = parseClockToMinutes(b.finishTime) / b.distanceKm;
           return aPace - bPace;
         })[0];
-        setDerivedNote(`Based on your best selected result: ${ref.name} (${ref.finishTime} over ${ref.distanceKm} km), scaled to ${gpxData.distanceKm} km.`);
+        setDerivedNote(P("form.referenceNote", { name: ref.name, finishTime: ref.finishTime, refKm: ref.distanceKm, courseKm: gpxData.distanceKm }));
       }
       setEstimateSource("fallback");
     }
@@ -209,12 +213,12 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       setGpxData(parsed);
       setImportStatus("done");
       setImportMessage(
-        `Loaded ${parsed.distanceKm} km course with ${parsed.elevationM}m elevation gain.` +
-          (!parsed.hasTime ? " Route-only file (no timestamps) — pacing will use flat distribution." : "")
+        P("form.loaded", { distanceKm: parsed.distanceKm, elevationM: parsed.elevationM }) +
+          (!parsed.hasTime ? P("form.routeOnlyNote") : "")
       );
     } catch (err) {
       setImportStatus("error");
-      setImportMessage(err.message || "Could not parse this file.");
+      setImportMessage(errorText(t, err, "plan:form.parseError"));
     }
   }
 
@@ -233,18 +237,23 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         setWeatherMessage(`SIMULATED — can't reach the forecast service from here; conditions are estimated.`);
       } else {
         setWeatherStatus("done");
-        setWeatherMessage(`Forecast for ${place.label} on ${fmtDate(raceDate)}: ${forecast.tempC}°C${forecast.wind != null ? `, ${forecast.wind} km/h wind` : ""}. Adjust below if needed.`);
+        setWeatherMessage(P("form.forecastNote", {
+          place: place.label,
+          date: fmtDate(raceDate),
+          tempC: forecast.tempC,
+          windPart: forecast.wind != null ? P("form.forecastWindPart", { wind: forecast.wind }) : "",
+        }));
       }
     } catch (err) {
       setWeatherStatus("error");
-      setWeatherMessage(err.message || "Couldn't look up weather — enter conditions manually below.");
+      setWeatherMessage(errorText(t, err, "plan:form.weatherError"));
     }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!gpxData) { setError("Upload a GPX file first."); return; }
-    if (!targetClock.trim()) { setError("Enter a target time."); return; }
+    if (!gpxData) { setError(P("form.errorNoCourse")); return; }
+    if (!targetClock.trim()) { setError(P("form.errorNoTarget")); return; }
     setError("");
     setSubmitting(true);
     const targetMinutes = parseClockToMinutes(targetClock);
@@ -257,7 +266,14 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       fluidsPerHr: fuelFluids !== "" ? parseFloat(fuelFluids) : null,
       caffeineMg: fuelCaffeine !== "" ? parseFloat(fuelCaffeine) : null,
     };
-    const plan = buildRacePlan(gpxData, sport, weather, targetMinutes, racesForPlan, aidStations, carryCapacityMl, manualFueling);
+    // Generated point names (Start / Finish / Aid N) are rendered here rather
+    // than inside the pure planning modules — see src/utils/aidStations.js.
+    const pointLabels = {
+      start: P("point.start"),
+      finish: P("point.finish"),
+      aid: (n) => P("point.aid", { n }),
+    };
+    const plan = buildRacePlan(gpxData, sport, weather, targetMinutes, racesForPlan, aidStations, carryCapacityMl, manualFueling, pointLabels);
     plan.raceDate = raceDate;
     onPlanGenerated(plan);
   }
@@ -269,21 +285,25 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
     <form onSubmit={handleSubmit} style={{ maxWidth: 640 }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 600, margin: "0 0 6px", color: T.paper }}>
-          Plan a Race
+          {P("form.title")}
         </h1>
         <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.inkDim, margin: 0, lineHeight: 1.5 }}>
-          Upload your course GPX to get a personalised pacing strategy, nutrition targets, and tactical tips derived from your past results.
+          {P("form.intro")}
         </p>
       </div>
 
       {/* Section 1 — Course */}
-      <FormSectionTitle>1 — Course</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.course")}</FormSectionTitle>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Sport">
-          <Select value={sport} onChange={(e) => setSport(e.target.value)} options={SPORT_OPTIONS} />
+        <Field label={P("form.sport")}>
+          <Select
+            value={sport}
+            onChange={(e) => setSport(e.target.value)}
+            options={SPORT_OPTIONS.map((v) => ({ value: v, label: t(`sport.${v}`) }))}
+          />
         </Field>
-        <Field label="Race Date">
+        <Field label={P("form.raceDate")}>
           <input
             type="date"
             value={raceDate}
@@ -295,11 +315,11 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         </Field>
       </div>
 
-      <Field label="Upload GPX or TCX">
+      <Field label={P("form.upload")}>
         <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "14px 16px", border: `1px dashed ${importStatus === "done" ? T.green : T.line}`, borderRadius: 4, background: T.bg2, transition: "border-color 150ms" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>CHOOSE FILE</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{P("form.chooseFile")}</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: gpxData ? T.paper : T.inkDim }}>
-            {gpxData ? gpxData.name : "No file selected"}
+            {gpxData ? gpxData.name : P("form.noFile")}
           </span>
           <input type="file" accept=".gpx,.tcx" onChange={handleFileImport} style={{ display: "none" }} />
         </label>
@@ -314,9 +334,9 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       {gpxData && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 12 }}>
           {[
-            { label: "Distance", value: `${gpxData.distanceKm} km` },
-            { label: "Elevation", value: `+${gpxData.elevationM}m` },
-            { label: "Profile", value: gpxData.elevationM > 500 ? "Hilly" : gpxData.elevationM > 150 ? "Rolling" : "Flat" },
+            { label: P("form.stat.distance"), value: `${gpxData.distanceKm} km` },
+            { label: P("form.stat.elevation"), value: `+${gpxData.elevationM}m` },
+            { label: P("form.stat.profile"), value: P(`form.stat.${gpxData.elevationM > 500 ? "hilly" : gpxData.elevationM > 150 ? "rolling" : "flat"}`) },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "10px 14px" }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label.toUpperCase()}</div>
@@ -327,24 +347,24 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       )}
 
       {/* Section 2 — Reference Races */}
-      <FormSectionTitle>2 — Reference Races</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.referenceRaces")}</FormSectionTitle>
 
       {candidateRaces.length === 0 ? (
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, padding: "14px 0" }}>
-          No past {sport} races in your history — the plan will use a generic pace baseline.
+          {P("form.noPastRaces", { sport: t(`sport.${sport}`) })}
         </div>
       ) : (
         <>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim }}>
-              {selectedRaces.length} of {candidateRaces.length} selected
+              {P("form.selectedCount", { selected: selectedRaces.length, total: candidateRaces.length })}
             </span>
             <button
               type="button"
               onClick={toggleAll}
               style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "5px 10px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
             >
-              {allSelected ? "DESELECT ALL" : "SELECT ALL"}
+              {P(allSelected ? "form.deselectAll" : "form.selectAll")}
             </button>
           </div>
 
@@ -383,7 +403,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                     {race.finishTime}
                   </div>
                   <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, textAlign: "right" }}>
-                    {race.percentile}th
+                    {P("form.percentileShort", { pct: race.percentile })}
                   </div>
                 </div>
               );
@@ -392,22 +412,22 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
 
           {selectedRaces.length === 0 && (
             <div style={{ marginTop: 8, fontFamily: FONT_BODY, fontSize: 13, color: T.ember }}>
-              No races selected — plan will fall back to a generic baseline.
+              {P("form.noneSelected")}
             </div>
           )}
         </>
       )}
 
       {/* Section 3 — Conditions */}
-      <FormSectionTitle>3 — Conditions</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.conditions")}</FormSectionTitle>
 
-      <Field label="Location (for forecast)">
+      <Field label={P("form.location")}>
         <div style={{ display: "flex", gap: 8 }}>
           <LocationAutocomplete
             value={locationQuery}
             onChange={(e) => { setLocationQuery(e.target.value); setSelectedPlace(null); }}
             onSelect={(place) => { setLocationQuery(place.label); setSelectedPlace(place); }}
-            placeholder="e.g. Chamonix, France"
+            placeholder={P("form.locationPlaceholder")}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleWeatherLookup())}
           />
           <button
@@ -416,7 +436,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
             disabled={weatherStatus === "loading"}
             style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "9px 14px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
           >
-            {weatherStatus === "loading" ? "..." : "LOOK UP"}
+            {weatherStatus === "loading" ? "..." : P("form.lookUp")}
           </button>
         </div>
       </Field>
@@ -428,29 +448,29 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginTop: 12 }}>
-        <Field label="Temp (°C)">
+        <Field label={P("form.temp")}>
           <TextInput type="number" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder="e.g. 18" />
         </Field>
-        <Field label="Humidity (%)">
+        <Field label={P("form.humidity")}>
           <TextInput type="number" value={humidity} onChange={(e) => setHumidity(e.target.value)} placeholder="e.g. 60" />
         </Field>
-        <Field label="Wind (km/h)">
+        <Field label={P("form.wind")}>
           <TextInput type="number" value={wind} onChange={(e) => setWind(e.target.value)} placeholder="e.g. 10" />
         </Field>
       </div>
 
       {/* Section 4 — Target Time */}
-      <FormSectionTitle>4 — Target Time</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.targetTime")}</FormSectionTitle>
 
       {(derivedClock || estimateSource === "loading") && (
         <div style={{ background: T.bg2, border: `1px solid ${estimateSource === "ai" ? T.brassDim : T.line}`, borderRadius: 4, padding: "14px 16px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>ESTIMATE</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>{P("form.estimate")}</span>
             {estimateSource === "ai" && (
-              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.brass, background: "rgba(201,162,75,0.12)", border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "1px 6px" }}>AI</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.brass, background: "rgba(201,162,75,0.12)", border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "1px 6px" }}>{P("form.estimateAi")}</span>
             )}
             {estimateSource === "loading" && (
-              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.inkDim }}>THINKING…</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: T.inkDim }}>{P("form.estimateThinking")}</span>
             )}
           </div>
           {estimateSource === "loading"
@@ -463,34 +483,34 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         </div>
       )}
 
-      <Field label="Your Target (H:MM:SS)" hint="Edit to override the estimate above.">
+      <Field label={P("form.targetLabel")} hint={P("form.targetHint")}>
         <TextInput
           value={targetClock}
           onChange={(e) => setTargetClock(e.target.value)}
-          placeholder="e.g. 3:45:00"
+          placeholder={P("form.targetPlaceholder")}
         />
       </Field>
 
       {/* Section 5 — Fueling */}
-      <FormSectionTitle>5 — Fueling</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.fueling")}</FormSectionTitle>
 
       <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 14px", lineHeight: 1.5 }}>
-        RaceIQ derives your nutrition targets from the fueling you actually logged in the
-        reference races above{derivedFueling?.basedOnRaces ? `` : ` (research defaults until you have race history)`}.
-        Override any field with a rate you know works for you — leave blank to keep the derived value.
+        {P("form.fuelingIntro", {
+          defaultsPart: derivedFueling?.basedOnRaces ? "" : P("form.fuelingIntroDefaults"),
+        })}
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <Field label="Carbs/hr (g)" hint={fuelHint("carbs")}>
+        <Field label={P("form.carbs")} hint={fuelHint("carbs")}>
           <TextInput type="number" value={fuelCarbs} onChange={(e) => setFuelCarbs(e.target.value)} placeholder={derivedFueling?.carbsTargetNum != null ? String(derivedFueling.carbsTargetNum) : "—"} />
         </Field>
-        <Field label="Sodium/hr (mg)" hint={fuelHint("sodium")}>
+        <Field label={P("form.sodium")} hint={fuelHint("sodium")}>
           <TextInput type="number" value={fuelSodium} onChange={(e) => setFuelSodium(e.target.value)} placeholder={derivedFueling?.sodiumMgHr != null ? String(derivedFueling.sodiumMgHr) : "—"} />
         </Field>
-        <Field label="Fluids/hr (ml)" hint={fuelHint("fluids")}>
+        <Field label={P("form.fluids")} hint={fuelHint("fluids")}>
           <TextInput type="number" value={fuelFluids} onChange={(e) => setFuelFluids(e.target.value)} placeholder={derivedFueling?.fluidsMlHr != null ? String(derivedFueling.fluidsMlHr) : "—"} />
         </Field>
-        <Field label="Caffeine (mg total)" hint={fuelHint("caffeine")}>
+        <Field label={P("form.caffeine")} hint={fuelHint("caffeine")}>
           <TextInput type="number" value={fuelCaffeine} onChange={(e) => setFuelCaffeine(e.target.value)} placeholder={derivedFueling?.caffeineMg != null ? String(derivedFueling.caffeineMg) : "—"} />
         </Field>
       </div>
@@ -498,17 +518,16 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
       {derivedFueling?.notes?.length > 0 && (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           {derivedFueling.notes.map((note, i) => (
-            <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.brass, lineHeight: 1.45 }}>{note}</div>
+            <div key={i} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.brass, lineHeight: 1.45 }}>{fuelNoteText(t, note)}</div>
           ))}
         </div>
       )}
 
       {/* Section 6 — Aid Stations */}
-      <FormSectionTitle>6 — Aid Stations</FormSectionTitle>
+      <FormSectionTitle>{P("form.section.aidStations")}</FormSectionTitle>
 
       <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 14px", lineHeight: 1.5 }}>
-        Mark where you can refill. RaceIQ works out how much food and fluid to carry
-        on each leg between stations. Leave empty to skip.
+        {P("form.aidIntro")}
       </p>
 
       {gpxData ? (
@@ -525,7 +544,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         </div>
       ) : (
         <div style={{ marginBottom: 14, fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim }}>
-          Upload a course above to place aid stations on the elevation profile.
+          {P("form.aidNoCourse")}
         </div>
       )}
 
@@ -535,23 +554,23 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
           onClick={addStation}
           style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}
         >
-          + ADD STATION
+          {P("form.addStation")}
         </button>
         <button
           type="button"
           onClick={autoSpaceStations}
           disabled={!gpxData}
-          title={gpxData ? "" : "Upload a course first"}
+          title={gpxData ? "" : P("form.autoSpaceDisabled")}
           style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: "7px 12px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: gpxData ? T.ink : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
         >
-          AUTO-SPACE
+          {P("form.autoSpace")}
         </button>
       </div>
 
       {aidStations.length > 0 && (
         <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto 32px", gap: 10, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>
-            <div>KM</div><div>NAME</div><div>WATER</div><div>FOOD</div><div />
+            <div>{P("form.colKm")}</div><div>{P("form.colName")}</div><div>{P("form.colWater")}</div><div>{P("form.colFood")}</div><div />
           </div>
           {aidStations.map((s, i) => {
             const kmNum = parseFloat(s.km);
@@ -568,7 +587,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                 <input
                   value={s.name}
                   onChange={(e) => updateStation(i, { name: e.target.value })}
-                  placeholder={`Aid ${i + 1}`}
+                  placeholder={P("point.aid", { n: i + 1 })}
                   style={{ ...inputStyle, padding: "7px 8px" }}
                 />
                 <StationToggle on={s.water} onClick={() => updateStation(i, { water: !s.water })} />
@@ -576,7 +595,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
                 <button
                   type="button"
                   onClick={() => removeStation(i)}
-                  aria-label="Remove station"
+                  aria-label={P("form.removeStation")}
                   style={{ background: "none", border: "none", color: T.ember, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 16, lineHeight: 1, padding: 0 }}
                 >
                   ×
@@ -589,8 +608,8 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
 
       {aidStations.length > 0 && (
         <div style={{ maxWidth: 220 }}>
-          <Field label="Carry Capacity (ml)" hint="Fluid you can hold between stations. Legs that exceed it get flagged.">
-            <TextInput type="number" value={carryCapacity} onChange={(e) => setCarryCapacity(e.target.value)} placeholder="e.g. 1000" />
+          <Field label={P("form.carryCapacity")} hint={P("form.carryCapacityHint")}>
+            <TextInput type="number" value={carryCapacity} onChange={(e) => setCarryCapacity(e.target.value)} placeholder={P("form.carryCapacityPlaceholder")} />
           </Field>
         </div>
       )}
@@ -603,7 +622,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
           disabled={submitting || !gpxData}
           style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, fontWeight: 600, padding: "11px 24px", borderRadius: 3, border: "none", background: gpxData ? T.brass : T.bg2, color: gpxData ? T.bg : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
         >
-          {submitting ? "BUILDING PLAN..." : "BUILD MY PLAN →"}
+          {submitting ? P("form.building") : P("form.build")}
         </button>
         <button
           type="button"

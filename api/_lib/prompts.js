@@ -12,6 +12,8 @@ import { fmtDate, parseClockToMinutes } from "../../src/utils/time.js";
 import { fmtPace } from "../../src/utils/pace.js";
 import { analyzeSplits } from "../../src/utils/ratings.js";
 import { fuelingBenchmarks } from "../../src/utils/fueling.js";
+import { tFor } from "../../src/i18n/server.js";
+import { findingText, recText } from "../../src/i18n/render.js";
 import {
   buildDebrief,
   gatherDiagnosticData,
@@ -21,6 +23,15 @@ import {
 } from "../../src/utils/analysis.js";
 
 export const OOS_INTENTS = new Set(["oos_medical", "oos_training"]);
+
+/*
+  Appended to every system prompt so Claude answers in the athlete's language.
+  The DATA block stays English on purpose: it is structured data, and
+  translating its field labels only degrades grounding.
+*/
+function languageDirective(locale) {
+  return `\n\nLANGUAGE\n${tFor(locale)("systemDirective", { ns: "coach" })}`;
+}
 
 const GROUNDING_RULES = `RULES:
 1. Only cite numbers present in the DATA block. Never invent or extrapolate a statistic.
@@ -56,36 +67,59 @@ function athleteFirstName(profile) {
 // ---------------------------------------------------------------------------
 // Intent routing
 // ---------------------------------------------------------------------------
-export function classifyIntent(question, races, contextRaceId) {
-  const q = (question || "").toLowerCase();
+/*
+  Keyword routing runs on the raw question, so every pattern needs its French
+  equivalents alongside the English ones. The first two are the out-of-scope
+  guards: without the French terms a question about knee pain asked in French
+  would fall through to the analyst path instead of the medical referral.
+  Accents are stripped first so "blessé"/"blesse" and "côté"/"cote" both match.
+*/
+const OOS_MEDICAL = /\b(pain|hurt|ache|injur|knee|ankle|shin|tendon|blister|medical|doctor|physio|cramp|douleur|mal|blessur|blesse|genou|cheville|tibia|tendon|ampoule|medecin|kine|crampe|courbature|entorse)\b/;
+const OOS_TRAINING = /\b(training plan|workout plan|program|weekly plan|base building|periodization|plan d.?entrainement|programme|seance|planification|periodisation|semaine type|prepa)\b/;
+const TREND = /\b(improv|trend|better|faster|progress|getting|how has|over time|this year|season|am i getting|progress|progresse|amelior|mieux|plus vite|tendance|evolution|au fil|cette annee|saison)\b/;
+const FIT = /\b(fit|which race|best race|suited|which course|should i do|trail or road|road or trail|type of race|best at|excel|convient|quelle course|meilleure course|adapte|quel parcours|type de course|excelle|point fort)\b/;
+const PLANNING = /\b(next|prepare|change|before|upcoming|should i|ready|goal race|what to|how to improve|prochain|prepar|changer|avant|a venir|dois.?je|pret|course objectif|comment m.?ameliorer)\b/;
+const BENCHMARKING = /\b(compar|similar athlete|how do i rank|versus|\bvs\b|peer|age group|cohort|other athlete|classe|me situe|par rapport|categorie|autres athletes)\b/;
+const DIAGNOSTIC = /\b(bonk|what went wrong|why did|this race|faded|died|collapsed|blew up|slowed|second half|late|explos|fringale|mur|qu.?est.?ce qui|pourquoi|cette course|craque|ralenti|seconde moitie|deuxieme moitie|fin de course)\b/;
+const SPORT_HINTS = [
+  "road running", "trail running", "gravel cycling", "marathon", "trail", "ultra",
+  "course sur route", "sur route", "cyclisme", "gravel", "velo",
+];
 
-  if (/\b(pain|hurt|ache|injur|knee|ankle|shin|tendon|blister|medical|doctor|physio|cramp)\b/.test(q)) {
+// Lowercase and strip diacritics so the French patterns above can stay unaccented.
+function normalizeQuestion(question) {
+  return (question || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+export function classifyIntent(question, races, contextRaceId) {
+  const q = normalizeQuestion(question);
+
+  if (OOS_MEDICAL.test(q)) {
     return { category: "oos_medical" };
   }
-  if (/\b(training plan|workout plan|program|weekly plan|base building|periodization)\b/.test(q)) {
+  if (OOS_TRAINING.test(q)) {
     return { category: "oos_training" };
   }
-  if (/\b(improv|trend|better|faster|progress|getting|how has|over time|this year|season|am i getting)\b/.test(q)) {
-    const sportHint = ["road running", "trail running", "gravel cycling", "marathon", "trail", "ultra"]
-      .find((s) => q.includes(s));
+  if (TREND.test(q)) {
+    const sportHint = SPORT_HINTS.find((s) => q.includes(s));
     return { category: "trend", sportFilter: sportHint || null };
   }
-  if (/\b(fit|which race|best race|suited|which course|should i do|trail or road|road or trail|type of race|best at|excel)\b/.test(q)) {
+  if (FIT.test(q)) {
     return { category: "fit" };
   }
-  if (/\b(next|prepare|change|before|upcoming|should i|ready|goal race|what to|how to improve)\b/.test(q)) {
+  if (PLANNING.test(q)) {
     return { category: "planning" };
   }
-  if (/\b(compar|similar athlete|how do i rank|versus|\bvs\b|peer|age group|cohort|other athlete)\b/.test(q)) {
+  if (BENCHMARKING.test(q)) {
     return { category: "benchmarking" };
   }
-  if (/\b(bonk|what went wrong|why did|this race|faded|died|collapsed|blew up|slowed|second half|late)\b/.test(q) || contextRaceId) {
+  if (DIAGNOSTIC.test(q) || contextRaceId) {
     let raceId = contextRaceId;
     if (!raceId) {
-      const matched = races.find((r) =>
-        q.includes(r.name.toLowerCase()) ||
-        r.name.toLowerCase().split(" ").some((w) => w.length > 4 && q.includes(w.toLowerCase()))
-      );
+      const matched = races.find((r) => {
+        const name = normalizeQuestion(r.name);
+        return q.includes(name) || name.split(" ").some((w) => w.length > 4 && q.includes(w));
+      });
       raceId = matched?.id || races[0]?.id;
     }
     return { category: "diagnostic", raceId };
@@ -126,7 +160,7 @@ export function sourceRaceIds(intent, data) {
 // ---------------------------------------------------------------------------
 // Coach chat
 // ---------------------------------------------------------------------------
-export function buildCoachSystem(races, profile) {
+export function buildCoachSystem(races, profile, locale = "en") {
   const name = athleteFirstName(profile);
   const sports = [...new Set(races.map((r) => r.sport))].join(", ") || "none";
   const sorted = [...races].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -144,7 +178,7 @@ ${GROUNDING_RULES}
 8. If the question references a debrief the athlete has already seen, refer to it ("the same pattern the debrief flagged") rather than restating it verbatim.
 
 RACE INDEX (oldest first):
-${sorted.map((r) => `  ${r.id} · ${fmtDate(r.date)} · ${r.name} · ${r.sport} · ${r.distanceKm}km`).join("\n") || "  (none)"}`;
+${sorted.map((r) => `  ${r.id} · ${fmtDate(r.date)} · ${r.name} · ${r.sport} · ${r.distanceKm}km`).join("\n") || "  (none)"}${languageDirective(locale)}`;
 }
 
 export function buildCoachContext(intent, data, question, contextRaceId) {
@@ -178,8 +212,8 @@ export function buildCoachContext(intent, data, question, contextRaceId) {
           }
         }
       }
-      if (strengths.length) ctx += `\nSTRENGTHS: ${strengths.map((s) => s.title).join("; ")}\n`;
-      if (limiters.length) ctx += `LIMITERS: ${limiters.map((l) => l.title).join("; ")}\n`;
+      if (strengths.length) ctx += `\nSTRENGTHS: ${strengths.map((f) => findingText(EN, f).title).join("; ")}\n`;
+      if (limiters.length) ctx += `LIMITERS: ${limiters.map((f) => findingText(EN, f).title).join("; ")}\n`;
       if (contextRaceId === race.id) {
         ctx += `\nThis race's debrief is already loaded — reference findings conversationally, don't re-deliver them verbatim.\n`;
       }
@@ -314,7 +348,7 @@ export const NARRATIVE_SCHEMA = {
   additionalProperties: false,
 };
 
-export function buildNarrativeSystem(profile) {
+export function buildNarrativeSystem(profile, locale = "en") {
   return `You are RaceIQ's race analyst. You explain why ${athleteFirstName(profile)} performed the way they did on race day, working from the athlete's own data.
 
 You are given, for the race in question: every split, the fueling log, the conditions, the result — plus DERIVED METRICS already computed for you, this athlete's other races, and the pre-race plan when one exists. Analyse it yourself. Find what is actually there.
@@ -336,7 +370,7 @@ HARD CONSTRAINTS:
 - Absence of data is not evidence. RaceIQ holds no training, sleep, or HR data — never infer fitness, fatigue, or overtraining. If the most likely explanation is something you cannot see, say so plainly rather than blaming what you can see.
 - Prefer few strong findings to many weak ones. Three well-evidenced findings beat six padded ones. If the data supports only one, return one.
 - Order by impact on the result, most consequential first.
-- Write in second person, plain and specific. No hedging, no filler, no motivational language. Each body 1–2 sentences; each "why" one sentence.`;
+- Write in second person, plain and specific. No hedging, no filler, no motivational language. Each body 1–2 sentences; each "why" one sentence.${languageDirective(locale)}`;
 }
 
 // Compact split table. Only emits columns that carry data, so a flat road race
@@ -435,11 +469,16 @@ function fuelingBlock(race) {
 
 // The deterministic engine's own output, supplied as a floor rather than an
 // answer — it encodes rules worth not missing, but it only knows six patterns.
+//
+// buildDebrief() returns { key, values }, so the sentences are rendered here.
+// Deliberately in English: this is grounding context for the model, which
+// answers in the athlete's language via the LANGUAGE directive.
+const EN = tFor("en");
 function engineBlock(debrief) {
   const all = [
-    ...debrief.strengths.map((s) => `[strength] ${s.title}: ${s.body}`),
-    ...debrief.limiters.map((l) => `[limiter] ${l.title}: ${l.body}`),
-    ...debrief.recs.map((r) => `[rec] ${r.action}: ${r.why}`),
+    ...debrief.strengths.map((f) => { const x = findingText(EN, f); return `[strength] ${x.title}: ${x.body}`; }),
+    ...debrief.limiters.map((f) => { const x = findingText(EN, f); return `[limiter] ${x.title}: ${x.body}`; }),
+    ...debrief.recs.map((r) => { const x = recText(EN, r); return `[rec] ${x.action}: ${x.why}`; }),
   ];
   if (!all.length) return "  (the rule engine found nothing it recognises)\n";
   return all.map((l) => `  ${l}`).join("\n") + "\n";
@@ -456,7 +495,7 @@ function planBlock(plan) {
   }
   if (plan.recommendations?.length) {
     lines.push(`  Pre-race tactical plan:`);
-    lines.push(...plan.recommendations.map((r) => `    - ${r.action}`));
+    lines.push(...plan.recommendations.map((r) => `    - ${recText(EN, r, "plan").action}`));
   }
   return lines.join("\n") + "\n";
 }
@@ -518,7 +557,9 @@ export function buildPlanContext(plan, history = []) {
 
   ctx += `\nTHIS ATHLETE'S RACE HISTORY (the evidence for what will decide this one — cite by name and date)\n${historyBlock({ id: null }, history)}`;
   ctx += `\nRULE-ENGINE OUTPUT (a floor, not a ceiling — go beyond it where the history supports it)\n`;
-  ctx += (recommendations || []).map((r) => `  [rec] ${r.action}: ${r.why}`).join("\n") || "  (none)";
+  ctx += (recommendations || [])
+    .map((r) => { const x = recText(EN, r, "plan"); return `  [rec] ${x.action}: ${x.why}`; })
+    .join("\n") || "  (none)";
 
   ctx += `\n\nThis race has not happened yet, so there is nothing to diagnose: return an empty "findings" array. The headline names the single thing most likely to decide this race for this athlete. The recommendations are what they should do about it — specific to this course, this forecast, and this athlete's demonstrated pattern of limiters, not generic race advice.\n`;
   return ctx;
@@ -540,7 +581,7 @@ export const ESTIMATE_SCHEMA = {
   additionalProperties: false,
 };
 
-export function buildEstimateSystem(profile) {
+export function buildEstimateSystem(profile, locale = "en") {
   return `You are a sports performance analyst estimating a finish time for an endurance athlete.
 
 METHOD:
@@ -550,7 +591,7 @@ METHOD:
 4. Apply a small heat penalty above 20°C.
 5. Be realistic. Do not extrapolate a trend beyond what the data supports.
 ${profileBlock(profile)}
-Return the estimate in the required JSON shape. The reasoning is shown to the athlete — one sentence, specific, no hedging.`;
+Return the estimate in the required JSON shape. The reasoning is shown to the athlete — one sentence, specific, no hedging.${languageDirective(locale)}`;
 }
 
 export function buildEstimateContext({ course, sport, tempC, races, isCycling }) {
@@ -576,12 +617,13 @@ UPCOMING RACE:
 - Course: ${course.name || "unknown"}`;
 }
 
-export function fallbackAnswer(intent, data) {
+export function fallbackAnswer(intent, data, locale = "en") {
+  const t = tFor(locale);
   switch (intent.category) {
     case "oos_medical":
-      return "That sounds like it could involve a medical or injury concern — outside what RaceIQ can help with. Please consult a sports medicine professional or physiotherapist who can evaluate you in person.";
+      return t("fallback.medical", { ns: "coach" });
     case "oos_training":
-      return "RaceIQ focuses on race analysis and readiness — generating a training plan is outside its scope. A coach can use these race insights as input, but the planning decisions belong with them.";
+      return t("fallback.training", { ns: "coach" });
     default:
       return null;
   }

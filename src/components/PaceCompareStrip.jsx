@@ -1,8 +1,10 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef } from "react";
 import { T, FONT_MONO, COMPARE_COLORS } from "../constants.js";
 import { shortDate } from "../utils/time.js";
 
 export default function PaceCompareStrip({ races }) {
+  const { t } = useTranslation();
   const W = 720, H = 220;
   const padL = 46, padR = 40, padT = 24, padB = 36;
   const plotW = W - padL - padR;
@@ -93,7 +95,7 @@ export default function PaceCompareStrip({ races }) {
           </div>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.inkDim, letterSpacing: 0.5 }}>TEMP:</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.inkDim, letterSpacing: 0.5 }}>{t("chart.tempToggle")}</span>
           <button
             onClick={() => setShowTempFor(-1)}
             style={{
@@ -102,7 +104,7 @@ export default function PaceCompareStrip({ races }) {
               background: "transparent", color: showTempFor === -1 ? T.ink : T.inkDim, cursor: "pointer",
             }}
           >
-            OFF
+            {t("chart.off")}
           </button>
           {races.map((r, i) => (
             <button
@@ -173,8 +175,8 @@ export default function PaceCompareStrip({ races }) {
           </text>
         ))}
 
-        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">fast</text>
-        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">slow</text>
+        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.fast")}</text>
+        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.slow")}</text>
 
         {tempSplits && tempValues.length > 0 && (
           <>
@@ -198,7 +200,7 @@ export default function PaceCompareStrip({ races }) {
           }}
         >
           <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
-            {usePercent ? `${Math.round(hoveredX)}% DIST` : `KM ${hoveredX.toFixed(1)}`}
+            {usePercent ? t("chart.tooltipPct", { pct: hoveredX }) : t("chart.tooltipKm", { km: hoveredX })}
           </div>
           {races.map((r, ri) => {
             const pace = interpolatePace(ri, hoveredX);

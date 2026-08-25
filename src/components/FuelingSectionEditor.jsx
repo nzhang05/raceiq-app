@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { T, FONT_MONO, FONT_BODY } from "../constants.js";
 import { inputStyle } from "./ui.jsx";
 import ElevationProfile from "./ElevationProfile.jsx";
@@ -12,6 +13,7 @@ export default function FuelingSectionEditor({
   sections, rollup,
   onAddBoundary, onMoveBoundary, onRemoveBoundary, onUpdateSection, onAddSection,
 }) {
+  const { t } = useTranslation();
   const amount = entryMode === "amount";
   const units = amount ? { c: "g", s: "mg", f: "ml" } : { c: "g/hr", s: "mg/hr", f: "ml/hr" };
   const boundaryMarkers = sections.slice(0, -1).map((sec) => ({ id: sec.id, km: parseFloat(sec.toKm) }));
@@ -48,25 +50,25 @@ export default function FuelingSectionEditor({
         </div>
       ) : (
         <div style={{ marginBottom: 14, fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim }}>
-          No per-split elevation on this race — set section boundaries by km in the grid below.
+          {t("fuelSections.noElevation")}
         </div>
       )}
 
       {/* Entry mode toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>ENTER AS</span>
-        {modeBtn("rate", "RATE / HR")}
-        {modeBtn("amount", "TOTAL AMOUNT")}
+        <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, color: T.inkDim }}>{t("fuelSections.enterAs")}</span>
+        {modeBtn("rate", t("fuelSections.modeRate"))}
+        {modeBtn("amount", t("fuelSections.modeAmount"))}
         {amount && (
           <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim }}>
-            Totals per section, converted to a rate using each section's elapsed time.
+            {t("fuelSections.amountNote")}
           </span>
         )}
       </div>
 
       {/* Grid header */}
       <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "0 0 8px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5, color: T.inkDim }}>
-        <div>SECTION</div><div>TO KM</div><div>CARBS ({units.c})</div><div>SODIUM ({units.s})</div><div>FLUIDS ({units.f})</div><div>CAFF (mg)</div><div />
+        <div>{t("fuelSections.colSection")}</div><div>{t("fuelSections.colToKm")}</div><div>{t("fuelSections.colCarbs", { unit: units.c })}</div><div>{t("fuelSections.colSodium", { unit: units.s })}</div><div>{t("fuelSections.colFluids", { unit: units.f })}</div><div>{t("fuelSections.colCaffeine")}</div><div />
       </div>
 
       {sections.map((sec, i) => {
@@ -75,7 +77,7 @@ export default function FuelingSectionEditor({
           <div key={sec.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "9px 0", borderBottom: `1px solid ${T.line}22`, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.brass }}>S{i + 1}</div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 1 }}>from {sec.fromKm}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 1 }}>{t("fuelSections.fromKm", { km: sec.fromKm })}</div>
             </div>
             {isLast ? (
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.inkDim }}>{sec.toKm}</div>
@@ -94,8 +96,8 @@ export default function FuelingSectionEditor({
               type="button"
               onClick={() => !isLast && onRemoveBoundary(sec.id)}
               disabled={isLast}
-              aria-label="Merge section into the next"
-              title={isLast ? "" : "Merge into next section"}
+              aria-label={t("fuelSections.mergeAria")}
+              title={isLast ? "" : t("fuelSections.mergeTitle")}
               style={{ background: "none", border: "none", color: isLast ? T.line : T.ember, cursor: isLast ? "default" : "pointer", fontFamily: FONT_MONO, fontSize: 15, lineHeight: 1, padding: 0 }}
             >
               ×
@@ -109,13 +111,13 @@ export default function FuelingSectionEditor({
         onClick={onAddSection}
         style={{ background: "none", border: `1px dashed ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "8px 14px", marginTop: 8 }}
       >
-        + ADD SECTION
+        {t("fuelSections.addSection")}
       </button>
 
       {/* Live roll-up */}
       <div style={{ marginTop: 14, padding: "10px 14px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, fontFamily: FONT_MONO, fontSize: 11.5, color: T.ink }}>
-        <span style={{ color: T.inkDim, letterSpacing: 0.5 }}>ROLLS UP TO </span>
-        {rollup.carbsPerHr} g/hr · {rollup.sodiumPerHr} mg/hr · {rollup.fluidsPerHr} ml/hr · {rollup.caffeine} mg caffeine
+        <span style={{ color: T.inkDim, letterSpacing: 0.5 }}>{t("fuelSections.rollsUpTo")}</span>
+        {t("fuelSections.rollup", { carbs: rollup.carbsPerHr, sodium: rollup.sodiumPerHr, fluids: rollup.fluidsPerHr, caffeine: rollup.caffeine })}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------
    Design tokens — "modern sport-tech" (v2)
    Cooler neutral-slate dark surfaces, soft depth, a single
-   vivid accent (teal). Token *names* are unchanged
+   vivid accent (green). Token *names* are unchanged
    from v1 so every view re-skins for free; only values moved.
      bg        app background (deepest)
      surface   card / panel base
@@ -10,9 +10,20 @@
      paper     primary text (near-white)
      ink       secondary text
      inkDim    tertiary / captions
-     brass     THE accent — CTAs, scores, active states, "mixed"
-     green     strength   ember  limiter
-   --------------------------------------------------------- */
+     brass     THE accent — CTAs, scores, active states
+     green     strength   ember  limiter   neutral  "mixed"
+
+   CONTRAST RULE: every token used as *text* clears WCAG AA 4.5:1
+   against the worst surface it lands on (light: surfaceHi #EDF0F4;
+   dark: surfaceHi #1E262F), and as pill text against its own 9%
+   tint. Body copy here runs 10.5–13px, so the large-text 3:1
+   allowance does not apply. Re-run the contrast audit if you
+   touch these values — several were previously 2.7–3.5:1.
+
+   `brass` and `green` are deliberately the SAME green: the accent
+   and the "strength" verdict are one idea, and two greens a few
+   points apart read as a rendering bug rather than a distinction.
+   "mixed" therefore uses `neutral`, not the accent. --------- */
 
 /* Two palettes sharing identical token *names* so components read `T`
    without caring about mode. `T` is the active theme; a future dark-mode
@@ -26,16 +37,17 @@ const LIGHT = {
   surface: "#FFFFFF",
   surfaceHi: "#EDF0F4", // elevated + hover
   paper: "#151A21",    // primary text (near-black)
-  ink: "#525A64",      // secondary text
-  inkDim: "#8B939D",   // tertiary / captions
+  ink: "#525A64",      // secondary text — 6.1:1 on surfaceHi
+  inkDim: "#646D79",   // tertiary / captions — 4.6:1 on surfaceHi (was #8B939D, 2.7:1)
   line: "#E3E7EC",     // hairline dividers
-  brass: "#0E8C9E",    // vivid teal accent (deepened for contrast on white)
-  brassDim: "#0A6675",
-  green: "#0E9E6E",
-  greenDim: "#BFE6D5",
-  ember: "#E24955",
-  emberDim: "#F3C2C4",
-  temp: "#3E90AA",
+  brass: "#0A7C57",    // THE accent — deep green, 4.6:1 on surfaceHi
+  brassDim: "#08553C", // darker green for borders / secondary accent text
+  green: "#0A7C57",    // strength — same green as the accent, by design
+  greenDim: "#BFE0D0", // pale green, borders/tints only (never text)
+  ember: "#C4333F",    // limiter — 4.7:1 on surfaceHi (was #E24955, 3.5:1)
+  emberDim: "#F0C4C7", // pale red, borders/tints only (never text)
+  neutral: "#5A6472",  // "mixed" verdict — 5.3:1 on surfaceHi
+  temp: "#2E7590",     // temperature series — 4.5:1 on surfaceHi (was #3E90AA, 3.2:1)
 };
 
 const DARK = {
@@ -45,15 +57,16 @@ const DARK = {
   surfaceHi: "#1E262F",
   paper: "#F2F5F8",
   ink: "#AAB4C0",
-  inkDim: "#6B7580",
+  inkDim: "#96A0AC",   // lifted from #6B7580 (3.4:1) to clear AA on surfaceHi
   line: "#242C35",
-  brass: "#35C2D6",
-  brassDim: "#14545F",
-  green: "#33D69A",
-  greenDim: "#16332B",
-  ember: "#F0555C",
-  emberDim: "#331B20",
-  temp: "#6FB6CC",
+  brass: "#34D399",    // same green as light, lightened for dark surfaces
+  brassDim: "#125940",
+  green: "#34D399",    // strength — same green as the accent, by design
+  greenDim: "#16332B", // borders/tints only (never text)
+  ember: "#F5737A",    // lifted from #F0555C to clear AA on surfaceHi
+  emberDim: "#331B20", // borders/tints only (never text)
+  neutral: "#A3ADBA",  // "mixed" verdict
+  temp: "#7FC3D8",
 };
 
 export const THEMES = { light: LIGHT, dark: DARK };
@@ -64,7 +77,9 @@ export const T = LIGHT;
 // Radius scale for the rounded-card language
 export const R = { sm: 8, md: 12, lg: 16, pill: 999 };
 
-export const COMPARE_COLORS = [T.paper, T.green, T.brass];
+// Three separable hues for overlaid race series. `green` is omitted on purpose
+// — it is the same value as `brass`, so using both would draw two identical lines.
+export const COMPARE_COLORS = [T.paper, T.brass, T.temp];
 
 export const FONT_DISPLAY = "'Space Grotesk', 'Inter', system-ui, sans-serif";
 export const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";

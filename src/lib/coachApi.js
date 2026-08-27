@@ -8,15 +8,24 @@
 */
 
 import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { activeLocale } from "../i18n/index.js";
 
 const ENDPOINT = "/api/claude";
 const CACHE_PREFIX = "raceiq:narrative:v1:";
 const CACHE_MAX_ENTRIES = 40;
 
+/*
+  Carries a `coach` catalog key rather than a sentence — Coach.jsx renders it
+  with t(). The server returns its own `errorKey` where it has one; when it
+  doesn't, we fall back to a generic key and keep the server's English text in
+  `message` for logging.
+*/
 export class CoachApiError extends Error {
-  constructor(message, status) {
+  constructor(key, status, values = {}, message = key) {
     super(message);
     this.name = "CoachApiError";
+    this.key = key;
+    this.values = values;
     this.status = status;
   }
 }
@@ -28,9 +37,12 @@ async function accessToken() {
 }
 
 async function post(payload) {
+  // The locale rides along on every request: it selects the language Claude
+  // answers in and the language of the server's canned fallbacks.
+  payload = { ...payload, locale: activeLocale() };
   const token = await accessToken();
   if (!token) {
-    throw new CoachApiError("Sign in to use the AI coach.", 401);
+    throw new CoachApiError("errors.signedOut", 401);
   }
 
   let res;
@@ -41,12 +53,17 @@ async function post(payload) {
       body: JSON.stringify(payload),
     });
   } catch {
-    throw new CoachApiError("Couldn't reach the coach. Check your connection.", 0);
+    throw new CoachApiError("errors.unreachable", 0);
   }
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.error) {
-    throw new CoachApiError(body.error || `Request failed (${res.status}).`, res.status);
+    throw new CoachApiError(
+      body.errorKey || "errors.requestFailed",
+      res.status,
+      { status: res.status, ...body.errorValues },
+      body.error,
+    );
   }
   return body;
 }
@@ -139,7 +156,7 @@ export function narrateDebrief({ race, races, plan, profile }) {
   // Only the inputs the analysis actually reads participate in the key, so a
   // cosmetic edit (renaming a race) doesn't force a regeneration.
   const seed = [
-    "debrief:v2", race.id, race.finishTime, race.tempC, race.humidity, race.wind,
+    "debrief:v3", activeLocale(), race.id, race.finishTime, race.tempC, race.humidity, race.wind,
     race.distanceKm, race.elevationM, race.splits, race.fueling,
     historyFingerprint(races), plan?.targetClock ?? null,
   ];
@@ -148,7 +165,7 @@ export function narrateDebrief({ race, races, plan, profile }) {
 
 export function narratePlan({ plan, races, profile }) {
   const seed = [
-    "plan:v2", plan.course?.name, plan.course?.distanceKm, plan.course?.elevationM,
+    "plan:v3", activeLocale(), plan.course?.name, plan.course?.distanceKm, plan.course?.elevationM,
     plan.targetMinutes, plan.weather?.tempC, plan.nutrition, plan.recommendations,
     historyFingerprint(races),
   ];

@@ -1,7 +1,7 @@
 import { heatPenalty, simulateHistoricalWeather, isNetworkBlockedError } from "./weather.js";
 import { runningCostMultiplier, cyclingCostMultiplier } from "./pace.js";
 import { fuelingBenchmarks, personalizeFueling } from "./fueling.js";
-import { buildCarryPlan, buildPacingSections, sanitizeAidStations } from "./aidStations.js";
+import { buildCarryPlan, buildPacingSections, sanitizeAidStations, DEFAULT_POINT_LABELS } from "./aidStations.js";
 import { gatherLimiterPatterns } from "./analysis.js";
 import { parseClockToMinutes } from "./time.js";
 import { splitIntervalKm } from "./gpx.js";
@@ -69,7 +69,7 @@ export function estimateTargetTime(gpxData, sport, plannedWeather, allRaces) {
   return { minutes: estMinutes, clock: minutesToClock(estMinutes) };
 }
 
-export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, aidStations = [], carryCapacityMl = null, manualFueling = {}) {
+export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, aidStations = [], carryCapacityMl = null, manualFueling = {}, pointLabels = DEFAULT_POINT_LABELS) {
   const isCycling = isCyclingSport(sport);
   const costFn = isCycling ? cyclingCostMultiplier : runningCostMultiplier;
 
@@ -125,43 +125,30 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
 
   // Aid-station carry plan — how much to carry between refill points (null when
   // no stations were provided).
-  const carryPlan = buildCarryPlan(pacing, nutrition, aidStations, gpxData.distanceKm, targetMinutes, carryCapacityMl);
+  const carryPlan = buildCarryPlan(pacing, nutrition, aidStations, gpxData.distanceKm, targetMinutes, carryCapacityMl, pointLabels);
 
   // Section-delimited pacing (one row per leg between aid stations); null when no
   // stations were set, so the view falls back to the per-km pacing table.
-  const pacingSections = buildPacingSections(pacing, aidStations, gpxData.distanceKm);
+  const pacingSections = buildPacingSections(pacing, aidStations, gpxData.distanceKm, pointLabels);
 
   // Recommendations
   const { hotLimiters = [], underFueled = [] } = gatherLimiterPatterns(allRaces);
   const recs = [];
-  if (hotLimiters.length > 0) {
-    recs.push({
-      action: "Start conservatively — your past heat races show a late fade",
-      why: "You have historically underperformed in warm conditions. Dial back the opening third by 5–8 sec/km and bank the energy.",
-    });
-  }
-  if (underFueled.length > 0) {
-    recs.push({
-      action: "Fuel in the first 20 minutes, before you feel hungry",
-      why: "Your past limiters include under-fueled races. Starting carbohydrate intake early prevents the late-race wall.",
-    });
-  }
+  if (hotLimiters.length > 0) recs.push({ key: "rec.heatStart" });
+  if (underFueled.length > 0) recs.push({ key: "rec.fuelEarly" });
   if (tempC > 24) {
     recs.push({
-      action: `Pre-cool before the start and add ${Math.round(heatExtra * 30)} ml/hr extra fluids`,
-      why: `At ${tempC}°C expect a ~${Math.round(heatPenalty(tempC) * 100)}% heat tax. Early hydration and active cooling are the highest-leverage mitigation.`,
+      key: "rec.preCool",
+      values: { extraMl: Math.round(heatExtra * 30), tempC, penaltyPct: Math.round(heatPenalty(tempC) * 100) },
     });
   }
   if ((gpxData.elevationM || 0) > 500) {
     recs.push({
-      action: "Race by effort on the climbs, not by target pace",
-      why: `${gpxData.elevationM}m of gain means per-km pace will swing widely. Chase grade-adjusted effort on the uphills and let the descents pay you back.`,
+      key: "rec.climbByEffort",
+      values: { elevationM: gpxData.elevationM },
     });
   }
-  recs.push({
-    action: "Stick to your target splits in the opening third",
-    why: "Going out too fast is the single most common cause of late-race fade, regardless of fitness level.",
-  });
+  recs.push({ key: "rec.evenStart" });
 
   const sameSportRaces = allRaces.filter((r) => r.sport === sport && r.finishTime);
   const referenceRace = sameSportRaces.sort((a, b) => b.percentile - a.percentile)[0] ?? null;
@@ -176,7 +163,7 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
       elevationM: gpxData.elevationM,
       path: gpxData.path ?? [],
       splits: splits,
-      stations: sanitizeAidStations(aidStations, gpxData.distanceKm),
+      stations: sanitizeAidStations(aidStations, gpxData.distanceKm, pointLabels),
     },
     targetMinutes,
     targetClock: minutesToClock(targetMinutes),

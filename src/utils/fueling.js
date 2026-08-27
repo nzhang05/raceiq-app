@@ -13,7 +13,7 @@ export function fuelingBenchmarks(finishTime) {
       carbsHigh: 0,
       carbsLabel: "none",
       peerAvg: null,
-      rationale: "Efforts under 45 minutes don't require carbohydrate intake — glycogen stores are more than sufficient. Water is appropriate.",
+      rationaleKey: "fuelRationale.under45",
     };
   }
   if (durationMin < 75) {
@@ -23,7 +23,7 @@ export function fuelingBenchmarks(finishTime) {
       carbsHigh: 30,
       carbsLabel: "0–30g/hr",
       peerAvg: 15,
-      rationale: "For 45–75 minute efforts, exogenous carbohydrate has minimal performance benefit. Small amounts (0–30g/hr) may help gut comfort but aren't required.",
+      rationaleKey: "fuelRationale.under75",
     };
   }
   if (durationMin < 150) {
@@ -33,7 +33,7 @@ export function fuelingBenchmarks(finishTime) {
       carbsHigh: 60,
       carbsLabel: "30–60g/hr",
       peerAvg: 45,
-      rationale: "For 75–150 minute efforts, 30–60g/hr of carbohydrate supports performance. Single-source carbs (glucose) work well at this rate.",
+      rationaleKey: "fuelRationale.under150",
     };
   }
   if (durationMin < 240) {
@@ -43,7 +43,7 @@ export function fuelingBenchmarks(finishTime) {
       carbsHigh: 90,
       carbsLabel: "60–90g/hr",
       peerAvg: 72,
-      rationale: "For efforts over 2.5 hours, 60–90g/hr is the research-backed range. Multiple transportable carbs (glucose + fructose, 2:1 ratio) allow higher absorption rates.",
+      rationaleKey: "fuelRationale.under240",
     };
   }
   return {
@@ -52,7 +52,7 @@ export function fuelingBenchmarks(finishTime) {
     carbsHigh: 120,
     carbsLabel: "80–120g/hr",
     peerAvg: 90,
-    rationale: "For efforts over 4 hours, 80–120g/hr is achievable with a trained gut and glucose:fructose mix. Sodium replacement also becomes important at this duration.",
+    rationaleKey: "fuelRationale.over240",
   };
 }
 
@@ -129,7 +129,7 @@ export function personalizeFueling({ benchmark, history = [], targetMinutes, tem
     carbsTargetNum = Math.round(manualCarbs);
     sources.carbs = "manual";
     if (benchmark.needsCarbs && manualCarbs < benchmark.carbsLow) {
-      notes.push(`Your ${carbsTargetNum}g/hr carb target sits below the ${benchmark.carbsLabel} research range for this duration — fine if it's what your gut tolerates, but there's headroom to push.`);
+      notes.push({ key: "fuelNote.manualBelowRange", values: { target: carbsTargetNum, low: benchmark.carbsLow, high: benchmark.carbsHigh } });
     }
   } else if (!benchmark.needsCarbs) {
     carbsTargetNum = Math.round((benchmark.carbsLow + benchmark.carbsHigh) / 2);
@@ -149,12 +149,12 @@ export function personalizeFueling({ benchmark, history = [], targetMinutes, tem
       carbsTargetNum = Math.round(Math.min(benchmark.carbsHigh, Math.max(benchmark.carbsLow, proven)));
       sources.carbs = "history";
       if (proven >= benchmark.carbsHigh) {
-        notes.push(`You've comfortably taken ~${Math.round(proven)}g/hr before, so the plan targets the top of the ${benchmark.carbsLabel} range.`);
+        notes.push({ key: "fuelNote.provenHigh", values: { proven: Math.round(proven), low: benchmark.carbsLow, high: benchmark.carbsHigh } });
       }
     } else if (typical != null && typical < benchmark.carbsLow) {
       carbsTargetNum = benchmark.carbsLow;
       sources.carbs = "history";
-      notes.push(`Your history averages ~${Math.round(typical)}g/hr — under the ${benchmark.carbsLabel} range this duration calls for. The plan targets the low end; build the gut up toward it.`);
+      notes.push({ key: "fuelNote.historyLow", values: { typical: Math.round(typical), low: benchmark.carbsLow, high: benchmark.carbsHigh } });
     } else {
       carbsTargetNum = Math.round((benchmark.carbsLow + benchmark.carbsHigh) / 2);
       sources.carbs = "generic";
@@ -182,7 +182,7 @@ export function personalizeFueling({ benchmark, history = [], targetMinutes, tem
     sodiumMgHr,
     fluidsMlHr,
     caffeineMg,
-    rationale: benchmark.rationale,
+    rationaleKey: benchmark.rationaleKey,
     carbsLabel: benchmark.carbsLabel,
     sources,
     notes,

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SEED_RACES } from "./constants.js";
 import { loadCustomRaces, saveCustomRaces, migrateLocalRaces } from "./utils/storage.js";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -11,6 +12,7 @@ import CoachView from "./components/Coach.jsx";
 import CompareView from "./components/Compare.jsx";
 import RacePlanForm from "./components/RacePlanForm.jsx";
 import RacePlanView from "./components/RacePlanView.jsx";
+import LanguageToggle from "./components/LanguageToggle.jsx";
 
 const FONT_IMPORT = (
   <style>{`
@@ -121,6 +123,7 @@ function purgeLegacyApiKey() {
 }
 
 export default function RaceIQApp() {
+  const { t } = useTranslation();
   const { ready, isConfigured, user, profile, signOut } = useAuth();
   useEffect(purgeLegacyApiKey, []);
   const [view, setView] = useState("list");
@@ -229,11 +232,12 @@ export default function RaceIQApp() {
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.brass }}>IQ</span>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <LanguageToggle />
             <button
               onClick={() => openCoach(null)}
               style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 16px", borderRadius: 999, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? `${T.brass}1A` : "transparent", color: view === "coach" ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease" }}
             >
-              Ask RaceIQ
+              {t("nav.askRaceIQ")}
             </button>
             <button
               onClick={() => setView("profile")}
@@ -251,7 +255,7 @@ export default function RaceIQApp() {
                 onClick={signOut}
                 style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 999, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer", transition: "all 140ms ease" }}
               >
-                Sign out
+                {t("nav.signOut")}
               </button>
             )}
           </div>
@@ -260,23 +264,23 @@ export default function RaceIQApp() {
         {view !== "list" && (
           <div style={{ padding: "0 32px 12px", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
             <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
-              Races
+              {t("nav.races")}
             </button>
-            {view === "profile" && <><span style={{ color: T.line }}>/</span><span style={{ color: T.ink }}>Profile</span></>}
+            {view === "profile" && <><span style={{ color: T.line }}>/</span><span style={{ color: T.ink }}>{t("nav.profile")}</span></>}
             {(view === "debrief" || view === "add" || view === "coach" || view === "compare" || view === "plan" || view === "plan-view") && (
               <>
                 <span style={{ color: T.line }}>/</span>
                 {view === "debrief" && activeRace && <span style={{ color: T.ink }}>{activeRace.name}</span>}
-                {view === "add" && <span style={{ color: T.ink }}>Add race</span>}
-                {view === "compare" && <span style={{ color: T.ink }}>Compare</span>}
-                {view === "plan" && <span style={{ color: T.ink }}>Plan a race</span>}
+                {view === "add" && <span style={{ color: T.ink }}>{t("nav.addRace")}</span>}
+                {view === "compare" && <span style={{ color: T.ink }}>{t("nav.compare")}</span>}
+                {view === "plan" && <span style={{ color: T.ink }}>{t("nav.planRace")}</span>}
                 {view === "plan-view" && (
                   <>
                     <button onClick={() => setView("plan")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
-                      Plan a race
+                      {t("nav.planRace")}
                     </button>
                     <span style={{ color: T.line }}>/</span>
-                    <span style={{ color: T.ink }}>{planData?.course?.name ?? "Race plan"}</span>
+                    <span style={{ color: T.ink }}>{planData?.course?.name ?? t("nav.racePlan")}</span>
                   </>
                 )}
                 {view === "coach" && coachContextRace && (
@@ -285,10 +289,10 @@ export default function RaceIQApp() {
                       {coachContextRace.name}
                     </button>
                     <span style={{ color: T.line }}>/</span>
-                    <span style={{ color: T.ink }}>Ask RaceIQ</span>
+                    <span style={{ color: T.ink }}>{t("nav.askRaceIQ")}</span>
                   </>
                 )}
-                {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>Ask RaceIQ</span>}
+                {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>{t("nav.askRaceIQ")}</span>}
               </>
             )}
           </div>

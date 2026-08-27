@@ -3,10 +3,26 @@ import { fmtPace, paceDriftPct } from "./pace.js";
 import { fuelingBenchmarks } from "./fueling.js";
 import { analyzeSplits } from "./ratings.js";
 
+// Interpolation values shared by every fuelling sentence. `rationale` is a
+// deferred key reference rather than prose — see resolveValues() in
+// src/i18n/render.js — which keeps this module free of catalog text.
+function fuelValues(fuel) {
+  return {
+    carbsLow: fuel.carbsLow,
+    carbsHigh: fuel.carbsHigh,
+    rationale: { $key: `plan:${fuel.rationaleKey}` },
+  };
+}
+
 // Every finding and recommendation below is derived from this race's own
 // numbers. If a fact can't be computed from the splits, weather, or fueling
 // on the race object, it isn't asserted — no season comparisons or sector
 // claims are fabricated.
+//
+// Findings and recommendations are returned as { key, values, context? } rather
+// than as prose: this module stays pure and language-free, and the sentence
+// templates live in src/i18n/*/debrief.js where a translator can reorder them.
+// Render with findingText() / recText() from src/i18n/render.js.
 export function buildDebrief(race) {
   const strengths = [];
   const limiters = [];
@@ -21,23 +37,19 @@ export function buildDebrief(race) {
     const lastPace = fmtPace(m.lastAvg);
     const fade = Math.round(m.fadePct);
     const cv = Math.round(m.cvPct * 10) / 10;
-    const gapNote = m.useGap ? " grade-adjusted" : "";
+    // `gap` selects the *_gap sentence variants, which carry the
+    // "grade-adjusted" qualifier inline rather than spliced after the pace.
+    const context = m.useGap ? "gap" : undefined;
+    const values = { firstPace, lastPace, fade, cv };
 
     if (m.fadePct <= 4 && m.cvPct < 6) {
-      strengths.push({
-        title: "Pacing held even through the finish",
-        body: `Your closing third averaged ${lastPace}${gapNote} against ${firstPace} in the opening third — a ${fade >= 0 ? "+" : ""}${fade}% change — with split-to-split variation of just ${cv}%. That control is the signature of a well-judged effort.`,
-      });
+      strengths.push({ key: "pacing.even", values, context });
     } else if (m.fadePct > 8) {
-      limiters.push({
-        title: "Pace faded through the back third",
-        body: `Your closing third averaged ${lastPace}${gapNote}, up from ${firstPace} across the opening third — a ${fade}% slowdown. It built progressively rather than appearing in one bad split, which points to accumulating fatigue, fueling, or heat rather than a single section.`,
-      });
+      limiters.push({ key: "pacing.faded", values, context });
+    } else if (m.fadePct > 4) {
+      limiters.push({ key: "pacing.drift", values, context });
     } else {
-      (m.fadePct > 4 ? limiters : strengths).push({
-        title: m.fadePct > 4 ? "Some late-race drift, but no collapse" : "Reasonably even pacing",
-        body: `Closing third ${lastPace}${gapNote} vs ${firstPace} in the opening third — a ${fade >= 0 ? "+" : ""}${fade}% change, variation ${cv}%. Solid, with a little time still available from tighter back-half pacing.`,
-      });
+      strengths.push({ key: "pacing.steady", values, context });
     }
   }
 
@@ -48,19 +60,10 @@ export function buildDebrief(race) {
     const tmax = Math.max(...splitTemps);
     const rose = Math.round(tmax - tmin);
     if (tmax >= 24 && rose >= 3 && m.fadePct > 8) {
-      limiters.push({
-        title: "Your slowdown tracked the rising course temperature",
-        body: `Course temperature climbed from ${tmin}°C to ${tmax}°C over the race, and your pace gave way as it did. A ${rose}°C rise into the mid-20s is enough to drive cardiovascular drift independent of fitness.`,
-      });
-      recs.push({
-        action: "Build a heat-specific pacing plan for races above 24°C",
-        why: `Your fade this race coincided with temperatures peaking at ${tmax}°C. Starting 4–6% slower through halfway preserves more time than it costs once it's warm.`,
-      });
+      limiters.push({ key: "heat.tracked", values: { tmin, tmax, rose } });
+      recs.push({ key: "rec.heatPlan", values: { tmax } });
     } else if (tmax <= 14 && m.fadePct <= 4) {
-      strengths.push({
-        title: "Cool conditions played to your pacing",
-        body: `Temperatures stayed between ${tmin}°C and ${tmax}°C — below the band where heat becomes a limiter — and your even splits reflect it.`,
-      });
+      strengths.push({ key: "heat.cool", values: { tmin, tmax } });
     }
   }
 
@@ -75,19 +78,11 @@ export function buildDebrief(race) {
     const taken = race.fueling.carbsPerHr;
     if (taken < fuel.carbsLow) {
       const gap = fuel.carbsLow - taken;
-      limiters.push({
-        title: "Carbohydrate intake was light for the duration",
-        body: `You took ${taken}g/hr; the evidence-backed range for a ${durationMin}-minute effort is ${fuel.carbsLabel}. That ${gap}g/hr shortfall most often shows up late, where glycogen runs thin.`,
-      });
-      recs.push({
-        action: `Raise carbohydrate intake toward ${fuel.carbsLabel}`,
-        why: `At ${taken}g/hr you were ${gap}g/hr under the low end of the ${fuel.carbsLabel} range for ${durationMin}-minute efforts. ${fuel.rationale}`,
-      });
+      const values = { taken, gap, durationMin, ...fuelValues(fuel) };
+      limiters.push({ key: "fuel.light", values });
+      recs.push({ key: "rec.raiseCarbs", values });
     } else if (!m || m.fadePct <= 4) {
-      strengths.push({
-        title: "Fueling matched the demand of the distance",
-        body: `${taken}g/hr sits inside the ${fuel.carbsLabel} range for this duration and you held pace to the line — carry the same rate into your next effort of similar length.`,
-      });
+      strengths.push({ key: "fuel.matched", values: { taken, ...fuelValues(fuel) } });
     }
   }
 
@@ -102,15 +97,13 @@ export function buildDebrief(race) {
         ? flatSplits.reduce((a, s) => a + s.gapPace, 0) / flatSplits.length
         : climbGapAvg;
       const climbVsFlat = ((climbGapAvg - flatGapAvg) / flatGapAvg) * 100;
-      const climbFinding = {
-        title: climbVsFlat < 8 ? "Climbing effort matched your flat pace" : "Climbing cost more than the flats account for",
-        body:
-          climbVsFlat < 8
-            ? `Across sections averaging ${avgClimbGrade.toFixed(1)}% grade, your grade-adjusted pace tracked within ${Math.abs(climbVsFlat).toFixed(0)}% of your flat effort — strong climbing economy for this course.`
-            : `Across sections averaging ${avgClimbGrade.toFixed(1)}% grade, your grade-adjusted effort ran ${climbVsFlat.toFixed(0)}% slower than your flat splits — more than the grade alone explains, which usually means power or form broke down on the climbs specifically.`,
-      };
-      if (climbVsFlat < 8) strengths.push(climbFinding);
-      else limiters.push(climbFinding);
+      // The "matched" sentence quotes the gap as a magnitude, the "costly" one
+      // as a signed slowdown — hence abs() on one side only.
+      if (climbVsFlat < 8) {
+        strengths.push({ key: "climb.matched", values: { grade: avgClimbGrade, deltaPct: Math.abs(climbVsFlat) } });
+      } else {
+        limiters.push({ key: "climb.costly", values: { grade: avgClimbGrade, deltaPct: climbVsFlat } });
+      }
     }
     if (descents.length) {
       const avgDescentGrade = descents.reduce((a, s) => a + s.gradePct, 0) / descents.length;
@@ -118,24 +111,19 @@ export function buildDebrief(race) {
       const gapDescentPace = descents.reduce((a, s) => a + s.gapPace, 0) / descents.length;
       const recovered = ((gapDescentPace - rawDescentPace) / gapDescentPace) * 100;
       strengths.push({
-        title: "Descents recovered time efficiently",
-        body: `On grades averaging ${avgDescentGrade.toFixed(1)}%, raw pace ran roughly ${Math.abs(recovered).toFixed(0)}% faster than effort-adjusted pace — gravity was doing the work the way it should, with no sign of over-braking.`,
+        key: "descent.efficient",
+        values: { grade: avgDescentGrade, recovered: Math.abs(recovered) },
       });
     }
     if (climbs.length) {
-      recs.push({
-        action: "Train climbing-specific intervals at race grade",
-        why: `Your grade-adjusted pace on this course's climbs is the clearest signal for where to focus — hill repeats at a similar ${climbs[0].gradePct.toFixed(0)}% grade will transfer more directly than flat tempo work.`,
-      });
+      recs.push({ key: "rec.climbIntervals", values: { grade: climbs[0].gradePct } });
     }
   }
 
   // ---- A closing pacing rec, only when the data shows a real positive split ----
-  if (m && m.fadePct > 8 && !recs.some((r) => /opening|conservativ/i.test(r.action))) {
-    recs.push({
-      action: "Hold the opening third 3–5 sec/km slower than target",
-      why: `Your ${Math.round(m.fadePct)}% positive split this race is the classic signature of starting too fast. Banking a few seconds early is the cheapest time you'll find.`,
-    });
+  // The de-dupe used to regex the English action text; it now matches on key.
+  if (m && m.fadePct > 8 && !recs.some((r) => r.key === "rec.openEasier")) {
+    recs.push({ key: "rec.openEasier", values: { fade: Math.round(m.fadePct) } });
   }
 
   return { strengths, limiters, recs };
@@ -168,21 +156,23 @@ function addSectionFuelingFindings(race, sections, fuel, m, durationMin, out) {
   if (faded.length) {
     const x = faded[0];
     const gap = fuel.carbsLow - x.carbRate;
-    out.limiters.push({
-      title: "Fuel dropped where your pace did",
-      body: `Over km ${x.sec.fromKm}–${x.sec.toKm} your carb intake was ${x.carbRate}g/hr — ${gap}g/hr under the ${fuel.carbsLabel} range for a ${durationMin}-minute effort — and that's exactly where your pace slipped from ${fmtPace(x.firstPace)} to ${fmtPace(x.lastPace)}. The fade tracks the fuel, not just the distance.`,
-    });
-    out.recs.push({
-      action: `Hold ${fuel.carbsLabel} through km ${x.sec.fromKm}–${x.sec.toKm}`,
-      why: `You under-fuelled that section by ${gap}g/hr and it's where the wheels came off. Carrying the target rate through it is the highest-leverage change for this course. ${fuel.rationale}`,
-    });
+    const values = {
+      fromKm: x.sec.fromKm, toKm: x.sec.toKm, carbRate: x.carbRate, gap, durationMin,
+      ...fuelValues(fuel),
+      firstPace: fmtPace(x.firstPace), lastPace: fmtPace(x.lastPace),
+    };
+    out.limiters.push({ key: "section.fuelDropped", values });
+    out.recs.push({ key: "rec.holdCarbs", values });
   } else {
     // Located strength: closing section fuelled in range and held.
     const closing = summaries[summaries.length - 1];
     if (closing && closing.firstPace != null && closing.carbRate >= fuel.carbsLow && closing.driftPct <= 4) {
       out.strengths.push({
-        title: "You fuelled the back section and it held",
-        body: `Through the closing km ${closing.sec.fromKm}–${closing.sec.toKm} you took ${closing.carbRate}g/hr — inside the ${fuel.carbsLabel} range — and pace held at ${fmtPace(closing.lastPace)}. Fuelling late is exactly where it pays off.`,
+        key: "section.fuelledClose",
+        values: {
+          fromKm: closing.sec.fromKm, toKm: closing.sec.toKm, carbRate: closing.carbRate,
+          ...fuelValues(fuel), lastPace: fmtPace(closing.lastPace),
+        },
       });
     }
   }
@@ -193,8 +183,12 @@ function addSectionFuelingFindings(race, sections, fuel, m, durationMin, out) {
     const cur = summaries[i];
     if (prev.avgTemp != null && cur.avgTemp != null && cur.avgTemp - prev.avgTemp >= 2 && cur.avgTemp >= 22 && cur.fluidRate < prev.fluidRate) {
       out.limiters.push({
-        title: "Fluid intake fell as it got hotter",
-        body: `Over km ${cur.sec.fromKm}–${cur.sec.toKm} the course averaged ${Math.round(cur.avgTemp)}°C — up from ${Math.round(prev.avgTemp)}°C — yet your fluid intake dropped to ${cur.fluidRate}ml/hr from ${prev.fluidRate}ml/hr. Hydration should rise with temperature, not fall.`,
+        key: "section.fluidFell",
+        values: {
+          fromKm: cur.sec.fromKm, toKm: cur.sec.toKm,
+          curTemp: Math.round(cur.avgTemp), prevTemp: Math.round(prev.avgTemp),
+          curFluid: cur.fluidRate, prevFluid: prev.fluidRate,
+        },
       });
       break;
     }

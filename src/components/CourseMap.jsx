@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -55,6 +56,7 @@ function pinIcon(label, background, color) {
   we can on a chart's flat surface.
 */
 export default function CourseMap({ path, distanceKm, stations, height = 320, activeSegment = null }) {
+  const { t } = useTranslation();
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
@@ -123,16 +125,16 @@ export default function CourseMap({ path, distanceKm, stations, height = 320, ac
     const finish = path[path.length - 1];
     const isLoop = Math.abs(start.lat - finish.lat) < 2e-4 && Math.abs(start.lon - finish.lon) < 2e-4;
     if (isLoop) {
-      L.marker([start.lat, start.lon], { icon: pinIcon("S/F", T.green, "#FFFFFF") })
-        .bindTooltip("Start / Finish")
+      L.marker([start.lat, start.lon], { icon: pinIcon(t("map.startFinishInitial"), T.green, "#FFFFFF") })
+        .bindTooltip(t("map.startFinish"))
         .addTo(layer);
     } else {
-      L.marker([start.lat, start.lon], { icon: pinIcon("S", T.green, "#FFFFFF") }).bindTooltip("Start").addTo(layer);
-      L.marker([finish.lat, finish.lon], { icon: pinIcon("F", T.paper, T.surface) }).bindTooltip("Finish").addTo(layer);
+      L.marker([start.lat, start.lon], { icon: pinIcon(t("map.startInitial"), T.green, "#FFFFFF") }).bindTooltip(t("map.start")).addTo(layer);
+      L.marker([finish.lat, finish.lon], { icon: pinIcon(t("map.finishInitial"), T.paper, T.surface) }).bindTooltip(t("map.finish")).addTo(layer);
     }
 
     map.fitBounds(L.latLngBounds(path.map((p) => [p.lat, p.lon])), { padding: [24, 24] });
-  }, [segments, path, hasPath, activeSegment]);
+  }, [segments, path, hasPath, activeSegment, t]);
 
   // Leaflet measures its container on creation; if it was laid out after that
   // (a collapsed panel opening, a resize) the tiles come back grey until told.
@@ -147,7 +149,7 @@ export default function CourseMap({ path, distanceKm, stations, height = 320, ac
   if (!hasPath) {
     return (
       <div style={{ border: `1px solid ${T.line}`, borderRadius: R.sm, padding: "18px 16px", background: T.surface, fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim }}>
-        This course file has no GPS track, so there's no map to draw — the elevation profile and pacing plan below still work.
+        {t("map.noTrack")}
       </div>
     );
   }
@@ -158,7 +160,7 @@ export default function CourseMap({ path, distanceKm, stations, height = 320, ac
 
       {tilesFailed && (
         <div style={{ padding: "8px 12px", borderTop: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim }}>
-          Map tiles couldn't be loaded — the course shape and segments above are still accurate.
+          {t("map.tilesFailed")}
         </div>
       )}
 

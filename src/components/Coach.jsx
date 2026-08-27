@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../constants.js";
-import { fmtDate } from "../utils/time.js";
+import { fmtDate, fmtTimeOfDay } from "../utils/time.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { askCoach, CoachApiError } from "../lib/coachApi.js";
 import { inputStyle } from "./ui.jsx";
@@ -14,12 +15,7 @@ import { inputStyle } from "./ui.jsx";
 const COACH_HISTORY_KEY = "raceiq:coach-history";
 const OOS_INTENTS = new Set(["oos_medical", "oos_training"]);
 
-const SUGGESTED_QUESTIONS = [
-  "Why did I bonk at my last race?",
-  "Am I improving across my race history?",
-  "Which types of races fit me best?",
-  "What should I change before my next marathon?",
-];
+const SUGGESTED_KEYS = ["bonk", "improving", "fit", "next"];
 
 function loadCoachHistory() {
   try { return JSON.parse(localStorage.getItem(COACH_HISTORY_KEY) || "[]"); } catch { return []; }
@@ -29,18 +25,19 @@ function saveCoachHistory(h) {
 }
 
 function CoachMessage({ msg }) {
+  const { t } = useTranslation("coach");
   const isCoach = msg.role === "coach";
   return (
     <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: isCoach ? "flex-start" : "flex-end" }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>
-        {isCoach ? "RACEIQ COACH" : "YOU"} · {new Date(msg.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+        {t(isCoach ? "coachLabel" : "youLabel")} · {fmtTimeOfDay(msg.timestamp)}
       </div>
       <div style={{ maxWidth: "82%", padding: "14px 18px", borderRadius: 4, fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.65, color: isCoach ? T.ink : T.bg, background: isCoach ? T.bg2 : T.brass, border: isCoach ? `1px solid ${T.line}` : "none", whiteSpace: "pre-wrap" }}>
         {msg.content}
       </div>
       {isCoach && msg.sources?.length > 0 && !OOS_INTENTS.has(msg.intentCategory) && (
         <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>BASED ON:</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>{t("basedOn")}</span>
           {/* Text is `brass`, not `brassDim`: brassDim is a border-weight colour
               and inverts to a dark green in the dark palette. */}
           {msg.sources.map((r) => (
@@ -55,17 +52,19 @@ function CoachMessage({ msg }) {
 }
 
 function SignInNotice() {
+  const { t } = useTranslation("coach");
   return (
     <div style={{ padding: "16px 20px", marginBottom: 24, background: `${T.brass}12`, border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>SIGN IN REQUIRED</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>{t("signInRequired.title")}</div>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, lineHeight: 1.55 }}>
-        The AI coach analyses your logged races on RaceIQ's servers. Sign in to use it — your race data is only ever sent for questions you ask.
+        {t("signInRequired.body")}
       </div>
     </div>
   );
 }
 
 export default function CoachView({ races, contextRace, onBack }) {
+  const { t } = useTranslation("coach");
   const { user, profile } = useAuth();
   const [history, setHistory] = useState(() => loadCoachHistory());
   const [input, setInput] = useState("");
@@ -73,7 +72,7 @@ export default function CoachView({ races, contextRace, onBack }) {
   const [error, setError] = useState("");
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const athleteName = (profile?.display_name || "").trim().split(/\s+/)[0] || "there";
+  const athleteName = (profile?.display_name || "").trim().split(/\s+/)[0] || t("defaultName");
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history, loading]);
   useEffect(() => { saveCoachHistory(history); }, [history]);
@@ -119,7 +118,7 @@ export default function CoachView({ races, contextRace, onBack }) {
         intentCategory: res.intent,
       }]);
     } catch (err) {
-      setError(err instanceof CoachApiError ? err.message : "Something went wrong — please try again.");
+      setError(err instanceof CoachApiError ? t(err.key, err.values) : t("errors.generic"));
       // Drop the unanswered question so a retry doesn't duplicate it.
       setHistory((prev) => prev.filter((m) => m.id !== userMsg.id));
       setInput(question);
@@ -140,26 +139,26 @@ export default function CoachView({ races, contextRace, onBack }) {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 140px)" }}>
       <div style={{ marginBottom: 28 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 20 }}>
-          ← {contextRace ? "BACK TO DEBRIEF" : "BACK TO RACE RESUME"}
+          {t(contextRace ? "backToDebrief" : "backToRaces")}
         </button>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>AI COACH</div>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: 0, color: T.paper }}>Ask RaceIQ</h1>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>{t("eyebrow")}</div>
+            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: 0, color: T.paper }}>{t("title")}</h1>
           </div>
           {hasMessages && (
             <button
-              onClick={() => { if (window.confirm("Clear conversation history?")) setHistory([]); }}
+              onClick={() => { if (window.confirm(t("clearConfirm"))) setHistory([]); }}
               style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "6px 12px", cursor: "pointer" }}
             >
-              CLEAR HISTORY
+              {t("clearHistory")}
             </button>
           )}
         </div>
         {contextRace && (
           <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", background: `${T.brass}1A`, border: `1px solid ${T.brassDim}`, borderRadius: 3, fontFamily: FONT_MONO, fontSize: 11, color: T.brass }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.brass, display: "inline-block" }} />
-            CONTEXT: {contextRace.name}
+            {t("context", { name: contextRace.name })}
           </div>
         )}
       </div>
@@ -170,11 +169,11 @@ export default function CoachView({ races, contextRace, onBack }) {
         {!hasMessages ? (
           <div>
             <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.inkDim, marginBottom: 28, lineHeight: 1.6 }}>
-              Ask anything about your race history, {athleteName}. Every answer is drawn from your logged data.
+              {t("intro", { name: athleteName })}
             </div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>TRY ASKING</div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>{t("tryAsking")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {SUGGESTED_QUESTIONS.map((q) => (
+              {SUGGESTED_KEYS.map((key) => t(`suggested.${key}`)).map((q) => (
                 <button
                   key={q}
                   onClick={() => handleSend(q)}
@@ -193,9 +192,9 @@ export default function CoachView({ races, contextRace, onBack }) {
             {history.map((msg) => <CoachMessage key={msg.id} msg={msg} />)}
             {loading && (
               <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>RACEIQ COACH</div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>{t("coachLabel")}</div>
                 <div style={{ padding: "14px 18px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4 }}>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim, letterSpacing: 0.5 }}>Analyzing your data…</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim, letterSpacing: 0.5 }}>{t("analyzing")}</span>
                 </div>
               </div>
             )}
@@ -217,7 +216,9 @@ export default function CoachView({ races, contextRace, onBack }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={!canAsk}
-            placeholder={canAsk ? (contextRace ? `Ask about ${contextRace.name}…` : "Ask about your race history…") : "Sign in to ask the coach…"}
+            placeholder={canAsk
+              ? (contextRace ? t("placeholder.race", { name: contextRace.name }) : t("placeholder.general"))
+              : t("placeholder.signedOut")}
             rows={1}
             style={{ ...inputStyle, flex: 1, resize: "none", lineHeight: 1.5, minHeight: 42, maxHeight: 120, overflow: "auto" }}
             onInput={(e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
@@ -227,11 +228,11 @@ export default function CoachView({ races, contextRace, onBack }) {
             disabled={!input.trim() || loading || !canAsk}
             style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: "none", fontWeight: 600, flexShrink: 0, background: input.trim() && !loading && canAsk ? T.brass : T.line, color: input.trim() && !loading && canAsk ? T.bg : T.inkDim, cursor: input.trim() && !loading && canAsk ? "pointer" : "default" }}
           >
-            {loading ? "…" : "SEND"}
+            {loading ? "…" : t("send")}
           </button>
         </div>
         <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 8, letterSpacing: 0.3 }}>
-          Enter to send · Shift+Enter for new line
+          {t("inputHint")}
         </div>
       </div>
     </div>

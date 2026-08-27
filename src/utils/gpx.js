@@ -2,6 +2,19 @@ import { isCyclingSport } from "../constants.js";
 import { haversineMeters } from "./geo.js";
 import { resolveWaypoints } from "./waypoints.js";
 
+/*
+  Failures carry a catalog key (in the `plan` namespace) rather than a sentence,
+  so this module stays language-free. Callers render it with errorText() from
+  src/i18n/render.js.
+*/
+export class ParseError extends Error {
+  constructor(key) {
+    super(key);
+    this.name = "ParseError";
+    this.key = key;
+  }
+}
+
 // Chart/split sampling cadence: running races get a point every km,
 // cycling races every 5 km (cycling covers far more ground, so 1 km
 // splits would crowd the analysis chart with little added signal).
@@ -88,7 +101,7 @@ async function readXml(file, { parser } = {}) {
   const dom = parser ?? new DOMParser();
   const xmlDoc = dom.parseFromString(text, "application/xml");
   if (xmlDoc.getElementsByTagName("parsererror").length) {
-    throw new Error("Could not read this file — make sure it's a valid GPX or TCX export.");
+    throw new ParseError("errors.unreadableFile");
   }
   return xmlDoc;
 }
@@ -265,7 +278,7 @@ export function buildCoursePath(points) {
 export async function parseRouteFile(file, sport, options) {
   const xmlDoc = await readXml(file, options);
   const rawPoints = readTrackPoints(xmlDoc, file);
-  if (rawPoints.length < 2) throw new Error("No track points found in this file.");
+  if (rawPoints.length < 2) throw new ParseError("errors.noTrackPoints");
 
   const points = pointsToCumulativeDistance(rawPoints);
   const totalKm = points[points.length - 1].cumKm;
@@ -299,7 +312,7 @@ export async function parseTrackFile(file, sport, options) {
   const rawPoints = readTrackPoints(xmlDoc, file);
 
   if (rawPoints.length < 2) {
-    throw new Error("No track points found in this file.");
+    throw new ParseError("errors.noTrackPoints");
   }
 
   const points = pointsToCumulativeDistance(rawPoints);

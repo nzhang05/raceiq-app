@@ -6,14 +6,6 @@ export function parseClockToMinutes(clock) {
   return parseFloat(clock) || 0;
 }
 
-export function fmtDate(iso) {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-export function shortDate(iso) {
-  const d = new Date(iso + "T00:00:00");
-  const month = d.toLocaleDateString("en-US", { month: "short" });
-  const year = d.getFullYear().toString().slice(2);
-  return `${month} '${year}`;
-}
+// Date formatting follows the active locale — see src/i18n/format.js. Re-exported
+// here so the many existing `from "../utils/time.js"` imports keep working.
+export { fmtDate, shortDate, fmtTimeOfDay } from "../i18n/format.js";

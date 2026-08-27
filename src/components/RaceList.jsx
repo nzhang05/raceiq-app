@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { T, R, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORTS } from "../constants.js";
 import { fmtDate } from "../utils/time.js";
-import { verdictColor, verdictLabel } from "../utils/ratings.js";
+import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { Button, Pill } from "./ui.jsx";
 
 const ROW_COLS = "22px 1.7fr 0.7fr 0.75fr 0.8fr 112px 22px";
 
 function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index }) {
+  const { t } = useTranslation();
   const isCustom = race.id.startsWith("custom-");
   return (
     <div
@@ -43,7 +45,7 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
       <div style={{ minWidth: 0 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, letterSpacing: -0.2 }}>{race.name}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>
-          {fmtDate(race.date)} · {race.sport}
+          {fmtDate(race.date)} · {t(`sport.${race.sport}`)}
         </div>
       </div>
 
@@ -56,19 +58,19 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
 
       <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
         {race.tempC}°C
-        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{race.humidity}% hum</div>
+        <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{t("raceList.humidityShort", { pct: race.humidity })}</div>
       </div>
 
       <div>
-        <Pill color={verdictColor(race.verdict)}>{verdictLabel(race.verdict)}</Pill>
+        <Pill color={verdictColor(race.verdict)}>{t(`verdict.${verdictKey(race.verdict)}`)}</Pill>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isCustom && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(race.id); }}
-            aria-label={`Delete ${race.name}`}
-            title="Delete race"
+            aria-label={t("raceList.deleteRaceAria", { name: race.name })}
+            title={t("raceList.deleteRace")}
             className="delete-btn"
             style={{ background: "none", border: "none", color: T.inkDim, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "2px 4px", borderRadius: 6 }}
           >
@@ -81,6 +83,7 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
 }
 
 export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelete, selectedIds, onToggleSelect, onCompare, onClearSelection }) {
+  const { t } = useTranslation();
   const [sport, setSport] = useState("All");
   const filtered = useMemo(
     () => (sport === "All" ? races : races.filter((r) => r.sport === sport)),
@@ -92,15 +95,15 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
         <div>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, margin: 0, color: T.paper, letterSpacing: -0.6 }}>
-            Race history
+            {t("raceList.title")}
           </h1>
           <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginTop: 4 }}>
-            Every race, and the story behind the result.
+            {t("raceList.subtitle")}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Button variant="secondary" onClick={onPlanRace}>Plan a race</Button>
-          <Button onClick={onAddRace}>+ Add race</Button>
+          <Button variant="secondary" onClick={onPlanRace}>{t("nav.planRace")}</Button>
+          <Button onClick={onAddRace}>{t("raceList.addRace")}</Button>
         </div>
       </div>
 
@@ -111,10 +114,10 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
         return (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
             {[
-              { label: "Races logged", value: races.length, accent: T.paper, tint: null },
-              { label: "Total distance", value: `${totalDist} km`, accent: T.paper, tint: null },
-              { label: "Strengths", value: strengthCount, accent: T.green, tint: T.green },
-              { label: "Limiters", value: limiterCount, accent: T.ember, tint: T.ember },
+              { label: t("raceList.stats.racesLogged"), value: races.length, accent: T.paper, tint: null },
+              { label: t("raceList.stats.totalDistance"), value: `${totalDist} km`, accent: T.paper, tint: null },
+              { label: t("raceList.stats.strengths"), value: strengthCount, accent: T.green, tint: T.green },
+              { label: t("raceList.stats.limiters"), value: limiterCount, accent: T.ember, tint: T.ember },
             ].map(({ label, value, accent, tint }) => (
               <div key={label} style={{
                 background: tint ? `${tint}12` : T.surface,
@@ -141,13 +144,13 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
               color: sport === s ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease",
             }}
           >
-            {s}
+            {t(`sport.${s}`)}
           </button>
         ))}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: ROW_COLS, gap: 14, padding: "0 18px 10px", fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
-        <div /><div>Race</div><div>Distance</div><div>Finish</div><div>Conditions</div><div>Debrief</div><div />
+        <div /><div>{t("raceList.col.race")}</div><div>{t("raceList.col.distance")}</div><div>{t("raceList.col.finish")}</div><div>{t("raceList.col.conditions")}</div><div>{t("raceList.col.debrief")}</div><div />
       </div>
 
       <div>
@@ -156,7 +159,7 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
         ))}
         {filtered.length === 0 && (
           <div style={{ padding: "48px 18px", textAlign: "center", color: T.inkDim, fontFamily: FONT_BODY, fontSize: 15 }}>
-            No races logged in this sport yet. Add a race to start building your résumé.
+            {t("raceList.empty")}
           </div>
         )}
       </div>
@@ -164,17 +167,17 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
       {selectedIds.size >= 2 && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 200, background: T.surfaceHi, border: `1px solid ${T.line}`, borderRadius: R.pill, padding: "10px 12px 10px 22px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 10px 34px rgba(20,26,33,0.16)" }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
-            {selectedIds.size} races selected
+            {t("raceList.selected", { count: selectedIds.size })}
           </span>
           {selectedIds.size > 3 && (
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.ember }}>Max 3</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.ember }}>{t("raceList.maxThree")}</span>
           )}
-          <Button onClick={onCompare} disabled={selectedIds.size > 3} style={{ opacity: selectedIds.size > 3 ? 0.5 : 1 }}>Compare →</Button>
+          <Button onClick={onCompare} disabled={selectedIds.size > 3} style={{ opacity: selectedIds.size > 3 ? 0.5 : 1 }}>{t("raceList.compare")}</Button>
           <button
             onClick={onClearSelection}
             style={{ fontFamily: FONT_BODY, fontSize: 13, padding: "8px 12px", borderRadius: R.pill, border: "none", background: "transparent", color: T.inkDim, cursor: "pointer" }}
           >
-            Clear
+            {t("actions.clear")}
           </button>
         </div>
       )}

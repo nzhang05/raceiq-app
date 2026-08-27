@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+import { errorText } from "../i18n/render.js";
 import { useState, useMemo, useEffect } from "react";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORT_OPTIONS, SURFACES } from "../constants.js";
 import { parseClockToMinutes, fmtDate } from "../utils/time.js";
@@ -20,6 +22,8 @@ let fuelSeq = 0;
 const fsUid = () => `fs-${Date.now()}-${fuelSeq++}`;
 
 export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
+  const { t } = useTranslation();
+  const A = (key, opts) => t(`addRace.${key}`, opts);
   const paceToStr = (p) => `${Math.floor(p)}:${String(Math.round((p % 1) * 60)).padStart(2, "0")}`;
   const editing = initialRace != null;
 
@@ -170,7 +174,6 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState(null);
   const showElevCol = sport !== "Road Running";
-  const race_sport_lower = sport.toLowerCase();
 
   async function handleLocationWeatherLookup() {
     if (!locationQuery.trim()) return;
@@ -183,17 +186,23 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       setTempC(String(weather.tempC));
       if (weather.humidity != null) setHumidity(String(weather.humidity));
       if (weather.wind != null) setWind(String(weather.wind));
-      const precipNote = weather.precipMm > 0.2 ? ` Recorded ${weather.precipMm}mm of precipitation that day.` : "";
+      const precipNote = weather.precipMm > 0.2 ? A("weather.precip", { mm: weather.precipMm }) : "";
       if (weather.simulated || place.simulated) {
         setWeatherStatus("simulated");
-        setWeatherMessage(`SIMULATED — this preview can't reach the weather service from here, so this is a placeholder estimate, not a real lookup for ${locationQuery.trim()}: ${weather.tempC}°C, ${weather.humidity ?? "—"}% humidity, ${weather.wind ?? "—"} km/h wind.${precipNote} Outside this preview, the real lookup will run automatically.`);
+        setWeatherMessage(A("weather.simulatedManual", {
+          place: locationQuery.trim(), tempC: weather.tempC,
+          humidity: weather.humidity ?? "—", wind: weather.wind ?? "—", precipNote,
+        }));
       } else {
         setWeatherStatus("done");
-        setWeatherMessage(`Conditions for ${place.label} on ${fmtDate(date)} (midday, since no exact start time is available): ${weather.tempC}°C, ${weather.humidity ?? "—"}% humidity, ${weather.wind ?? "—"} km/h wind.${precipNote} Adjust below if your start time was earlier or later in the day.`);
+        setWeatherMessage(A("weather.done", {
+          place: place.label, date: fmtDate(date), tempC: weather.tempC,
+          humidity: weather.humidity ?? "—", wind: weather.wind ?? "—", precipNote,
+        }));
       }
     } catch (err) {
       setWeatherStatus("error");
-      setWeatherMessage(err.message || "Couldn't look up weather for that location — enter conditions manually below.");
+      setWeatherMessage(errorText(t, err, "addRace.weather.error"));
     }
   }
 
@@ -207,7 +216,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
     try {
       const parsed = await parseTrackFile(file, sport);
       if (!parsed.splits.length) {
-        throw new Error("This file has GPS points but no timestamps, so RaceIQ can't compute pace from it. Try a file exported with time data, or enter splits manually.");
+        throw new Error(t("errors.noTimestamps", { ns: "plan" }));
       }
       setName((prev) => prev || parsed.name);
       setDistanceKm(String(parsed.distanceKm));
@@ -243,26 +252,32 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
             }))
           );
 
-          const precipNote = startWeather.precipMm > 0.2 ? ` Recorded ${startWeather.precipMm}mm of precipitation around race time.` : "";
+          const precipNote = startWeather.precipMm > 0.2 ? A("weather.precipRaceTime", { mm: startWeather.precipMm }) : "";
           const sampleCount = splitsWithTemp.filter(s => s.lat != null).length;
           if (startWeather.simulated) {
             setWeatherStatus("simulated");
-            setWeatherMessage(`SIMULATED — can't reach the weather service from here, so these are placeholder estimates: ${startWeather.tempC}°C at start, ${startWeather.humidity ?? "—"}% humidity, ${startWeather.wind ?? "—"} km/h wind. Per-split temperatures use a diurnal model.${precipNote} Outside this preview, real geo-sampled conditions will be fetched.`);
+            setWeatherMessage(A("weather.simulatedImport", {
+              tempC: startWeather.tempC, humidity: startWeather.humidity ?? "—",
+              wind: startWeather.wind ?? "—", precipNote,
+            }));
           } else {
             setWeatherStatus("done");
-            setWeatherMessage(`Fetched conditions at ${sampleCount} locations along the course and interpolated per-split temperatures — capturing elevation and geographic variation, not just time of day. Start: ${startWeather.tempC}°C, ${startWeather.humidity ?? "—"}% humidity, ${startWeather.wind ?? "—"} km/h wind.${precipNote}`);
+            setWeatherMessage(A("weather.geoSampled", {
+              count: sampleCount, tempC: startWeather.tempC,
+              humidity: startWeather.humidity ?? "—", wind: startWeather.wind ?? "—", precipNote,
+            }));
           }
         } catch (werr) {
           setWeatherStatus("error");
-          setWeatherMessage(werr.message || "Couldn't fetch historical weather for this race — enter conditions manually below.");
+          setWeatherMessage(errorText(t, werr, "addRace.weather.importError"));
         }
       } else {
         setWeatherStatus("skipped");
-        setWeatherMessage("This file doesn't have GPS coordinates and timestamps together, so weather couldn't be looked up automatically. Enter conditions manually below.");
+        setWeatherMessage(A("weather.skipped"));
       }
     } catch (err) {
       setImportStatus("error");
-      setImportMessage(err.message || "Something went wrong reading that file.");
+      setImportMessage(errorText(t, err, "addRace.import.error"));
     } finally {
       e.target.value = "";
     }
@@ -281,9 +296,9 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
   }
 
   function handleSubmit() {
-    if (!name.trim()) return setError("Give the race a name.");
-    if (!distanceKm || Number(distanceKm) <= 0) return setError("Enter a distance greater than zero.");
-    if (!finishTime.trim()) return setError("Enter a finish time, like 3:24:51 or 38:42.");
+    if (!name.trim()) return setError(A("errorName"));
+    if (!distanceKm || Number(distanceKm) <= 0) return setError(A("errorDistance"));
+    if (!finishTime.trim()) return setError(A("errorFinishTime"));
 
     const splits = splitRows
       .filter((r) => r.km !== "" && r.pace !== "")
@@ -296,7 +311,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       .sort((a, b) => a.km - b.km);
 
     if (splits.length < 2) {
-      return setError("Add at least two splits so RaceIQ can read your pacing pattern.");
+      return setError(A("errorSplits"));
     }
 
     setError("");
@@ -359,28 +374,28 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
   return (
     <div>
       <button onClick={onCancel} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 28 }}>
-        ← BACK TO RACE RESUME
+        {t("compare.back")}
       </button>
 
       <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>
-        {editing ? "EDIT RACE" : "ADD RACE"}
+        {A(editing ? "eyebrowEdit" : "eyebrowAdd")}
       </div>
       <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: "0 0 8px", color: T.paper }}>
-        {editing ? "Edit race data" : "Enter race data"}
+        {A(editing ? "titleEdit" : "titleAdd")}
       </h1>
       <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginBottom: 8, maxWidth: 600 }}>
-        Add what you have. RaceIQ derives your percentile, score, and verdict from these numbers, and writes the debrief from your splits and conditions.
+        {A("intro")}
       </div>
 
       <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 20px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.paper, marginBottom: 4 }}>Import a GPX or TCX file</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.paper, marginBottom: 4 }}>{A("import.title")}</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, maxWidth: 440 }}>
-            Export the activity from Strava, Garmin Connect, Coros, or Polar Flow as GPX, then drop it here. RaceIQ reads it in your browser — nothing is uploaded anywhere — and fills in distance, splits, pace, and elevation automatically.
+            {A("import.body")}
           </div>
         </div>
         <label style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "11px 18px", cursor: "pointer", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
-          {importStatus === "loading" ? "READING…" : "CHOOSE FILE"}
+          {A(importStatus === "loading" ? "import.reading" : "import.chooseFile")}
           <input type="file" accept=".gpx,.tcx" onChange={handleFileImport} style={{ display: "none" }} disabled={importStatus === "loading"} />
         </label>
       </div>
@@ -395,41 +410,41 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         </div>
       )}
 
-      <FormSectionTitle>Race details</FormSectionTitle>
+      <FormSectionTitle>{A("section.details")}</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Race name">
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Brandywine Valley Marathon" />
+        <Field label={A("name")}>
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder={A("namePlaceholder")} />
         </Field>
-        <Field label="Sport">
-          <Select value={sport} onChange={(e) => setSport(e.target.value)} options={SPORT_OPTIONS} />
+        <Field label={A("sport")}>
+          <Select value={sport} onChange={(e) => setSport(e.target.value)} options={SPORT_OPTIONS.map((v) => ({ value: v, label: t(`sport.${v}`) }))} />
         </Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Date"><TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-        <Field label="Distance (km)"><TextInput type="number" step="0.1" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} placeholder="42.2" /></Field>
-        <Field label="Elevation gain (m)"><TextInput type="number" value={elevationM} onChange={(e) => setElevationM(e.target.value)} placeholder="310" /></Field>
-        <Field label="Surface"><Select value={surface} onChange={(e) => setSurface(e.target.value)} options={SURFACES} /></Field>
+        <Field label={A("date")}><TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label={A("distance")}><TextInput type="number" step="0.1" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} placeholder="42.2" /></Field>
+        <Field label={A("elevation")}><TextInput type="number" value={elevationM} onChange={(e) => setElevationM(e.target.value)} placeholder="310" /></Field>
+        <Field label={A("surface")}><Select value={surface} onChange={(e) => setSurface(e.target.value)} options={SURFACES.map((v) => ({ value: v, label: t(`surface.${v}`) }))} /></Field>
       </div>
 
-      <FormSectionTitle>Result</FormSectionTitle>
+      <FormSectionTitle>{A("section.result")}</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Finish time" hint="H:MM:SS or MM:SS"><TextInput value={finishTime} onChange={(e) => setFinishTime(e.target.value)} placeholder="3:24:51" /></Field>
-        <Field label="Placement"><TextInput type="number" value={placement} onChange={(e) => setPlacement(e.target.value)} placeholder="142" /></Field>
-        <Field label="Field size"><TextInput type="number" value={field} onChange={(e) => setField(e.target.value)} placeholder="1850" /></Field>
+        <Field label={A("finishTime")} hint={A("finishTimeHint")}><TextInput value={finishTime} onChange={(e) => setFinishTime(e.target.value)} placeholder="3:24:51" /></Field>
+        <Field label={A("placement")}><TextInput type="number" value={placement} onChange={(e) => setPlacement(e.target.value)} placeholder="142" /></Field>
+        <Field label={A("fieldSize")}><TextInput type="number" value={field} onChange={(e) => setField(e.target.value)} placeholder="1850" /></Field>
       </div>
 
-      <FormSectionTitle>Conditions</FormSectionTitle>
+      <FormSectionTitle>{A("section.conditions")}</FormSectionTitle>
 
       {weatherStatus !== "done" && weatherStatus !== "simulated" && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <Field label="Race location">
+              <Field label={A("location")}>
                 <LocationAutocomplete
                   value={locationQuery}
                   onChange={(e) => { setLocationQuery(e.target.value); setSelectedPlace(null); }}
                   onSelect={(place) => { setLocationQuery(place.label); setSelectedPlace(place); }}
-                  placeholder="Philadelphia, PA"
+                  placeholder={A("locationPlaceholder")}
                 />
               </Field>
             </div>
@@ -438,7 +453,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
               disabled={!locationQuery.trim() || weatherStatus === "loading"}
               style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, color: T.bg, background: locationQuery.trim() ? T.brass : T.line, border: "none", borderRadius: 3, padding: "10px 16px", cursor: locationQuery.trim() ? "pointer" : "default", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}
             >
-              {weatherStatus === "loading" ? "LOOKING UP…" : "LOOK UP WEATHER"}
+              {A(weatherStatus === "loading" ? "lookingUp" : "lookUpWeather")}
             </button>
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim, marginTop: 4 }}>City or race venue — used to look up recorded weather for the date above</div>
@@ -447,16 +462,16 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       {statusBanner(weatherStatus, weatherMessage)}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Field label="Temperature (°C)"><TextInput type="number" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder="27" /></Field>
-        <Field label="Humidity (%)"><TextInput type="number" value={humidity} onChange={(e) => setHumidity(e.target.value)} placeholder="71" /></Field>
-        <Field label="Wind (km/h)"><TextInput type="number" value={wind} onChange={(e) => setWind(e.target.value)} placeholder="14" /></Field>
+        <Field label={A("temp")}><TextInput type="number" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder="27" /></Field>
+        <Field label={A("humidity")}><TextInput type="number" value={humidity} onChange={(e) => setHumidity(e.target.value)} placeholder="71" /></Field>
+        <Field label={A("wind")}><TextInput type="number" value={wind} onChange={(e) => setWind(e.target.value)} placeholder="14" /></Field>
       </div>
 
-      <FormSectionTitle>Fueling</FormSectionTitle>
+      <FormSectionTitle>{A("section.fueling")}</FormSectionTitle>
 
       {/* Overall vs by-section mode toggle */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {[["overall", "OVERALL AVERAGE"], ["sections", "BY SECTION"]].map(([mode, label]) => (
+        {[["overall", A("fuelModeOverall")], ["sections", A("fuelModeSections")]].map(([mode, label]) => (
           <button
             key={mode}
             onClick={() => (mode === "sections" ? enableSections() : setFuelMode("overall"))}
@@ -474,18 +489,18 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
       {fuelMode === "overall" ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Field label="Carbs (g/hr)"><TextInput type="number" value={carbsPerHr} onChange={(e) => setCarbsPerHr(e.target.value)} placeholder="52" /></Field>
-          <Field label="Sodium (mg/hr)"><TextInput type="number" value={sodiumPerHr} onChange={(e) => setSodiumPerHr(e.target.value)} placeholder="280" /></Field>
-          <Field label="Fluids (ml/hr)"><TextInput type="number" value={fluidsPerHr} onChange={(e) => setFluidsPerHr(e.target.value)} placeholder="480" /></Field>
-          <Field label="Caffeine (mg total)"><TextInput type="number" value={caffeine} onChange={(e) => setCaffeine(e.target.value)} placeholder="80" /></Field>
+          <Field label={A("carbs")}><TextInput type="number" value={carbsPerHr} onChange={(e) => setCarbsPerHr(e.target.value)} placeholder="52" /></Field>
+          <Field label={A("sodium")}><TextInput type="number" value={sodiumPerHr} onChange={(e) => setSodiumPerHr(e.target.value)} placeholder="280" /></Field>
+          <Field label={A("fluids")}><TextInput type="number" value={fluidsPerHr} onChange={(e) => setFluidsPerHr(e.target.value)} placeholder="480" /></Field>
+          <Field label={A("caffeine")}><TextInput type="number" value={caffeine} onChange={(e) => setCaffeine(e.target.value)} placeholder="80" /></Field>
         </div>
       ) : (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 14, lineHeight: 1.5 }}>
-            Log fuelling by section of the race so RaceIQ can line up a fuel drop-off with where your pace faded.
+            {A("sectionsIntro")}
             {fuelSections.length === 0
-              ? " Enter a distance above (or import a GPX) and RaceIQ will lay out sections to fill in."
-              : parsedSplits.length < 2 && " Add at least two splits below so section times can be computed for the totals."}
+              ? A("sectionsNeedDistance")
+              : parsedSplits.length < 2 && A("sectionsNeedSplits")}
           </div>
           {fuelSections.length > 0 && (
             <FuelingSectionEditor
@@ -507,18 +522,16 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         </div>
       )}
 
-      <FormSectionTitle>Splits</FormSectionTitle>
+      <FormSectionTitle>{A("section.splits")}</FormSectionTitle>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, marginBottom: 14 }}>
-        Enter at least two checkpoints. Pace is minutes per km (or per mile — just stay consistent). Leave a split's temperature blank to use the overall race temperature above.
-        {showElevCol && (
-          <> Add elevation at each checkpoint and RaceIQ will compute grade-adjusted pace — raw pace on a climb isn't comparable to raw pace on the flat, so this is what the debrief and chart will use for {race_sport_lower}.</>
-        )}
+        {A("splitsIntro")}
+        {showElevCol && A("splitsElevNote", { sport: t(`sport.${sport}`).toLowerCase() })}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: showElevCol ? "0.6fr 0.7fr 0.6fr 0.6fr 32px" : "0.7fr 0.8fr 0.7fr 32px", gap: 10, marginBottom: 8 }}>
         {(showElevCol
-          ? ["KM / CHECKPOINT", "PACE (MM:SS)", "ELEV (M)", "TEMP °C (OPT.)", ""]
-          : ["KM / CHECKPOINT", "PACE (MM:SS)", "TEMP °C (OPTIONAL)", ""]
+          ? [A("colCheckpoint"), A("colPace"), A("colElev"), A("colTempShort"), ""]
+          : [A("colCheckpoint"), A("colPace"), A("colTemp"), ""]
         ).map((h) => (
           <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{h}</div>
         ))}
@@ -529,11 +542,11 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
           <TextInput value={row.pace} onChange={(e) => updateSplit(i, "pace", e.target.value)} placeholder={i === 0 ? "4:42" : ""} />
           {showElevCol && <TextInput type="number" value={row.elevM} onChange={(e) => updateSplit(i, "elevM", e.target.value)} placeholder={i === 0 ? "120" : ""} />}
           <TextInput type="number" value={row.tempC} onChange={(e) => updateSplit(i, "tempC", e.target.value)} />
-          <button onClick={() => removeSplitRow(i)} aria-label="Remove split" style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 13 }}>×</button>
+          <button onClick={() => removeSplitRow(i)} aria-label={A("removeSplit")} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 13 }}>×</button>
         </div>
       ))}
       <button onClick={addSplitRow} style={{ background: "none", border: `1px dashed ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.4, padding: "8px 14px", marginTop: 4, marginBottom: 8 }}>
-        + ADD SPLIT
+        {A("addSplit")}
       </button>
 
       {error && (
@@ -544,10 +557,10 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
       <div style={{ display: "flex", gap: 12, marginTop: 28, paddingTop: 24, borderTop: `1px solid ${T.line}` }}>
         <button onClick={handleSubmit} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "12px 22px", cursor: "pointer", fontWeight: 600 }}>
-          {editing ? "UPDATE RACE & REGENERATE DEBRIEF" : "SAVE RACE & GENERATE DEBRIEF"}
+          {A(editing ? "update" : "save")}
         </button>
         <button onClick={onCancel} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.inkDim, background: "none", border: `1px solid ${T.line}`, borderRadius: 3, padding: "12px 22px", cursor: "pointer" }}>
-          CANCEL
+          {A("cancel")}
         </button>
       </div>
     </div>

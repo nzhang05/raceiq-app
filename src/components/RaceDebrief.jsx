@@ -1,10 +1,13 @@
 import { useMemo } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { T, R, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../constants.js";
 import { fmtDate } from "../utils/time.js";
+import { fmtSigned } from "../i18n/format.js";
 import { parseClockToMinutes } from "../utils/time.js";
-import { verdictColor, verdictLabel } from "../utils/ratings.js";
+import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { fuelingBenchmarks } from "../utils/fueling.js";
 import { buildDebrief } from "../utils/analysis.js";
+import { findingText, recText, headlineText } from "../i18n/render.js";
 import { useNarrative } from "../hooks/useNarrative.js";
 import PaceHeatStrip from "./PaceHeatStrip.jsx";
 import { Finding, Recommendation, Card, Button, Pill } from "./ui.jsx";
@@ -22,6 +25,7 @@ function SectionHeader({ title, sub, note }) {
 }
 
 export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, onEdit }) {
+  const { t } = useTranslation();
   const { strengths, limiters, recs } = useMemo(() => buildDebrief(race), [race]);
 
   // Memoised because the hook re-requests whenever this identity changes.
@@ -41,32 +45,35 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         ...limiters.map((s) => ({ ...s, kind: "limiter" })),
       ];
   const shownRecs = narrative?.recommendations?.length ? narrative.recommendations : recs;
-  const headline = narrative?.headline || race.headline;
-  const analysisNote = status === "loading" ? "ANALYSING…" : status === "ready" ? "AI ANALYSIS" : null;
+  // Claude's headline arrives already written in the athlete's language; the
+  // engine's is a catalog key. headlineText() handles both, plus the literal
+  // stored on races saved before this change.
+  const headline = narrative?.headline || headlineText(t, race);
+  const analysisNote = status === "loading" ? t("debrief.analysing") : status === "ready" ? t("debrief.aiAnalysis") : null;
   const vColor = verdictColor(race.verdict);
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_BODY, fontSize: 13.5, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          ← Back to races
+          {t("actions.backToRaces")}
         </button>
         {onEdit && (
-          <Button variant="secondary" onClick={onEdit} style={{ padding: "8px 16px", fontSize: 13 }}>Edit race</Button>
+          <Button variant="secondary" onClick={onEdit} style={{ padding: "8px 16px", fontSize: 13 }}>{t("debrief.editRace")}</Button>
         )}
       </div>
 
       {/* Narrative lead — the "why" comes first */}
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase", color: T.brass, marginBottom: 10 }}>Race debrief</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase", color: T.brass, marginBottom: 10 }}>{t("debrief.eyebrow")}</div>
       <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, margin: "0 0 8px", color: T.paper, letterSpacing: -0.7, maxWidth: 760 }}>{race.name}</h1>
       <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 22 }}>
-        {fmtDate(race.date)} · {race.sport} · {race.distanceKm} km · +{race.elevationM} m
+        {fmtDate(race.date)} · {t(`sport.${race.sport}`)} · {race.distanceKm} km · +{race.elevationM} m
       </div>
 
       <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 32 }}>
         <div style={{ width: 3, alignSelf: "stretch", background: vColor, borderRadius: 2, flexShrink: 0 }} />
         <div>
-          <div style={{ marginBottom: 12 }}><Pill color={vColor}>{verdictLabel(race.verdict)}</Pill></div>
+          <div style={{ marginBottom: 12 }}><Pill color={vColor}>{t(`verdict.${verdictKey(race.verdict)}`)}</Pill></div>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.32, color: T.paper, maxWidth: 680, letterSpacing: -0.3 }}>{headline}</div>
         </div>
       </div>
@@ -74,10 +81,10 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
       {/* Key figures */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 44 }}>
         {[
-          { label: "Finish time", value: race.finishTime, sub: null, accent: T.paper, hero: false },
-          { label: "Placement", value: `${race.placement}/${race.field}`, sub: `${race.percentile}th percentile`, accent: T.paper, hero: false },
-          { label: "RaceIQ score", value: race.rating, sub: `${race.ratingDelta >= 0 ? "+" : ""}${race.ratingDelta}`, accent: T.brass, hero: true },
-          { label: "Conditions", value: `${race.tempC}°C`, sub: `${race.humidity}% humidity`, accent: T.paper, hero: false },
+          { label: t("debrief.stat.finishTime"), value: race.finishTime, sub: null, accent: T.paper, hero: false },
+          { label: t("debrief.stat.placement"), value: `${race.placement}/${race.field}`, sub: t("debrief.percentile", { pct: race.percentile }), accent: T.paper, hero: false },
+          { label: t("debrief.stat.score"), value: race.rating, sub: fmtSigned(race.ratingDelta), accent: T.brass, hero: true },
+          { label: t("debrief.stat.conditions"), value: `${race.tempC}°C`, sub: t("debrief.humidity", { pct: race.humidity }), accent: T.paper, hero: false },
         ].map(({ label, value, sub, accent, hero }, i) => (
           <div key={label} className="stat-enter" style={{ animationDelay: `${i * 70}ms`, background: hero ? `${T.brass}12` : T.surface, border: `1px solid ${hero ? `${T.brass}33` : T.line}`, borderRadius: R.lg, padding: "18px 20px" }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.inkDim, marginBottom: 12 }}>{label}</div>
@@ -88,7 +95,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
       </div>
 
       <div style={{ marginBottom: 48 }}>
-        <SectionHeader title="Pace against temperature" sub="Solid line is your pace, dashed is course temperature, shaded area is elevation." />
+        <SectionHeader title={t("debrief.chart.title")} sub={t("debrief.chart.sub")} />
         <Card style={{ padding: "18px 14px 10px" }}>
           <PaceHeatStrip race={race} />
         </Card>
@@ -96,25 +103,26 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
 
       <div style={{ display: "grid", gridTemplateColumns: "1.35fr 1fr", gap: 44, marginBottom: 8 }}>
         <div>
-          <SectionHeader title="Findings" sub="What the data shows, in order of impact on the result." note={analysisNote} />
+          <SectionHeader title={t("debrief.findings.title")} sub={t("debrief.findings.sub")} note={analysisNote} />
           <div>
-            {allFindings.map((f, i) => (
-              <Finding key={i} kind={f.kind} title={f.title} body={f.body} evidence={f.evidence} />
-            ))}
+            {allFindings.map((f, i) => {
+              const { title, body, evidence } = findingText(t, f);
+              return <Finding key={i} kind={f.kind} title={title} body={body} evidence={evidence} />;
+            })}
           </div>
         </div>
 
         <div>
           <SectionHeader
-            title="Fueling log"
-            sub={race.fueling.inputMode === "sections" && race.fueling.sections?.length
-              ? "What you took in, by section of the race."
-              : "What you took in during the race."}
+            title={t("debrief.fuelingLog.title")}
+            sub={t(race.fueling.inputMode === "sections" && race.fueling.sections?.length
+              ? "debrief.fuelingLog.subSections"
+              : "debrief.fuelingLog.subTotals")}
           />
           {race.fueling.inputMode === "sections" && race.fueling.sections?.length ? (
             <Card style={{ padding: "16px 18px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, paddingBottom: 10, borderBottom: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
-                <div>Section</div><div>Carbs</div><div>Na</div><div>Fluid</div>
+                <div>{t("debrief.fuelingLog.colSection")}</div><div>{t("debrief.fuelingLog.colCarbs")}</div><div>{t("debrief.fuelingLog.colSodium")}</div><div>{t("debrief.fuelingLog.colFluid")}</div>
               </div>
               {(() => {
                 const bench = fuelingBenchmarks(race.finishTime);
@@ -131,16 +139,16 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
                 });
               })()}
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim }}>
-                Race avg · {race.fueling.carbsPerHr} g/hr carbs · {race.fueling.caffeine} mg caffeine
+                {t("debrief.fuelingLog.raceAvg", { carbs: race.fueling.carbsPerHr, caffeine: race.fueling.caffeine })}
               </div>
             </Card>
           ) : (
             <Card>
               {[
-                ["Carbohydrate", `${race.fueling.carbsPerHr} g/hr`],
-                ["Sodium", `${race.fueling.sodiumPerHr} mg/hr`],
-                ["Fluids", `${race.fueling.fluidsPerHr} ml/hr`],
-                ["Caffeine", `${race.fueling.caffeine} mg total`],
+                [t("debrief.fuelingLog.carbohydrate"), t("debrief.fuelingLog.carbsValue", { value: race.fueling.carbsPerHr })],
+                [t("debrief.fuelingLog.sodium"), t("debrief.fuelingLog.sodiumValue", { value: race.fueling.sodiumPerHr })],
+                [t("debrief.fuelingLog.fluids"), t("debrief.fuelingLog.fluidsValue", { value: race.fueling.fluidsPerHr })],
+                [t("debrief.fuelingLog.caffeine"), t("debrief.fuelingLog.caffeineValue", { value: race.fueling.caffeine })],
               ].map(([k, v], i) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none" }}>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim }}>{k}</span>
@@ -151,25 +159,35 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
           )}
 
           <div style={{ marginTop: 24 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: T.paper, marginBottom: 10 }}>Fueling context</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: T.paper, marginBottom: 10 }}>{t("debrief.fuelingContext.title")}</div>
             {(() => {
               const bench = fuelingBenchmarks(race.finishTime);
+              const durationMin = Math.round(parseClockToMinutes(race.finishTime));
+              // <1> is the emphasised phrase; the sentence is one catalog entry
+              // so French can place the emphasis where the grammar wants it.
+              const em = <span style={{ color: T.brass, fontWeight: 600 }} />;
               if (!bench.needsCarbs) {
                 return (
                   <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, lineHeight: 1.6 }}>
-                    At this duration ({Math.round(parseClockToMinutes(race.finishTime))} min), exogenous carbohydrate is{" "}
-                    <span style={{ color: T.brass, fontWeight: 600 }}>not required</span> — glycogen stores are sufficient. Water is the main priority.
+                    <Trans i18nKey="debrief.fuelingContext.notRequired" values={{ durationMin }} components={[em, em]} />
                   </div>
                 );
               }
               return (
                 <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, lineHeight: 1.6 }}>
-                  For {Math.round(parseClockToMinutes(race.finishTime))}-minute efforts, the evidence-backed carbohydrate target is{" "}
-                  <span style={{ color: T.brass, fontWeight: 600 }}>{bench.carbsLabel}</span>
+                  <Trans
+                    i18nKey="debrief.fuelingContext.target"
+                    values={{ durationMin, carbsLabel: bench.carbsLabel }}
+                    components={[em, em]}
+                  />
                   {bench.peerAvg != null && (
-                    <> (athletes at your level in {race.sport.toLowerCase()} average <span style={{ color: T.brass, fontWeight: 600 }}>{bench.peerAvg}g/hr</span>)</>
+                    <Trans
+                      i18nKey="debrief.fuelingContext.peerAvg"
+                      values={{ sport: t(`sport.${race.sport}`).toLowerCase(), peerAvg: bench.peerAvg }}
+                      components={[em, em]}
+                    />
                   )}
-                  . {bench.rationale}
+                  . {t(bench.rationaleKey, { ns: "plan" })}
                 </div>
               );
             })()}
@@ -178,20 +196,23 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
       </div>
 
       <div style={{ marginTop: 48 }}>
-        <SectionHeader title="Recommendations for next time" sub="Specific, evidence-backed changes — not general advice." note={analysisNote} />
+        <SectionHeader title={t("debrief.recommendations.title")} sub={t("debrief.recommendations.sub")} note={analysisNote} />
         <div>
-          {shownRecs.map((r, i) => (
-            <Recommendation key={i} index={i + 1} action={r.action} why={r.why} evidence={r.evidence} />
-          ))}
+          {shownRecs.map((r, i) => {
+            const { action, why, evidence } = recText(t, r);
+            return <Recommendation key={i} index={i + 1} action={action} why={why} evidence={evidence} />;
+          })}
         </div>
       </div>
 
       <Card style={{ marginTop: 40, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", background: T.surfaceHi }}>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink }}>
-          Have a follow-up about this race? Ask the AI coach — <span style={{ color: T.paper, fontWeight: 500 }}>"Why did I bonk?"</span> or{" "}
-          <span style={{ color: T.paper, fontWeight: 500 }}>"Am I improving?"</span>
+          <Trans
+            i18nKey="debrief.askCoach.prompt"
+            components={[<span style={{ color: T.paper, fontWeight: 500 }} />, <span style={{ color: T.paper, fontWeight: 500 }} />]}
+          />
         </div>
-        <Button onClick={onAskCoach} style={{ flexShrink: 0 }}>Ask the coach</Button>
+        <Button onClick={onAskCoach} style={{ flexShrink: 0 }}>{t("debrief.askCoach.cta")}</Button>
       </Card>
     </div>
   );

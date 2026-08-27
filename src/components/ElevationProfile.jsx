@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { T, FONT_MONO, FONT_BODY } from "../constants.js";
 import { gradeColor, GRADE_LEGEND } from "../utils/courseColors.js";
@@ -22,6 +23,7 @@ export default function ElevationProfile({
   colorByGradient = false,
   readOnly = false,
 }) {
+  const { t } = useTranslation();
   const W = 640;
   const H = 190;
   const padL = 8;
@@ -118,7 +120,7 @@ export default function ElevationProfile({
   if (!hasProfile) {
     return (
       <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 16px", background: T.bg2, fontFamily: "inherit", fontSize: 13, color: T.inkDim }}>
-        This file has no elevation data — place aid stations by km in the list below instead.
+        {t("elevation.noProfile")}
       </div>
     );
   }
@@ -129,13 +131,11 @@ export default function ElevationProfile({
       <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "9px 12px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11 }}>
         <span style={{ color: T.paper, fontWeight: 500 }}>{distanceKm} km</span>
         <span style={{ color: T.green }}>+{elevationM} m</span>
-        <span style={{ color: T.inkDim }}>Alt {Math.round(minElev)}–{Math.round(maxElev)} m</span>
+        <span style={{ color: T.inkDim }}>{t("elevation.altRange", { min: Math.round(minElev), max: Math.round(maxElev) })}</span>
         <span style={{ marginLeft: "auto", color: T.inkDim, fontSize: 11 }}>
           {hoverKm != null
-            ? `km ${hoverKm} · ${Math.round(elevAtKm(hoverKm))} m · ${gradeAtKm(hoverKm) > 0 ? "+" : ""}${gradeAtKm(hoverKm).toFixed(1)}%`
-            : readOnly
-              ? "hover for elevation and gradient"
-              : "click to place · drag to move · double-click to remove"}
+            ? t("elevation.hoverReadout", { km: hoverKm, elev: Math.round(elevAtKm(hoverKm)), grade: gradeAtKm(hoverKm) })
+            : t(readOnly ? "elevation.hintReadOnly" : "elevation.hint")}
         </span>
       </div>
 
@@ -218,10 +218,10 @@ export default function ElevationProfile({
 
       {colorByGradient && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", padding: "9px 12px", borderTop: `1px solid ${T.line}` }}>
-          {GRADE_LEGEND.map(({ label, color }) => (
-            <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: FONT_BODY, fontSize: 11, color: T.ink }}>
+          {GRADE_LEGEND.map(({ key, color }) => (
+            <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: FONT_BODY, fontSize: 11, color: T.ink }}>
               <span style={{ width: 11, height: 11, borderRadius: 2, background: color, flexShrink: 0 }} />
-              {label}
+              {t(`grade.${key}`)}
             </span>
           ))}
         </div>

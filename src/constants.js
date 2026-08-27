@@ -139,6 +139,9 @@ export function isCyclingSport(sport) {
   return /cycling/i.test(sport || "");
 }
 
+// `headlineKey` indexes `seed.*` in the debrief catalog rather than carrying
+// prose — these are demo data, but they are still user-visible sentences.
+// Race *names* stay as they are: they are proper nouns.
 export const SEED_RACES = [
   {
     id: "r1",
@@ -158,7 +161,7 @@ export const SEED_RACES = [
     rating: 1842,
     ratingDelta: -38,
     verdict: "limiter",
-    headline: "Heat and a fast first half cost you the back nine.",
+    headlineKey: "seed.r1",
     splits: [
       { km: 5, pace: 4.42, tempC: 18 },
       { km: 10, pace: 4.45, tempC: 19 },
@@ -190,7 +193,7 @@ export const SEED_RACES = [
     rating: 1910,
     ratingDelta: 64,
     verdict: "strength",
-    headline: "Even effort on the climbs delivered your best ultra to date.",
+    headlineKey: "seed.r2",
     splits: [
       { km: 8, pace: 6.1, tempC: 4 },
       { km: 16, pace: 6.4, tempC: 5 },
@@ -219,7 +222,7 @@ export const SEED_RACES = [
     rating: 1768,
     ratingDelta: 12,
     verdict: "mixed",
-    headline: "Strong legs, but headwind sectors leaked more time than fueling did.",
+    headlineKey: "seed.r3",
     splits: [
       { km: 20, pace: 2.1, tempC: 9 },
       { km: 40, pace: 2.2, tempC: 10 },
@@ -247,7 +250,7 @@ export const SEED_RACES = [
     rating: 1830,
     ratingDelta: 22,
     verdict: "strength",
-    headline: "Negative split in cool conditions — your fitness is ahead of your race calendar.",
+    headlineKey: "seed.r4",
     splits: [
       { km: 2.5, pace: 3.52, tempC: 13 },
       { km: 5, pace: 3.5, tempC: 13 },

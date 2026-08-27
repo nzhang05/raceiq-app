@@ -71,18 +71,16 @@ export function deriveVerdict(splits, tempC, sport) {
   return "mixed";
 }
 
+// Returns a key into the `debrief` catalog rather than prose — see
+// src/i18n/en/debrief.js (headline.*) and headlineText() in src/i18n/render.js.
 export function deriveHeadline(verdict, race) {
   if (verdict === "strength") {
-    return race.tempC <= 14
-      ? "Even pacing in cool conditions produced a strong result."
-      : "Pace held steady through the finish — a well-executed race.";
+    return race.tempC <= 14 ? "headline.strengthCool" : "headline.strengthWarm";
   }
   if (verdict === "limiter") {
-    return race.tempC >= 24
-      ? "Heat drove a significant slowdown in the closing stages."
-      : "Pace faded notably in the closing stages.";
+    return race.tempC >= 24 ? "headline.limiterHot" : "headline.limiterCool";
   }
-  return "A mixed result — some splits held, others slipped.";
+  return "headline.mixed";
 }
 
 export function enrichRace(raw) {
@@ -91,7 +89,7 @@ export function enrichRace(raw) {
   const splits = usesGap ? withGap(raw.splits, raw.sport) : raw.splits;
   const verdict = deriveVerdict(raw.splits, raw.tempC, raw.sport);
   const rating = deriveRating(percentile, raw.distanceKm);
-  const headline = deriveHeadline(verdict, raw);
+  const headlineKey = deriveHeadline(verdict, raw);
 
   // When fuelling was logged by section, roll it up into the four scalar fields
   // so every existing consumer keeps reading fueling.carbsPerHr et al. unchanged.
@@ -109,7 +107,7 @@ export function enrichRace(raw) {
     verdict,
     rating,
     ratingDelta: 0,
-    headline,
+    headlineKey,
   };
 }
 
@@ -121,8 +119,9 @@ export function verdictColor(v) {
   return T.neutral;
 }
 
-export function verdictLabel(v) {
-  if (v === "strength") return "STRENGTH";
-  if (v === "limiter") return "LIMITER";
-  return "MIXED";
+// The display label lives in the `common` catalog (verdict.*) — components read
+// it with t(`verdict.${race.verdict}`). This normalises anything unexpected so
+// a bad value can't produce a missing-key placeholder.
+export function verdictKey(v) {
+  return v === "strength" || v === "limiter" ? v : "mixed";
 }

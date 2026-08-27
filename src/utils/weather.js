@@ -1,3 +1,16 @@
+/*
+  Failures carry a catalog key (in the `plan` namespace) plus its interpolation
+  values, rather than a sentence — see ParseError in gpx.js for the same pattern.
+*/
+export class WeatherError extends Error {
+  constructor(key, values = {}) {
+    super(key);
+    this.name = "WeatherError";
+    this.key = key;
+    this.values = values;
+  }
+}
+
 // fetch() throws a plain TypeError when the request never leaves the browser
 // (CSP/sandbox block, DNS failure, offline). We detect this to fall back to
 // a deterministic simulation rather than surfacing a confusing network error.
@@ -72,13 +85,17 @@ export async function fetchHistoricalWeather(lat, lon, startMs, endMs) {
   }
 
   if (!res.ok) {
+    // Open-Meteo's own `reason` is passed through when present: it is more
+    // specific than anything we could say, and the service replies in English
+    // regardless of locale.
     const body = await res.json().catch(() => null);
-    throw new Error(body?.reason || `Weather lookup failed (${res.status}).`);
+    if (body?.reason) throw new Error(body.reason);
+    throw new WeatherError("errors.weatherLookupFailed", { status: res.status });
   }
   const data = await res.json();
   const times = data?.hourly?.time;
   if (!times || !times.length) {
-    throw new Error("No historical weather available for this date and location.");
+    throw new WeatherError("errors.noHistoricalWeather");
   }
 
   const targetMs = startMs;
@@ -95,7 +112,7 @@ export async function fetchHistoricalWeather(lat, lon, startMs, endMs) {
   const precip = data.hourly.precipitation?.[bestIdx];
 
   if (temp == null) {
-    throw new Error("Weather data wasn't available for this exact time and place.");
+    throw new WeatherError("errors.noWeatherForTime");
   }
 
   return {
@@ -164,10 +181,10 @@ export async function geocodeLocation(query) {
     }
     throw err;
   }
-  if (!res.ok) throw new Error("Location lookup failed.");
+  if (!res.ok) throw new WeatherError("errors.locationLookupFailed");
   const data = await res.json();
   const match = data?.results?.[0];
-  if (!match) throw new Error(`Couldn't find a location matching "${query}". Try a nearby city name.`);
+  if (!match) throw new WeatherError("errors.locationNotFound", { query });
   return { lat: match.latitude, lon: match.longitude, label: `${match.name}, ${match.country}`, simulated: false };
 }
 

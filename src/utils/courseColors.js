@@ -43,14 +43,16 @@ export function buildSegments(distanceKm, stations) {
 
 // Gradient bins, mild → strong per arm. `max` is the exclusive upper bound of
 // the bin in percent grade; the last climb bin catches everything above.
+// `key` indexes `grade.*` in the common catalog — this module stays
+// language-free, and the legend is translated where it is rendered.
 export const GRADE_BINS = [
-  { max: -10, label: "Steep descent", arm: "descent", step: 2 },
-  { max: -5, label: "Descent", arm: "descent", step: 1 },
-  { max: -2, label: "Easy descent", arm: "descent", step: 0 },
-  { max: 2, label: "Flat", arm: "flat", step: null },
-  { max: 5, label: "Easy climb", arm: "climb", step: 0 },
-  { max: 10, label: "Climb", arm: "climb", step: 1 },
-  { max: Infinity, label: "Steep climb", arm: "climb", step: 2 },
+  { max: -10, key: "steepDescent", arm: "descent", step: 2 },
+  { max: -5, key: "descent", arm: "descent", step: 1 },
+  { max: -2, key: "easyDescent", arm: "descent", step: 0 },
+  { max: 2, key: "flat", arm: "flat", step: null },
+  { max: 5, key: "easyClimb", arm: "climb", step: 0 },
+  { max: 10, key: "climb", arm: "climb", step: 1 },
+  { max: Infinity, key: "steepClimb", arm: "climb", step: 2 },
 ];
 
 function binColor(bin) {
@@ -70,4 +72,4 @@ export function gradeColor(gradePct) {
 }
 
 // Legend rows for the gradient scale, ordered descent → climb.
-export const GRADE_LEGEND = GRADE_BINS.map((b) => ({ label: b.label, color: binColor(b) }));
+export const GRADE_LEGEND = GRADE_BINS.map((b) => ({ key: b.key, color: binColor(b) }));

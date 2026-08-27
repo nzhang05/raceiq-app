@@ -5,17 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/check-i18n.mjs && vite build",
     "preview": "vite preview",
     "smoke": "node --env-file=.env.local scripts/smoke-claude.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "test:waypoints": "node scripts/test-waypoints.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
     "@supabase/supabase-js": "^2.111.0",
+    "i18next": "^26.4.0",
+    "i18next-browser-languagedetector": "^8.2.1",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.12"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

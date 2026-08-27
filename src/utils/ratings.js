@@ -114,7 +114,9 @@ export function enrichRace(raw) {
 export function verdictColor(v) {
   if (v === "strength") return T.green;
   if (v === "limiter") return T.ember;
-  return T.brass;
+  // "mixed" is neutral, not the accent — the accent is the same green as
+  // "strength", so reusing it here would make the two verdicts look alike.
+  return T.neutral;
 }
 
 // The display label lives in the `common` catalog (verdict.*) — components read

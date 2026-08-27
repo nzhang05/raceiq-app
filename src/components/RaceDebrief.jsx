@@ -17,7 +17,7 @@ function SectionHeader({ title, sub, note }) {
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: -0.3, color: T.paper }}>{title}</div>
-        {note && <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.5, color: T.inkDim }}>{note}</span>}
+        {note && <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{note}</span>}
       </div>
       {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginTop: 4, maxWidth: 620 }}>{sub}</div>}
     </div>

@@ -356,10 +356,10 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
   const statusBanner = (status, message) => {
     const styles = {
-      done: { bg: "rgba(79,174,140,0.08)", border: T.greenDim, color: T.green },
-      simulated: { bg: "rgba(201,162,75,0.1)", border: T.brassDim, color: T.brass },
-      error: { bg: "rgba(255,106,57,0.08)", border: T.emberDim, color: T.ember },
-      skipped: { bg: "rgba(255,106,57,0.08)", border: T.emberDim, color: T.ember },
+      done: { bg: `${T.green}14`, border: T.greenDim, color: T.green },
+      simulated: { bg: `${T.brass}1A`, border: T.brassDim, color: T.brass },
+      error: { bg: `${T.ember}14`, border: T.emberDim, color: T.ember },
+      skipped: { bg: `${T.ember}14`, border: T.emberDim, color: T.ember },
     };
     const s = styles[status];
     if (!s) return null;
@@ -400,12 +400,12 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         </label>
       </div>
       {importStatus === "done" && (
-        <div style={{ marginBottom: 24, padding: "10px 16px", background: "rgba(79,174,140,0.08)", border: `1px solid ${T.greenDim}`, borderRadius: 3, color: T.green, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+        <div style={{ marginBottom: 24, padding: "10px 16px", background: `${T.green}14`, border: `1px solid ${T.greenDim}`, borderRadius: 3, color: T.green, fontFamily: FONT_BODY, fontSize: 13.5 }}>
           {importMessage}
         </div>
       )}
       {importStatus === "error" && (
-        <div style={{ marginBottom: 24, padding: "10px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+        <div style={{ marginBottom: 24, padding: "10px 16px", background: `${T.ember}14`, border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
           {importMessage}
         </div>
       )}
@@ -476,9 +476,9 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
             key={mode}
             onClick={() => (mode === "sections" ? enableSections() : setFuelMode("overall"))}
             style={{
-              fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.4, padding: "7px 13px", borderRadius: 3, cursor: "pointer",
+              fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "7px 13px", borderRadius: 3, cursor: "pointer",
               border: `1px solid ${fuelMode === mode ? T.brass : T.line}`,
-              background: fuelMode === mode ? "rgba(201,162,75,0.12)" : "transparent",
+              background: fuelMode === mode ? `${T.brass}1F` : "transparent",
               color: fuelMode === mode ? T.brass : T.inkDim,
             }}
           >
@@ -533,7 +533,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
           ? [A("colCheckpoint"), A("colPace"), A("colElev"), A("colTempShort"), ""]
           : [A("colCheckpoint"), A("colPace"), A("colTemp"), ""]
         ).map((h) => (
-          <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.5, color: T.inkDim }}>{h}</div>
+          <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{h}</div>
         ))}
       </div>
       {splitRows.map((row, i) => (
@@ -550,7 +550,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       </button>
 
       {error && (
-        <div style={{ marginTop: 18, padding: "12px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+        <div style={{ marginTop: 18, padding: "12px 16px", background: `${T.ember}14`, border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
           {error}
         </div>
       )}

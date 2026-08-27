@@ -110,8 +110,8 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
     { label: t("compare.row.adjTime"), values: sorted.map((r) => heatAdjustedTime(r.finishTime, r.tempC, refRace.tempC)), note: true },
   ];
 
-  const labelCellStyle = { padding: "12px 16px 12px 0", fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.6, color: T.inkDim, borderRight: `1px solid ${T.line}` };
-  const headerCellStyle = { padding: "10px 16px 10px 0", fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.5 };
+  const labelCellStyle = { padding: "12px 16px 12px 0", fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, borderRight: `1px solid ${T.line}` };
+  const headerCellStyle = { padding: "10px 16px 10px 0", fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5 };
 
   return (
     <div>
@@ -128,7 +128,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       {distancesMismatched && (
-        <div style={{ marginBottom: 24, padding: "10px 16px", background: "rgba(255,106,57,0.08)", border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
+        <div style={{ marginBottom: 24, padding: "10px 16px", background: `${T.ember}14`, border: `1px solid ${T.emberDim}`, borderRadius: 3, color: T.ember, fontFamily: FONT_BODY, fontSize: 13.5 }}>
           {t("compare.distanceWarning")}
         </div>
       )}
@@ -139,7 +139,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
           {sorted.map((r, i) => (
             <div key={r.id} style={{ ...headerCellStyle, color: COMPARE_COLORS[i] }}>
               <div>{r.name.toUpperCase()}</div>
-              <div style={{ color: T.inkDim, fontSize: 9, marginTop: 2 }}>{fmtDate(r.date)}</div>
+              <div style={{ color: T.inkDim, fontSize: 11, marginTop: 2 }}>{fmtDate(r.date)}</div>
             </div>
           ))}
           {hasDelta && <div style={{ ...headerCellStyle, color: T.inkDim }}>{t("compare.deltaHeader", { later: shortDate(sorted[sorted.length - 1].date), earlier: shortDate(sorted[0].date) })}</div>}
@@ -192,7 +192,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
               <div key={ri} style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
                 <div style={{ ...labelCellStyle, padding: "12px 16px" }}>
                   {row.label}
-                  {row.note && <div style={{ fontSize: 8.5, color: T.inkDim, opacity: 0.7, marginTop: 2 }}>{t("compare.conditions.normalizedNote", { date: shortDate(refRace.date) })}</div>}
+                  {row.note && <div style={{ fontSize: 11, color: T.inkDim, opacity: 0.7, marginTop: 2 }}>{t("compare.conditions.normalizedNote", { date: shortDate(refRace.date) })}</div>}
                 </div>
                 {sorted.map((r, i) => (
                   <div key={r.id} style={{ padding: "12px 16px", fontFamily: FONT_MONO, fontSize: 13, color: row.note ? COMPARE_COLORS[i] : T.paper }}>{row.values[i]}</div>
@@ -243,12 +243,12 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       <div style={{ marginBottom: 44, padding: "20px 24px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4 }}>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 1, color: T.brass, marginBottom: 10 }}>{t("compare.analysisEyebrow")}</div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.brass, marginBottom: 10 }}>{t("compare.analysisEyebrow")}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.65, color: T.ink }}>{narrative}</div>
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 8 }}>
-        <button onClick={onAskCoach} style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: `1px solid ${T.brass}`, background: "rgba(201,162,75,0.1)", color: T.brass, cursor: "pointer" }}>
+        <button onClick={onAskCoach} style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: `1px solid ${T.brass}`, background: `${T.brass}1A`, color: T.brass, cursor: "pointer" }}>
           {t("compare.askAbout")}
         </button>
         {sorted.map((r, i) => (

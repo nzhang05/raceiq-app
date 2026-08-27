@@ -72,10 +72,20 @@ export async function askCoach({ question, races, contextRaceId, history, profil
   return post({ task: "coach", question, races, contextRaceId, history, profile });
 }
 
+// A parsed course carries its full GPS track (up to ~1500 points) so the app can
+// draw the course map. None of the prompts read it — they work off distance,
+// elevation and the splits — so it's dropped before anything goes over the wire
+// rather than shipping tens of KB of coordinates on every call.
+function withoutGeometry(course) {
+  if (!course) return course;
+  const { path, ...rest } = course;
+  return rest;
+}
+
 // Returns { estimatedMinutes, reasoning }. Callers fall back to the
 // deterministic estimate in racePlan.js when this rejects.
 export async function estimateFinishTime({ course, sport, tempC, races, isCycling, profile }) {
-  const { estimate } = await post({ task: "estimate", course, sport, tempC, races, isCycling, profile });
+  const { estimate } = await post({ task: "estimate", course: withoutGeometry(course), sport, tempC, races, isCycling, profile });
   return estimate;
 }
 
@@ -159,5 +169,5 @@ export function narratePlan({ plan, races, profile }) {
     plan.targetMinutes, plan.weather?.tempC, plan.nutrition, plan.recommendations,
     historyFingerprint(races),
   ];
-  return narrate({ task: "plan", plan, races, profile }, seed);
+  return narrate({ task: "plan", plan: { ...plan, course: withoutGeometry(plan.course) }, races, profile }, seed);
 }

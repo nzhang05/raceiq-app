@@ -1,7 +1,7 @@
 import { heatPenalty, simulateHistoricalWeather, isNetworkBlockedError } from "./weather.js";
 import { runningCostMultiplier, cyclingCostMultiplier } from "./pace.js";
 import { fuelingBenchmarks, personalizeFueling } from "./fueling.js";
-import { buildCarryPlan, buildPacingSections, DEFAULT_POINT_LABELS } from "./aidStations.js";
+import { buildCarryPlan, buildPacingSections, sanitizeAidStations, DEFAULT_POINT_LABELS } from "./aidStations.js";
 import { gatherLimiterPatterns } from "./analysis.js";
 import { parseClockToMinutes } from "./time.js";
 import { splitIntervalKm } from "./gpx.js";
@@ -154,7 +154,17 @@ export function buildRacePlan(gpxData, sport, weather, targetMinutes, allRaces, 
   const referenceRace = sameSportRaces.sort((a, b) => b.percentile - a.percentile)[0] ?? null;
 
   return {
-    course: { name: gpxData.name, distanceKm: gpxData.distanceKm, elevationM: gpxData.elevationM },
+    // `path` and `splits` ride along so the plan view can draw the course map
+    // and elevation profile without re-reading the original GPX (which the
+    // athlete no longer has open by this point).
+    course: {
+      name: gpxData.name,
+      distanceKm: gpxData.distanceKm,
+      elevationM: gpxData.elevationM,
+      path: gpxData.path ?? [],
+      splits: splits,
+      stations: sanitizeAidStations(aidStations, gpxData.distanceKm, pointLabels),
+    },
     targetMinutes,
     targetClock: minutesToClock(targetMinutes),
     pacing,

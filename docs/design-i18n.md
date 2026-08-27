@@ -295,3 +295,33 @@ Still open:
   components, plan-export table headers) have not been checked or adjusted.
 - The FR copy is a first pass against the §6 glossary, not a reviewed translation.
 - `SEED_RACES` demo race *names* stay English — they are proper nouns for fictional races.
+
+## 8. Merged with main (2026-08-27)
+
+`main` had moved on by two PRs — GPX waypoint aid stations with a Leaflet course
+map, and a green-accent/contrast pass. Twelve files conflicted. The eight
+component conflicts were resolved by taking main's file wholesale and re-running
+the i18n conversion on top, rather than hand-merging hunks: main's changes were
+real features (gradient-coloured elevation profile, `readOnly` mode, waypoint
+import) tangled with styling tweaks, and the i18n pass is mechanical enough to
+redo safely.
+
+New surfaces from main, now translated:
+- `CourseMap.jsx` — marker tooltips, the tiles-failed and no-track messages. The
+  pin glyphs are catalog entries too: they are the initials of Start/Finish, so
+  French uses D/A. Leaflet redraws imperatively, so `t` is in the effect's deps
+  or tooltips keep the language they were first drawn in.
+- The waypoint import block in `RacePlanForm.jsx` — `describeWaypointImport()`
+  now takes `t`, because its counts drive plural selection and its English
+  "it/them" and "sits/sit" agreements have no French equivalent.
+- `courseColors.js` — `GRADE_LEGEND` rows carry a `key` instead of a `label`,
+  same pattern as the findings.
+
+Deliberately not translated: the keyword lists in `waypoints.js`. Those are
+parsing rules matched against file contents, not display strings — and they are
+already bilingual (`ravitaillement`, `point d'eau`), which is what makes French
+GPX files parse at all.
+
+Also fixed in passing: `SEED_RACES` still carried literal English `headline`
+strings, which `headlineText()` fell back to. They are `headlineKey` now, so the
+demo races read French too.

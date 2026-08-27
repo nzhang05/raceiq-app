@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useState, useRef } from "react";
 import { T, FONT_MONO } from "../constants.js";
 import { hasElevationData } from "../utils/pace.js";
 
@@ -131,7 +131,7 @@ export default function PaceHeatStrip({ race }) {
                 <line x1="0" y1="5" x2="16" y2="5" stroke={item.color} strokeWidth={item.thick ? 2.5 : 1.5} strokeDasharray={item.dash || "none"} strokeOpacity={item.dim ? 0.5 : 0.9} />
               </svg>
             )}
-            <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.5, color: visible[item.key] ? T.ink : T.inkDim }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: visible[item.key] ? T.ink : T.inkDim }}>
               {item.label}
             </span>
           </button>
@@ -214,13 +214,13 @@ export default function PaceHeatStrip({ race }) {
           ) : null
         )}
 
-        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.fast")}</text>
-        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="9">{t("chart.slow")}</text>
+        <text x={padL - 8} y={padT + 4} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="10">{t("chart.fast")}</text>
+        <text x={padL - 8} y={padT + plotH} textAnchor="end" fill={T.inkDim} fontFamily={FONT_MONO} fontSize="10">{t("chart.slow")}</text>
 
         {visible.temp && (
           <>
-            <text x={padL + plotW + 5} y={yTemp(maxTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="9" opacity="0.85">{maxTemp}°</text>
-            <text x={padL + plotW + 5} y={yTemp(minTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="9" opacity="0.85">{minTemp}°</text>
+            <text x={padL + plotW + 5} y={yTemp(maxTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="10" opacity="0.85">{maxTemp}°</text>
+            <text x={padL + plotW + 5} y={yTemp(minTemp) + 4} textAnchor="start" fill={T.temp} fontFamily={FONT_MONO} fontSize="10" opacity="0.85">{minTemp}°</text>
           </>
         )}
       </svg>
@@ -238,7 +238,7 @@ export default function PaceHeatStrip({ race }) {
             boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
           }}
         >
-          <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, letterSpacing: 0.6, marginBottom: 7, borderBottom: `1px solid ${T.line}`, paddingBottom: 5 }}>
             {t("chart.tooltipKm", { km: hoveredSplit.km })}
           </div>
           {visible.pace && (

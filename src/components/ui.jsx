@@ -60,7 +60,9 @@ export function Button({ children, variant = "primary", style, ...rest }) {
     whiteSpace: "nowrap",
   };
   const variants = {
-    primary: { border: "none", background: T.brass, color: "#1A0E08" },
+    // White on the green accent is 5.2:1; the old near-black ink was tuned for
+    // a light orange fill and drops to ~2.6:1 here.
+    primary: { border: "none", background: T.brass, color: "#FFFFFF" },
     secondary: { border: `1px solid ${T.line}`, background: T.surface, color: T.paper },
     ghost: { border: `1px solid ${T.brass}55`, background: `${T.brass}14`, color: T.brass },
   };
@@ -252,7 +254,7 @@ export function EvidenceList({ items }) {
           key={i}
           style={{
             fontFamily: FONT_MONO,
-            fontSize: 10.5,
+            fontSize: 11,
             lineHeight: 1.5,
             color: T.inkDim,
             background: T.surfaceHi,

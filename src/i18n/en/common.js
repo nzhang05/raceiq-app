@@ -379,11 +379,34 @@ export default {
     off: "OFF",
   },
 
+  grade: {
+    steepDescent: "Steep descent",
+    descent: "Descent",
+    easyDescent: "Easy descent",
+    flat: "Flat",
+    easyClimb: "Easy climb",
+    climb: "Climb",
+    steepClimb: "Steep climb",
+  },
+
+  map: {
+    start: "Start",
+    finish: "Finish",
+    startFinish: "Start / Finish",
+    // Pin glyphs — the initials of the labels above, kept short enough to fit.
+    startInitial: "S",
+    finishInitial: "F",
+    startFinishInitial: "S/F",
+    tilesFailed: "Map tiles couldn't be loaded — the course shape and segments above are still accurate.",
+    noTrack: "This course file has no GPS track, so there's no map to draw — the elevation profile and pacing plan below still work.",
+  },
+
   elevation: {
     noProfile: "This file has no elevation data — place aid stations by km in the list below instead.",
     altRange: "Alt {{min, number}}–{{max, number}} m",
-    hoverReadout: "km {{km, number(maximumFractionDigits: 1)}} · {{elev, number}} m",
+    hoverReadout: "km {{km, number(maximumFractionDigits: 1)}} · {{elev, number}} m · {{grade, number(signDisplay: exceptZero, minimumFractionDigits: 1, maximumFractionDigits: 1)}}%",
     hint: "click to place · drag to move · double-click to remove",
+    hintReadOnly: "hover for elevation and gradient",
   },
 
   fuelSections: {

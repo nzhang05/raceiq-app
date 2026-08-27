@@ -85,8 +85,12 @@ export async function fetchHistoricalWeather(lat, lon, startMs, endMs) {
   }
 
   if (!res.ok) {
+    // Open-Meteo's own `reason` is passed through when present: it is more
+    // specific than anything we could say, and the service replies in English
+    // regardless of locale.
     const body = await res.json().catch(() => null);
-    throw new Error(body?.reason || `Weather lookup failed (${res.status}).`);
+    if (body?.reason) throw new Error(body.reason);
+    throw new WeatherError("errors.weatherLookupFailed", { status: res.status });
   }
   const data = await res.json();
   const times = data?.hourly?.time;

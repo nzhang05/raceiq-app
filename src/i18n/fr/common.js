@@ -374,11 +374,35 @@ export default {
     off: "NON",
   },
 
+  grade: {
+    steepDescent: "Descente raide",
+    descent: "Descente",
+    easyDescent: "Descente douce",
+    flat: "Plat",
+    easyClimb: "Montée douce",
+    climb: "Montée",
+    steepClimb: "Montée raide",
+  },
+
+  map: {
+    start: "Départ",
+    finish: "Arrivée",
+    startFinish: "Départ / Arrivée",
+    // Glyphes des repères — les initiales des libellés ci-dessus, assez courts
+    // pour tenir dans la pastille.
+    startInitial: "D",
+    finishInitial: "A",
+    startFinishInitial: "D/A",
+    tilesFailed: "Les tuiles de la carte n'ont pas pu être chargées — le tracé et les segments ci-dessus restent exacts.",
+    noTrack: "Ce fichier de parcours ne contient aucune trace GPS, il n'y a donc pas de carte à afficher — le profil altimétrique et le plan d'allure ci-dessous fonctionnent quand même.",
+  },
+
   elevation: {
     noProfile: "Ce fichier ne contient pas de données d'altitude — placez les ravitaillements par km dans la liste ci-dessous.",
     altRange: "Alt. {{min, number}}–{{max, number}} m",
-    hoverReadout: "km {{km, number(maximumFractionDigits: 1)}} · {{elev, number}} m",
+    hoverReadout: "km {{km, number(maximumFractionDigits: 1)}} · {{elev, number}} m · {{grade, number(signDisplay: exceptZero, minimumFractionDigits: 1, maximumFractionDigits: 1)}} %",
     hint: "cliquer pour placer · glisser pour déplacer · double-clic pour retirer",
+    hintReadOnly: "survolez pour l'altitude et la pente",
   },
 
   fuelSections: {

@@ -30,3 +30,44 @@ export function tallyKit(quantities) {
   }
   return { totals, items };
 }
+
+// Look up an item definition by key. Drop bags store bare `{ gel: 4 }` maps, so
+// anything reading them back needs this to recover the macros.
+export function fuelItem(key) {
+  return FUEL_ITEMS.find((i) => i.key === key) ?? null;
+}
+
+/*
+  Tally the fuel staged in drop bags across the whole race, plus a per-bag
+  breakdown for the crew sheet.
+
+  The distinction that matters on an ultra: what's *on your body* (the kit
+  builder) versus what's *waiting for you* (this). Adding them together would
+  tell an athlete they have 900 g of carbs when 700 of it is in a truck.
+*/
+export function tallyDropBags(stations) {
+  const bags = [];
+  const totals = { carbsG: 0, sodiumMg: 0, fluidsMl: 0, count: 0, gearCount: 0 };
+
+  for (const station of stations ?? []) {
+    if (!station.dropBag) continue;
+    const { totals: bagTotals, items } = tallyKit(station.dropBag.items ?? {});
+    const gear = station.dropBag.gear ?? [];
+    bags.push({
+      km: station.km,
+      name: station.name,
+      crewAccess: station.crewAccess === true,
+      items,
+      gear,
+      notes: station.dropBag.notes ?? "",
+      totals: bagTotals,
+    });
+    totals.carbsG += bagTotals.carbsG;
+    totals.sodiumMg += bagTotals.sodiumMg;
+    totals.fluidsMl += bagTotals.fluidsMl;
+    totals.count += bagTotals.count;
+    totals.gearCount += gear.length;
+  }
+
+  return { bags, totals };
+}

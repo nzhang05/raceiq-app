@@ -6,8 +6,10 @@ import { recText, legNoteText, fuelNoteText } from "../i18n/render.js";
 import CourseMap from "./CourseMap.jsx";
 import ElevationProfile from "./ElevationProfile.jsx";
 import { buildSegments } from "../utils/courseColors.js";
-import { FUEL_ITEMS, tallyKit } from "../utils/fuelKit.js";
+import { tallyKit, tallyDropBags } from "../utils/fuelKit.js";
 import { printPlan } from "../utils/planPdf.js";
+import { printCrewSheet } from "../utils/crewPdf.js";
+import FuelItemPicker from "./FuelItemPicker.jsx";
 import { useNarrative } from "../hooks/useNarrative.js";
 
 function fmtPace(minPerKm) {
@@ -28,15 +30,6 @@ function fmtDuration(min) {
   const h = Math.floor(min / 60);
   const m = Math.round(min % 60);
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}` : `${m} min`;
-}
-
-function stepperStyle(active) {
-  return {
-    width: 26, height: 26, borderRadius: 3, cursor: "pointer",
-    border: `1px solid ${active ? T.brassDim : T.line}`,
-    background: "transparent", color: active ? T.brass : T.inkDim,
-    fontFamily: FONT_MONO, fontSize: 15, lineHeight: 1, padding: 0,
-  };
 }
 
 // Tiny provenance chip on each nutrition row: where the number came from.
@@ -74,7 +67,8 @@ function KitProgress({ label, value, target, unit }) {
 
 export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskCoach }) {
   const { t } = useTranslation();
-  const { course, targetClock, pacing, pacingSections, nutrition, carryPlan, recommendations, referenceRace, weather, raceDate } = plan;
+  const { course, targetClock, pacing, pacingSections, nutrition, carryPlan, recommendations, referenceRace, weather, raceDate,
+          schedule, stations, stopMinutes, movingClock, stopBudgetExceeded } = plan;
 
   // Rule-engine recommendations render immediately; the analysis — which reads
   // this athlete's full race history against this course and forecast —
@@ -101,18 +95,32 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
 
   // What the kit should add up to: the carry-plan race total when aid stations were
   // set, otherwise the whole-race target derived from per-hour rates × duration.
-  const hours = (plan.targetMinutes ?? 0) / 60;
+  // Fuel is consumed while moving, so the whole-race fallback target uses moving
+  // time rather than elapsed — on an ultra those differ by hours.
+  const hours = (plan.movingMinutes ?? plan.targetMinutes ?? 0) / 60;
   const kitTargets = carryPlan?.totals ?? {
     carbsG: Math.round((nutrition.carbsTargetNum ?? 0) * hours),
     fluidsMl: Math.round((nutrition.fluidsMlHr ?? 0) * hours),
     sodiumMg: Math.round((nutrition.sodiumMgHr ?? 0) * hours),
   };
 
+  // What's staged in drop bags, kept strictly separate from what's on the body:
+  // adding them together would tell an athlete they're carrying 900 g of carbs
+  // when 700 of it is in a truck at km 80.
+  const dropBags = useMemo(() => tallyDropBags(stations ?? []), [stations]);
+
   const elev = course.elevationM || 0;
   const profileLabel = t(`view.profile.${elev > 800 ? "mountain" : elev > 300 ? "hilly" : "rolling"}`, { ns: "plan" });
 
   const summaryCards = [
-    { label: t("view.summary.targetTime", { ns: "plan" }), value: targetClock, accent: T.brass },
+    {
+      label: t("view.summary.targetTime", { ns: "plan" }),
+      value: targetClock,
+      // The split is the honest disclosure that Phase 1 changed what the target
+      // means: it is elapsed time, and stopping costs it.
+      sub: stopMinutes > 0 ? t("view.summary.movingSub", { ns: "plan", moving: movingClock, stopped: Math.round(stopMinutes) }) : undefined,
+      accent: T.brass,
+    },
     { label: t("view.summary.courseProfile", { ns: "plan" }), value: profileLabel, sub: t("view.elevGain", { ns: "plan", elevationM: course.elevationM ?? 0 }), accent: T.paper },
     { label: t("view.summary.conditions", { ns: "plan" }), value: weather?.tempC != null ? `${weather.tempC}°C` : "—", sub: weather?.wind != null ? t("view.windSub", { ns: "plan", wind: weather.wind }) : undefined, accent: T.paper },
     { label: t("view.summary.basedOn", { ns: "plan" }), value: referenceRace ? referenceRace.name : t("view.genericPace", { ns: "plan" }), sub: referenceRace ? t("view.referenceSub", { ns: "plan", finishTime: referenceRace.finishTime, distanceKm: referenceRace.distanceKm }) : undefined, accent: T.paper },
@@ -180,6 +188,89 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
               />
             )}
           </div>
+        </div>
+      )}
+
+      {/* Stop-budget guard — the plan had to clamp the athlete's aid-station time. */}
+      {stopBudgetExceeded && (
+        <div style={{ background: "rgba(192,57,43,0.08)", border: `1px solid ${T.ember}`, borderRadius: 4, padding: "14px 18px", marginBottom: 28 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.ember, lineHeight: 1.5 }}>
+            {t("view.schedule.stopBudgetExceeded", { ns: "plan", stopped: Math.round(stopMinutes), target: targetClock })}
+          </div>
+        </div>
+      )}
+
+      {/* Race Schedule — wall-clock arrivals. Only exists once a start time is set. */}
+      {schedule && (
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 6, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>
+              {t("view.schedule.title", { ns: "plan" })}
+            </div>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>
+              {t("view.schedule.startFinish", { ns: "plan", start: schedule.startClock, finish: schedule.finishClock })}
+              {schedule.finishDayOffset > 0 ? ` (+${schedule.finishDayOffset}d)` : ""}
+            </span>
+          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 16px", lineHeight: 1.5 }}>
+            {t("view.schedule.sub", { ns: "plan" })}
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr 1.2fr 0.7fr 0.8fr 1fr", gap: 8, padding: "0 0 8px", borderBottom: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.7, color: T.inkDim }}>
+            <div>{t("view.schedule.colPoint", { ns: "plan" })}</div>
+            <div>{t("view.schedule.colKm", { ns: "plan" })}</div>
+            <div>{t("view.schedule.colArrive", { ns: "plan" })}</div>
+            <div>{t("view.schedule.colStop", { ns: "plan" })}</div>
+            <div>{t("view.schedule.colDepart", { ns: "plan" })}</div>
+            <div>{t("view.schedule.colCutoff", { ns: "plan" })}</div>
+          </div>
+
+          {schedule.points.map((pt, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.6fr 1.2fr 0.7fr 0.8fr 1fr", gap: 8, padding: "11px 0", borderBottom: `1px solid ${T.line}22`, alignItems: "baseline" }}>
+              <div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.paper }}>
+                  {pt.name}
+                  {pt.inDarkness && <span title={t("view.schedule.dark", { ns: "plan" })} style={{ marginLeft: 6 }}>🌙</span>}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 3 }}>
+                  {pt.crewAccess && <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.green, border: `1px solid ${T.green}`, borderRadius: 2, padding: "0 4px", opacity: 0.85 }}>{t("view.schedule.crew", { ns: "plan" })}</span>}
+                  {pt.dropBag && <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.brass, border: `1px solid ${T.brassDim}`, borderRadius: 2, padding: "0 4px", opacity: 0.85 }}>{t("view.schedule.bag", { ns: "plan" })}</span>}
+                  {pt.sleepMinutes > 0 && <span style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.inkDim, border: `1px solid ${T.line}`, borderRadius: 2, padding: "0 4px" }}>{t("view.schedule.sleep", { ns: "plan", minutes: pt.sleepMinutes })}</span>}
+                </div>
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>{pt.km}</div>
+              <div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 14, fontWeight: 500, color: T.paper }}>
+                  {pt.arrivalClock}{pt.dayOffset > 0 && <span style={{ fontSize: 10, color: T.brass }}> +{pt.dayOffset}d</span>}
+                </div>
+                {/* The window is the honest number; the point estimate above it is
+                    convenience. A crew that plans against the point estimate waits. */}
+                {pt.window && (
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 2 }}>
+                    {pt.window.earlyClock}–{pt.window.lateClock}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: pt.stopMinutes > 0 ? T.ink : T.inkDim }}>
+                {pt.stopMinutes > 0 ? t("view.schedule.minutes", { ns: "plan", minutes: pt.stopMinutes }) : "—"}
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>{pt.departClock ?? "—"}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: pt.atCutoffRisk ? T.ember : T.ink }}>
+                {pt.cutoff ?? "—"}
+                {pt.cutoffMarginMinutes != null && (
+                  <span style={{ fontSize: 10, color: pt.atCutoffRisk ? T.ember : T.inkDim, display: "block", marginTop: 2 }}>
+                    {t(pt.atCutoffRisk ? "view.schedule.cutoffRisk" : "view.schedule.cutoffMargin", { ns: "plan", minutes: Math.abs(pt.cutoffMarginMinutes) })}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {schedule.hasDarkness && (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim, marginTop: 12, lineHeight: 1.5 }}>
+              {t("view.schedule.darkLegs", { ns: "plan", count: schedule.legs.filter((l) => l.inDarkness).length })}
+            </div>
+          )}
         </div>
       )}
 
@@ -370,46 +461,68 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
         </div>
       )}
 
+      {/* Drop Bags */}
+      {dropBags.bags.length > 0 && (
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper, marginBottom: 6, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
+            {t("view.bags.title", { ns: "plan" })}
+          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 16px", lineHeight: 1.5 }}>
+            {t("view.bags.sub", { ns: "plan", count: dropBags.bags.length })}
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+            {dropBags.bags.map((bag, i) => (
+              <div key={i} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.paper }}>{bag.name}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>km {bag.km}</span>
+                </div>
+                {bag.items.map((it) => (
+                  <div key={it.key} style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.ink, padding: "3px 0" }}>
+                    {it.qty}× {t(`fuelItem.${it.key}`, { ns: "plan" })}
+                  </div>
+                ))}
+                {bag.gear.map((g, j) => (
+                  <div key={j} style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.ink, padding: "3px 0" }}>· {g}</div>
+                ))}
+                {bag.notes && (
+                  <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 8, lineHeight: 1.45, fontStyle: "italic" }}>{bag.notes}</div>
+                )}
+                {bag.totals.carbsG > 0 && (
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, marginTop: 10, paddingTop: 8, borderTop: `1px solid ${T.line}` }}>
+                    {t("view.bags.bagTotal", { ns: "plan", carbsG: bag.totals.carbsG, fluidsMl: bag.totals.fluidsMl })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Build Your Kit */}
       <div style={{ marginBottom: 36 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper, marginBottom: 6, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
           {t("view.kit.title", { ns: "plan" })}
         </div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, margin: "0 0 16px", lineHeight: 1.5 }}>
-          {t("view.kit.sub", { ns: "plan" })}
+          {t(dropBags.bags.length ? "view.kit.subOnBody" : "view.kit.sub", { ns: "plan" })}
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 20, alignItems: "start" }}>
-          {/* Item picker */}
-          <div style={{ border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
-            {FUEL_ITEMS.map((item, i) => {
-              const qty = kitQty[item.key] || 0;
-              const macro = [
-                item.carbs ? `${item.carbs}g` : null,
-                item.sodiumMg ? `${item.sodiumMg}mg Na` : null,
-                item.fluidMl ? `${item.fluidMl}ml` : null,
-              ].filter(Boolean).join(" · ");
-              return (
-                <div key={item.key} style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < FUEL_ITEMS.length - 1 ? `1px solid ${T.line}33` : "none", background: qty > 0 ? `${T.brass}0D` : "transparent" }}>
-                  <div>
-                    <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: qty > 0 ? T.paper : T.ink }}>{t(`fuelItem.${item.key}`, { ns: "plan" })}</div>
-                    <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 2 }}>{macro || "—"}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button onClick={() => bumpKit(item.key, -1)} aria-label={`Remove one ${t(`fuelItem.${item.key}`, { ns: "plan" })}`} style={stepperStyle(qty > 0)}>−</button>
-                    <span style={{ fontFamily: FONT_MONO, fontSize: 14, color: qty > 0 ? T.brass : T.inkDim, minWidth: 18, textAlign: "center" }}>{qty}</span>
-                    <button onClick={() => bumpKit(item.key, 1)} aria-label={`Add one ${t(`fuelItem.${item.key}`, { ns: "plan" })}`} style={stepperStyle(true)}>+</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Item picker — shared with the drop-bag editor in RacePlanForm. */}
+          <FuelItemPicker quantities={kitQty} onBump={bumpKit} />
 
           {/* Tally vs targets */}
           <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "16px 18px" }}>
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 12 }}>
               {t(carryPlan ? "view.kit.vsTargetRaceTotal" : "view.kit.vsTarget", { ns: "plan" })}
             </div>
+            {dropBags.bags.length > 0 && dropBags.totals.carbsG > 0 && (
+              <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginBottom: 12, lineHeight: 1.45 }}>
+                {t("view.kit.stagedNote", { ns: "plan", carbsG: dropBags.totals.carbsG, count: dropBags.bags.length })}
+              </div>
+            )}
             <KitProgress label={t("view.kit.carbs", { ns: "plan" })} value={kit.totals.carbsG} target={kitTargets.carbsG} unit="g" />
             <KitProgress label={t("view.kit.fluids", { ns: "plan" })} value={kit.totals.fluidsMl} target={kitTargets.fluidsMl} unit="ml" />
             <KitProgress label={t("view.kit.sodium", { ns: "plan" })} value={kit.totals.sodiumMg} target={kitTargets.sodiumMg} unit="mg" />
@@ -455,6 +568,16 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
         >
           {t("view.downloadPdf", { ns: "plan" })}
         </button>
+        {/* The crew sheet is a separate document for a different reader — offered
+            once there is a schedule or a bag for them to work from. */}
+        {(schedule || dropBags.bags.length > 0) && (
+          <button
+            onClick={() => printCrewSheet(plan, t)}
+            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "11px 18px", borderRadius: 3, border: `1px solid ${T.brassDim}`, background: "rgba(201,162,75,0.1)", color: T.brass, cursor: "pointer" }}
+          >
+            {t("view.downloadCrewSheet", { ns: "plan" })}
+          </button>
+        )}
         <button
           onClick={onAskCoach}
           style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "11px 18px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer" }}

@@ -17,18 +17,64 @@ export const DEFAULT_POINT_LABELS = {
   aid: (n) => `Aid ${n}`,
 };
 
+// Non-negative number or 0. Guards every ultra field below, so a half-typed
+// input ("1e", "-5") can never poison the time budget.
+function num(v, fallback = 0) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+// Cutoffs are entered the way race manuals print them — a wall-clock time.
+// Normalised to "HH:MM"; anything unparseable becomes null (no cutoff).
+function normalizeCutoff(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const m = v.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+// A drop bag is fuel items (keys from FUEL_ITEMS) plus free-text gear lines.
+// An *enabled but empty* bag is kept — the athlete has said "there is a bag
+// here", which the crew sheet needs to know even before it's filled in.
+function sanitizeDropBag(bag) {
+  if (!bag) return null;
+  const items = {};
+  for (const [k, v] of Object.entries(bag.items ?? {})) {
+    const n = Math.round(num(v));
+    if (n > 0) items[k] = n;
+  }
+  return {
+    items,
+    gear: (bag.gear ?? []).map((g) => String(g).trim()).filter(Boolean),
+    notes: (bag.notes ?? "").trim(),
+  };
+}
+
 // Keep only usable stations: a positive km strictly inside the course, sorted,
 // de-duplicated. Anything out of range is silently dropped so bad input can't
 // produce a nonsensical leg.
 export function sanitizeAidStations(stations, distanceKm, labels = DEFAULT_POINT_LABELS) {
   const seen = new Set();
   return (stations || [])
-    .map((s) => ({
-      km: Math.round((parseFloat(s.km) || 0) * 100) / 100,
-      name: (s.name || "").trim(),
-      water: s.water !== false,
-      food: s.food !== false,
-    }))
+    .map((s) => {
+      const stopMinutes = num(s.stopMinutes);
+      return {
+        km: Math.round((parseFloat(s.km) || 0) * 100) / 100,
+        name: (s.name || "").trim(),
+        water: s.water !== false,
+        food: s.food !== false,
+        // Ultra fields. Sleep is a *subset* of the stop, never additional to it,
+        // so a 20-minute stop can't secretly contain a 90-minute nap.
+        stopMinutes,
+        sleepMinutes: Math.min(stopMinutes, num(s.sleepMinutes)),
+        crewAccess: s.crewAccess === true,
+        cutoff: normalizeCutoff(s.cutoff),
+        dropBag: sanitizeDropBag(s.dropBag),
+      };
+    })
     .filter((s) => s.km > 0 && s.km < distanceKm)
     .filter((s) => {
       if (seen.has(s.km)) return false;
@@ -140,24 +186,44 @@ export function buildPacingSections(pacing, aidStations, distanceKm, labels = DE
   return sections;
 }
 
+// Total planned non-moving time. This is what separates an ultra plan from a
+// marathon plan: ten stations at eight minutes is eighty minutes that the pace
+// solver must not spend on running. See docs/design-ultra-planning.md §4.
+export function totalStopMinutes(aidStations, distanceKm, labels = DEFAULT_POINT_LABELS) {
+  return sanitizeAidStations(aidStations, distanceKm, labels)
+    .reduce((sum, s) => sum + s.stopMinutes, 0);
+}
+
+// The ordered boundary list — start, each station, finish — shared by the carry
+// plan and the schedule so the two can never disagree about what a "point" is.
+export function buildRoutePoints(aidStations, distanceKm, labels = DEFAULT_POINT_LABELS) {
+  const clean = sanitizeAidStations(aidStations, distanceKm, labels);
+  return [
+    { km: 0, name: labels.start, water: true, food: true, stopMinutes: 0, sleepMinutes: 0, crewAccess: false, cutoff: null, dropBag: null, isStart: true },
+    ...clean,
+    { km: distanceKm, name: labels.finish, stopMinutes: 0, sleepMinutes: 0, crewAccess: false, cutoff: null, dropBag: null, isFinish: true },
+  ];
+}
+
 // Build the carry plan: one leg per gap between refill points (start → aid 1 →
 // … → finish). Each leg reports how much to carry out of the point that begins
 // it, flagging legs whose fluid need exceeds the athlete's carry capacity.
-export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, targetMinutes, carryCapacityMl, labels = DEFAULT_POINT_LABELS) {
+//
+// `movingMinutes` is the running time budget — target finish time *minus* time
+// planned at aid stations. Fuel burn tracks time on the move, not time standing
+// at a table, so every duration in here is moving time. Wall-clock arrival is
+// src/utils/schedule.js's job.
+export function buildCarryPlan(pacing, nutrition, aidStations, distanceKm, movingMinutes, carryCapacityMl, labels = DEFAULT_POINT_LABELS) {
   const clean = sanitizeAidStations(aidStations, distanceKm, labels);
   if (clean.length === 0) return null;
 
-  const timeAtKm = makeTimeAtKm(pacing, distanceKm, targetMinutes);
+  const timeAtKm = makeTimeAtKm(pacing, distanceKm, movingMinutes);
   const carbsPerHr = nutrition.carbsTargetNum ?? 0;
   const fluidsPerHr = nutrition.fluidsMlHr ?? 0;
   const sodiumPerHr = nutrition.sodiumMgHr ?? 0;
   const capacity = carryCapacityMl && carryCapacityMl > 0 ? carryCapacityMl : null;
 
-  const points = [
-    { km: 0, name: labels.start, water: true, food: true, isStart: true },
-    ...clean,
-    { km: distanceKm, name: labels.finish, isFinish: true },
-  ];
+  const points = buildRoutePoints(aidStations, distanceKm, labels);
 
   const legs = [];
   const totals = { carbsG: 0, fluidsMl: 0, sodiumMg: 0 };

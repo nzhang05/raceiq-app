@@ -124,4 +124,29 @@ export default {
     r3: "De bonnes jambes, mais les secteurs face au vent ont coûté plus de temps que la nutrition.",
     r4: "Négative split par temps frais — votre forme est en avance sur votre calendrier de courses.",
   },
+
+  /*
+    Ce ne sont pas des constats mais des indications de couverture des données.
+    Voir le commentaire de la version anglaise et toThreeFindings() dans
+    src/utils/analysis.js.
+  */
+  context: {
+    noSplits: {
+      title: "Aucun temps intermédiaire pour cette course",
+      body: "L'analyse de l'allure, de la baisse de régime et de la chaleur repose sur la série des intermédiaires. Ajoutez-les et le débriefing pourra expliquer comment l'effort a été réparti.",
+    },
+    noElevation: {
+      title: "Aucune donnée de dénivelé",
+      body: "Sans altitude par intermédiaire, il n'y a pas d'allure ajustée à la pente : impossible de distinguer les montées et les descentes des sections plates.",
+    },
+    noFueling: {
+      title: "Aucune nutrition enregistrée",
+      body: "Les glucides, les liquides et le sodium sont l'explication la plus fréquente d'une baisse de régime tardive. Enregistrez vos apports pour les comparer à la cible correspondant à cette durée.",
+    },
+    thinData: {
+      title: "Peu d'éléments pour l'instant",
+      body: "Les données de cette course ne permettent pas d'aller au-delà des constats ci-dessus. Plus de détails ici, ou plus de courses à comparer, transforment un résultat isolé en tendance.",
+    },
+  },
+
 };

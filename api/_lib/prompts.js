@@ -310,6 +310,12 @@ export const NARRATIVE_SCHEMA = {
     },
     findings: {
       type: "array",
+      // Exactly three. The debrief renders them as a fixed row of three cards,
+      // so the count is a layout contract, not a preference. See the matching
+      // directive in buildNarrativeSystem() and toThreeFindings() on the client,
+      // which holds the same guarantee for the rule-engine path.
+      minItems: 3,
+      maxItems: 3,
       items: {
         type: "object",
         properties: {
@@ -318,7 +324,10 @@ export const NARRATIVE_SCHEMA = {
           body: { type: "string" },
           evidence: {
             type: "array",
-            description: "The specific data points this rests on, quoted from the DATA block — e.g. 'km 22–32: 5:12→5:48/km', 'carbs 31g/hr vs 60–90 target', 'Ridgeline 2025 fade 11% at 26°C'. Each must be checkable against the supplied data.",
+            // Two chips is what a third-width card fits without wrapping to a
+            // third line — especially in French, which runs ~20% longer.
+            maxItems: 2,
+            description: "The one or two most important data points this rests on, quoted from the DATA block — e.g. 'km 22–32: 5:12→5:48/km', 'carbs 31g/hr vs 60–90 target', 'Ridgeline 2025 fade 11% at 26°C'. Each must be checkable against the supplied data.",
             items: { type: "string" },
           },
         },
@@ -368,9 +377,11 @@ HARD CONSTRAINTS:
 - Every finding and recommendation must carry evidence entries quoting the specific data points behind it. If you cannot cite it, do not claim it.
 - Correlation within a single race is not proof of cause. Say "tracks with" or "coincides with" unless the pattern repeats across races or the mechanism is unambiguous.
 - Absence of data is not evidence. RaceIQ holds no training, sleep, or HR data — never infer fitness, fatigue, or overtraining. If the most likely explanation is something you cannot see, say so plainly rather than blaming what you can see.
-- Prefer few strong findings to many weak ones. Three well-evidenced findings beat six padded ones. If the data supports only one, return one.
-- Order by impact on the result, most consequential first.
-- Write in second person, plain and specific. No hedging, no filler, no motivational language. Each body 1–2 sentences; each "why" one sentence.${languageDirective(locale)}`;
+- Return exactly three findings, ordered by impact on the result, most consequential first. They are displayed side by side, so the first is the one that mattered most.
+- Where the data supports fewer than three causal claims, an observation about what the data rules out, or about what it cannot show, is a valid finding provided it is evidenced. Never invent a mechanism to fill a slot, and never restate one finding as two.
+- Order recommendations by impact too, most consequential first.
+- Write in second person, plain and specific. No hedging, no filler, no motivational language.
+- Each finding body is ONE sentence, under about 110 characters — it has to fit a narrow card. Each recommendation "why" is one sentence.${languageDirective(locale)}`;
 }
 
 // Compact split table. Only emits columns that carry data, so a flat road race

@@ -6,11 +6,12 @@ import { fmtSigned } from "../i18n/format.js";
 import { parseClockToMinutes } from "../utils/time.js";
 import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { fuelingBenchmarks } from "../utils/fueling.js";
-import { buildDebrief } from "../utils/analysis.js";
+import { buildDebrief, toThreeFindings } from "../utils/analysis.js";
 import { findingText, recText, headlineText } from "../i18n/render.js";
 import { useNarrative } from "../hooks/useNarrative.js";
 import PaceHeatStrip from "./PaceHeatStrip.jsx";
-import { Finding, Recommendation, Card, Button, Pill } from "./ui.jsx";
+import { FindingCard, Recommendation, Card, Button, Pill } from "./ui.jsx";
+import RowSparkline from "./RowSparkline.jsx";
 
 function SectionHeader({ title, sub, note }) {
   return (
@@ -38,12 +39,14 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
   // The rule-engine findings render immediately and stand on their own. The
   // full analysis — which also sees the raw splits, this athlete's other races,
   // and the pre-race plan — replaces them when it arrives.
+  //
+  // Exactly three, always: they lay out as a fixed row of three cards. The
+  // schema pins Claude's side to three; toThreeFindings() pins the engine's.
+  // The slice is a net against a malformed response, which would otherwise
+  // silently break the grid rather than fail loudly.
   const allFindings = narrative?.findings?.length
-    ? narrative.findings
-    : [
-        ...strengths.map((s) => ({ ...s, kind: "strength" })),
-        ...limiters.map((s) => ({ ...s, kind: "limiter" })),
-      ];
+    ? narrative.findings.slice(0, 3)
+    : toThreeFindings(strengths, limiters, race);
   const shownRecs = narrative?.recommendations?.length ? narrative.recommendations : recs;
   // Claude's headline arrives already written in the athlete's language; the
   // engine's is a catalog key. headlineText() handles both, plus the literal
@@ -70,23 +73,53 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         {fmtDate(race.date)} · {t(`sport.${race.sport}`)} · {race.distanceKm} km · +{race.elevationM} m
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 32 }}>
+      {/* The headline is the page's thesis, so it outranks the race name above
+          it. The course silhouette sits behind it as a watermark — the shape of
+          the day, at a weight low enough not to compete with the text. */}
+      <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 40 }}>
+        <div style={{ position: "absolute", inset: 0, opacity: 0.06, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
+          <RowSparkline race={race} width={760} height={110} variant="watermark" />
+        </div>
         <div style={{ width: 3, alignSelf: "stretch", background: vColor, borderRadius: 2, flexShrink: 0 }} />
-        <div>
+        <div style={{ position: "relative" }}>
           <div style={{ marginBottom: 12 }}><Pill color={vColor}>{t(`verdict.${verdictKey(race.verdict)}`)}</Pill></div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 25, fontWeight: 500, lineHeight: 1.32, color: T.paper, maxWidth: 680, letterSpacing: -0.3 }}>{headline}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, lineHeight: 1.3, color: T.paper, maxWidth: 700, letterSpacing: -0.4 }}>{headline}</div>
         </div>
       </div>
 
-      {/* Key figures */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 44 }}>
+      {/* The three takeaways lead the page — they are what the athlete came for. */}
+      <div style={{ marginBottom: 56 }}>
+        <SectionHeader title={t("debrief.findings.title")} sub={t("debrief.findings.sub")} note={analysisNote} />
+        <div className="takeaway-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+          {allFindings.map((f, i) => {
+            const { title, body, evidence } = findingText(t, f);
+            return (
+              <FindingCard
+                key={i}
+                className="stat-enter"
+                style={{ animationDelay: `${i * 70}ms` }}
+                kind={f.kind}
+                kindLabel={t(`debrief.kind.${f.kind ?? "context"}`)}
+                title={title}
+                body={body}
+                evidence={evidence}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Key figures. One strip with dividers rather than four bordered boxes:
+          with the takeaway cards above, a second row of cards read as noise and
+          left the RaceIQ score with nothing to stand out against. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", border: `1px solid ${T.line}`, background: T.surface, borderRadius: R.lg, overflow: "hidden", marginBottom: 56 }}>
         {[
           { label: t("debrief.stat.finishTime"), value: race.finishTime, sub: null, accent: T.paper, hero: false },
           { label: t("debrief.stat.placement"), value: `${race.placement}/${race.field}`, sub: t("debrief.percentile", { pct: race.percentile }), accent: T.paper, hero: false },
           { label: t("debrief.stat.score"), value: race.rating, sub: fmtSigned(race.ratingDelta), accent: T.brass, hero: true },
           { label: t("debrief.stat.conditions"), value: `${race.tempC}°C`, sub: t("debrief.humidity", { pct: race.humidity }), accent: T.paper, hero: false },
         ].map(({ label, value, sub, accent, hero }, i) => (
-          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 70}ms`, background: hero ? `${T.brass}12` : T.surface, border: `1px solid ${hero ? `${T.brass}33` : T.line}`, borderRadius: R.lg, padding: "18px 20px" }}>
+          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 70}ms`, background: hero ? `${T.brass}12` : "transparent", borderLeft: i ? `1px solid ${T.line}` : "none", padding: "18px 20px" }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.inkDim, marginBottom: 12 }}>{label}</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: accent, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
             {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim, marginTop: 8 }}>{sub}</div>}
@@ -94,71 +127,74 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         ))}
       </div>
 
-      <div style={{ marginBottom: 48 }}>
-        <SectionHeader title={t("debrief.chart.title")} sub={t("debrief.chart.sub")} />
-        <Card style={{ padding: "18px 14px 10px" }}>
-          <PaceHeatStrip race={race} />
-        </Card>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1.35fr 1fr", gap: 44, marginBottom: 8 }}>
-        <div>
-          <SectionHeader title={t("debrief.findings.title")} sub={t("debrief.findings.sub")} note={analysisNote} />
-          <div>
-            {allFindings.map((f, i) => {
-              const { title, body, evidence } = findingText(t, f);
-              return <Finding key={i} kind={f.kind} title={title} body={body} evidence={evidence} />;
-            })}
-          </div>
+      {/* No splits, no chart — and no orphan section header above an empty card.
+          The takeaways say what is missing (context.noSplits) instead. */}
+      {(race.splits?.length ?? 0) >= 2 && (
+        <div style={{ marginBottom: 56 }}>
+          <SectionHeader title={t("debrief.chart.title")} sub={t("debrief.chart.sub")} />
+          <Card style={{ padding: "18px 14px 10px" }}>
+            <PaceHeatStrip race={race} />
+          </Card>
         </div>
+      )}
 
-        <div>
-          <SectionHeader
-            title={t("debrief.fuelingLog.title")}
-            sub={t(race.fueling.inputMode === "sections" && race.fueling.sections?.length
-              ? "debrief.fuelingLog.subSections"
-              : "debrief.fuelingLog.subTotals")}
-          />
-          {race.fueling.inputMode === "sections" && race.fueling.sections?.length ? (
-            <Card style={{ padding: "16px 18px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, paddingBottom: 10, borderBottom: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
-                <div>{t("debrief.fuelingLog.colSection")}</div><div>{t("debrief.fuelingLog.colCarbs")}</div><div>{t("debrief.fuelingLog.colSodium")}</div><div>{t("debrief.fuelingLog.colFluid")}</div>
-              </div>
-              {(() => {
-                const bench = fuelingBenchmarks(race.finishTime);
-                return race.fueling.sections.map((s, i) => {
-                  const low = bench.needsCarbs && s.carbsPerHr < bench.carbsLow;
-                  return (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, padding: "10px 0", borderBottom: i < race.fueling.sections.length - 1 ? `1px solid ${T.line}88` : "none", alignItems: "baseline", fontFamily: FONT_MONO, fontSize: 12.5 }}>
-                      <span style={{ color: T.ink }}>km {s.fromKm}–{s.toKm}</span>
-                      <span style={{ color: low ? T.ember : T.paper }}>{s.carbsPerHr} g/hr</span>
-                      <span style={{ color: T.ink }}>{s.sodiumPerHr}</span>
-                      <span style={{ color: T.ink }}>{s.fluidsPerHr}</span>
-                    </div>
-                  );
-                });
-              })()}
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim }}>
-                {t("debrief.fuelingLog.raceAvg", { carbs: race.fueling.carbsPerHr, caffeine: race.fueling.caffeine })}
-              </div>
-            </Card>
-          ) : (
-            <Card>
-              {[
-                [t("debrief.fuelingLog.carbohydrate"), t("debrief.fuelingLog.carbsValue", { value: race.fueling.carbsPerHr })],
-                [t("debrief.fuelingLog.sodium"), t("debrief.fuelingLog.sodiumValue", { value: race.fueling.sodiumPerHr })],
-                [t("debrief.fuelingLog.fluids"), t("debrief.fuelingLog.fluidsValue", { value: race.fueling.fluidsPerHr })],
-                [t("debrief.fuelingLog.caffeine"), t("debrief.fuelingLog.caffeineValue", { value: race.fueling.caffeine })],
-              ].map(([k, v], i) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none" }}>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim }}>{k}</span>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 13.5, color: T.paper }}>{v}</span>
+      <div style={{ marginBottom: 56 }}>
+        <SectionHeader
+          title={t("debrief.fuelingLog.title")}
+          sub={t(race.fueling.inputMode === "sections" && race.fueling.sections?.length
+            ? "debrief.fuelingLog.subSections"
+            : "debrief.fuelingLog.subTotals")}
+        />
+        <div className="fueling-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 40, alignItems: "start" }}>
+          <div>
+            {race.fueling.inputMode === "sections" && race.fueling.sections?.length ? (
+              <Card style={{ padding: "16px 18px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, paddingBottom: 10, borderBottom: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
+                  <div>{t("debrief.fuelingLog.colSection")}</div><div>{t("debrief.fuelingLog.colCarbs")}</div><div>{t("debrief.fuelingLog.colSodium")}</div><div>{t("debrief.fuelingLog.colFluid")}</div>
                 </div>
-              ))}
-            </Card>
-          )}
+                {(() => {
+                  const bench = fuelingBenchmarks(race.finishTime);
+                  return race.fueling.sections.map((s, i) => {
+                    const low = bench.needsCarbs && s.carbsPerHr < bench.carbsLow;
+                    return (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, padding: "10px 0", borderBottom: i < race.fueling.sections.length - 1 ? `1px solid ${T.line}88` : "none", alignItems: "baseline", fontFamily: FONT_MONO, fontSize: 12.5 }}>
+                        <span style={{ color: T.ink }}>km {s.fromKm}–{s.toKm}</span>
+                        <span style={{ color: low ? T.ember : T.paper }}>{s.carbsPerHr} g/hr</span>
+                        <span style={{ color: T.ink }}>{s.sodiumPerHr}</span>
+                        <span style={{ color: T.ink }}>{s.fluidsPerHr}</span>
+                      </div>
+                    );
+                  });
+                })()}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim }}>
+                  {t("debrief.fuelingLog.raceAvg", { carbs: race.fueling.carbsPerHr, caffeine: race.fueling.caffeine })}
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                {[
+                  // An unlogged value renders "—", not zero. i18next leaves the
+                  // raw "{{value, number}}" in place when the value is
+                  // undefined, and "0 g/hr" would assert something the athlete
+                  // never told us.
+                  ["debrief.fuelingLog.carbohydrate", "debrief.fuelingLog.carbsValue", race.fueling.carbsPerHr],
+                  ["debrief.fuelingLog.sodium", "debrief.fuelingLog.sodiumValue", race.fueling.sodiumPerHr],
+                  ["debrief.fuelingLog.fluids", "debrief.fuelingLog.fluidsValue", race.fueling.fluidsPerHr],
+                  ["debrief.fuelingLog.caffeine", "debrief.fuelingLog.caffeineValue", race.fueling.caffeine],
+                ].map(([labelKey, valueKey, value]) => [
+                  t(labelKey),
+                  value == null ? "—" : t(valueKey, { value }),
+                ]).map(([k, v], i) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 0", borderBottom: i < 3 ? `1px solid ${T.line}` : "none" }}>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim }}>{k}</span>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 13.5, color: T.paper }}>{v}</span>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: T.paper, marginBottom: 10 }}>{t("debrief.fuelingContext.title")}</div>
             {(() => {
               const bench = fuelingBenchmarks(race.finishTime);
@@ -195,17 +231,21 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         </div>
       </div>
 
-      <div style={{ marginTop: 48 }}>
-        <SectionHeader title={t("debrief.recommendations.title")} sub={t("debrief.recommendations.sub")} note={analysisNote} />
-        <div>
-          {shownRecs.map((r, i) => {
-            const { action, why, evidence } = recText(t, r);
-            return <Recommendation key={i} index={i + 1} action={action} why={why} evidence={evidence} />;
-          })}
+      {/* A race the engine has no recommendation for should not leave a heading
+          and a subtitle sitting over nothing. */}
+      {shownRecs.length > 0 && (
+        <div style={{ marginBottom: 56 }}>
+          <SectionHeader title={t("debrief.recommendations.title")} sub={t("debrief.recommendations.sub")} note={analysisNote} />
+          <div>
+            {shownRecs.map((r, i) => {
+              const { action, why, evidence } = recText(t, r);
+              return <Recommendation key={i} index={i + 1} action={action} why={why} evidence={evidence} />;
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <Card style={{ marginTop: 40, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", background: T.surfaceHi }}>
+      <Card style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", background: T.surfaceHi }}>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink }}>
           <Trans
             i18nKey="debrief.askCoach.prompt"

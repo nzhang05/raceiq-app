@@ -4,8 +4,13 @@ import { T, R, FONT_DISPLAY, FONT_BODY, FONT_MONO, SPORTS } from "../constants.j
 import { fmtDate } from "../utils/time.js";
 import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { Button, Pill } from "./ui.jsx";
+import SeasonForm from "./SeasonForm.jsx";
+import RowSparkline from "./RowSparkline.jsx";
+import SportIcon from "./SportIcon.jsx";
 
-const ROW_COLS = "22px 1.7fr 0.7fr 0.75fr 0.8fr 112px 22px";
+// Mirrored by the header row in RaceList — the two grids are separate
+// declarations and will desync silently if only one is edited.
+const ROW_COLS = "22px 1.6fr 0.7fr 0.75fr 0.8fr 90px 112px 22px";
 
 function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index }) {
   const { t } = useTranslation();
@@ -43,7 +48,10 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
       </div>
 
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, letterSpacing: -0.2 }}>{race.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: T.inkDim, display: "flex" }}><SportIcon sport={race.sport} /></span>
+          <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.name}</span>
+        </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>
           {fmtDate(race.date)} · {t(`sport.${race.sport}`)}
         </div>
@@ -59,6 +67,10 @@ function RaceListRow({ race, onOpen, onDelete, onToggleSelect, isSelected, index
       <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.ink }}>
         {race.tempC}°C
         <div style={{ fontSize: 11, color: T.inkDim, marginTop: 1 }}>{t("raceList.humidityShort", { pct: race.humidity })}</div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <RowSparkline race={race} />
       </div>
 
       <div>
@@ -89,6 +101,12 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
     () => (sport === "All" ? races : races.filter((r) => r.sport === sport)),
     [sport, races]
   );
+  // Tracks the sport chips, like the season-form card does — the sub-line
+  // describes the list below it, not a total that ignores the filter.
+  const totalDistanceKm = useMemo(
+    () => Math.round(filtered.reduce((sum, r) => sum + r.distanceKm, 0)),
+    [filtered]
+  );
 
   return (
     <div>
@@ -98,7 +116,7 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
             {t("raceList.title")}
           </h1>
           <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginTop: 4 }}>
-            {t("raceList.subtitle")}
+            {t("raceList.meta", { count: filtered.length, km: totalDistanceKm })} · {t("raceList.subtitle")}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -107,30 +125,7 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
         </div>
       </div>
 
-      {(() => {
-        const totalDist = Math.round(races.reduce((s, r) => s + r.distanceKm, 0));
-        const strengthCount = races.filter((r) => r.verdict === "strength").length;
-        const limiterCount = races.filter((r) => r.verdict === "limiter").length;
-        return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
-            {[
-              { label: t("raceList.stats.racesLogged"), value: races.length, accent: T.paper, tint: null },
-              { label: t("raceList.stats.totalDistance"), value: `${totalDist} km`, accent: T.paper, tint: null },
-              { label: t("raceList.stats.strengths"), value: strengthCount, accent: T.green, tint: T.green },
-              { label: t("raceList.stats.limiters"), value: limiterCount, accent: T.ember, tint: T.ember },
-            ].map(({ label, value, accent, tint }) => (
-              <div key={label} style={{
-                background: tint ? `${tint}12` : T.surface,
-                border: `1px solid ${tint ? `${tint}33` : T.line}`,
-                borderRadius: R.lg, padding: "18px 20px",
-              }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.inkDim, marginBottom: 12 }}>{label}</div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 700, color: accent, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
+      <SeasonForm races={filtered} />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
         {SPORTS.map((s) => (
@@ -144,13 +139,16 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
               color: sport === s ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease",
             }}
           >
-            {t(`sport.${s}`)}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <SportIcon sport={s} size={14} />
+              {t(`sport.${s}`)}
+            </span>
           </button>
         ))}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: ROW_COLS, gap: 14, padding: "0 18px 10px", fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
-        <div /><div>{t("raceList.col.race")}</div><div>{t("raceList.col.distance")}</div><div>{t("raceList.col.finish")}</div><div>{t("raceList.col.conditions")}</div><div>{t("raceList.col.debrief")}</div><div />
+        <div /><div>{t("raceList.col.race")}</div><div>{t("raceList.col.distance")}</div><div>{t("raceList.col.finish")}</div><div>{t("raceList.col.conditions")}</div><div>{t("raceList.col.shape")}</div><div>{t("raceList.col.debrief")}</div><div />
       </div>
 
       <div>

@@ -129,6 +129,50 @@ export function buildDebrief(race) {
   return { strengths, limiters, recs };
 }
 
+/*
+  The debrief renders findings as a fixed row of three cards, so the count is a
+  layout contract. Claude's schema enforces exactly three on its side
+  (NARRATIVE_SCHEMA in api/_lib/prompts.js); this holds the same guarantee for
+  every other path — the rule-engine output that paints first, the fallback when
+  the request fails, and the signed-out case where no request is made at all.
+
+  buildDebrief() legitimately returns anywhere from zero to about six findings:
+  the pacing branch needs analyzeSplits() to return non-null, heat needs split
+  temperatures in a narrow band, fueling needs a duration long enough to matter.
+  A hand-entered race with no splits produces none.
+
+  Padding is deliberately NOT a fabricated finding. A short list is filled with
+  `kind: "context"` entries that state which analysis could not run and why,
+  chosen from what is actually missing on this race. Same { key, values } shape
+  as everything else here, so findingText() renders them without a special case.
+*/
+export function toThreeFindings(strengths, limiters, race) {
+  // Limiters lead: they are the actionable half, and the engine has no ranking
+  // of its own, so alternating keeps a race from opening with three strengths.
+  const l = limiters.map((f) => ({ ...f, kind: "limiter" }));
+  const s = strengths.map((f) => ({ ...f, kind: "strength" }));
+  const out = [];
+  for (let i = 0; i < Math.max(l.length, s.length); i++) {
+    if (l[i]) out.push(l[i]);
+    if (s[i]) out.push(s[i]);
+  }
+  if (out.length >= 3) return out.slice(0, 3);
+
+  const splits = race?.splits ?? [];
+  const pool = [];
+  if (splits.length < 3) pool.push({ key: "context.noSplits" });
+  if (!splits.some((sp) => sp.elevM != null) && !race?.usesGap) pool.push({ key: "context.noElevation" });
+  if (race?.fueling?.carbsPerHr == null) pool.push({ key: "context.noFueling" });
+  pool.push({ key: "context.thinData" });
+
+  let i = 0;
+  while (out.length < 3) {
+    const pick = pool[i++] ?? { key: "context.thinData" };
+    out.push({ ...pick, kind: "context" });
+  }
+  return out;
+}
+
 // Per-section fuelling findings: line up a below-range carb section with a pace
 // fade in the same km range (located limiter), reward an even, well-fuelled close
 // (located strength), and flag a section where temperature rose but fluid intake

@@ -296,6 +296,42 @@ export function Finding({ kind, title, body, evidence }) {
   );
 }
 
+// The debrief's three takeaways. Same content as `Finding`, laid out as a card
+// for a row of three rather than as a stacked row: the kind reads from a top
+// rule instead of a left one, and `body` flexes so the evidence chips line up
+// along the bottom of all three cards regardless of how long the prose runs.
+//
+// `kindLabel` is passed in already translated — this module stays language-free.
+export function FindingCard({ kind, kindLabel, title, body, evidence, style, className }) {
+  const color = kind === "strength" ? T.green : kind === "limiter" ? T.ember : T.inkDim;
+  return (
+    <div
+      className={className}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        padding: "18px 20px 20px",
+        background: T.surface,
+        border: `1px solid ${T.line}`,
+        borderTop: `3px solid ${color}`,
+        borderRadius: R.lg,
+        ...style,
+      }}
+    >
+      {kindLabel && (
+        <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, textTransform: "uppercase", color, marginBottom: 10 }}>
+          {kindLabel}
+        </div>
+      )}
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 6, letterSpacing: -0.1 }}>
+        {title}
+      </div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.ink, flex: 1 }}>{body}</div>
+      <EvidenceList items={evidence} />
+    </div>
+  );
+}
+
 export function Recommendation({ index, action, why, evidence }) {
   return (
     <div style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: `1px solid ${T.line}` }}>

@@ -14,7 +14,11 @@ export default function PaceHeatStrip({ race }) {
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
 
-  const splits = race.splits;
+  // A race entered by hand can carry no splits at all. Every scale below reads
+  // splits[last] or Math.min(...splits), so an empty series threw and took the
+  // whole debrief down with it. Callers skip the section entirely; this guard
+  // is here so no caller can reintroduce the crash.
+  const splits = race.splits ?? [];
   const showGap = race.usesGap;
   const showElev = hasElevationData(splits);
 
@@ -22,9 +26,13 @@ export default function PaceHeatStrip({ race }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const svgRef = useRef(null);
 
+  const hasSeries = splits.length >= 2;
+
   function toggle(key) {
     setVisible((v) => ({ ...v, [key]: !v[key] }));
   }
+
+  if (!hasSeries) return null;
 
   const primaryKey = showGap ? "gapPace" : "pace";
   const maxKm = splits[splits.length - 1].km;

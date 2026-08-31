@@ -109,17 +109,25 @@ export default {
     title: "Historique de courses",
     subtitle: "Chaque course, et l'histoire derrière le résultat.",
     addRace: "+ Ajouter une course",
-    stats: {
-      racesLogged: "Courses enregistrées",
-      totalDistance: "Distance totale",
-      strengths: "Points forts",
-      limiters: "Facteurs limitants",
+    meta_one: "{{count}} course · {{km, number}} km",
+    meta_other: "{{count}} courses · {{km, number}} km",
+    seasonForm: {
+      title: "Forme de la saison",
+      empty: "Enregistrez une deuxième course pour voir l'évolution de votre forme.",
+      overRaces_one: "sur {{count}} course",
+      overRaces_other: "sur {{count}} courses",
+      patternsTitle: "Ce que nous avons remarqué",
+      noPatterns: "Aucune tendance ne se répète assez souvent sur ces courses pour en tirer une conclusion.",
+      hotLimiters: "Vous faiblissez à la chaleur : {{count}} de vos {{total}} contre-performances se sont déroulées à 24°C ou plus.",
+      underFueled: "Apport glucidique insuffisant sur {{count}} de vos {{total}} contre-performances, par rapport à la cible pour la durée.",
+      coolStrengths: "Vos meilleures courses ont eu lieu au frais : {{count}} sur {{total}} à 14°C ou moins.",
     },
     col: {
       race: "Course",
       distance: "Distance",
       finish: "Temps",
       conditions: "Conditions",
+      shape: "Profil",
       debrief: "Débriefing",
     },
     humidityShort: "{{pct, number}} % hum.",
@@ -218,6 +226,11 @@ export default {
   debrief: {
     eyebrow: "Débriefing de course",
     editRace: "Modifier la course",
+    kind: {
+      strength: "Point fort",
+      limiter: "Facteur limitant",
+      context: "Donnée manquante",
+    },
     stat: {
       finishTime: "Temps final",
       placement: "Classement",

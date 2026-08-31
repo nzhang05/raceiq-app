@@ -132,4 +132,34 @@ export default {
     r3: "Strong legs, but headwind sectors leaked more time than fueling did.",
     r4: "Negative split in cool conditions — your fitness is ahead of your race calendar.",
   },
+
+  /*
+    Not findings — statements about coverage.
+
+    The debrief shows exactly three takeaways because it lays them out as three
+    cards. When the rule engine can produce fewer than three (see
+    toThreeFindings in src/utils/analysis.js), the remaining slots say which
+    analysis could not run and what would unlock it. Padding with a real-looking
+    finding would be a lie in a product whose whole claim is that it only says
+    what the data supports.
+  */
+  context: {
+    noSplits: {
+      title: "No splits for this race",
+      body: "Pacing, fade and heat analysis all read the split series. Add splits to this race and the debrief can tell you how the effort was distributed.",
+    },
+    noElevation: {
+      title: "No elevation data",
+      body: "Without per-split elevation there is no grade-adjusted pace, so climbing and descending cannot be separated from the flat sections.",
+    },
+    noFueling: {
+      title: "No fueling logged",
+      body: "Carbohydrate, fluid and sodium intake are the most common explanation for a late fade. Log what you took and it can be checked against the target for this duration.",
+    },
+    thinData: {
+      title: "Not much to go on yet",
+      body: "This race's data supports the findings above and no more. More detail here, or more races to compare against, is what turns a single result into a pattern.",
+    },
+  },
+
 };

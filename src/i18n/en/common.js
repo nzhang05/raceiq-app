@@ -109,17 +109,25 @@ export default {
     title: "Race history",
     subtitle: "Every race, and the story behind the result.",
     addRace: "+ Add race",
-    stats: {
-      racesLogged: "Races logged",
-      totalDistance: "Total distance",
-      strengths: "Strengths",
-      limiters: "Limiters",
+    meta_one: "{{count}} race · {{km, number}} km",
+    meta_other: "{{count}} races · {{km, number}} km",
+    seasonForm: {
+      title: "Season form",
+      empty: "Log a second race to see your form trend.",
+      overRaces_one: "over {{count}} race",
+      overRaces_other: "over {{count}} races",
+      patternsTitle: "What we've noticed",
+      noPatterns: "No pattern repeats often enough across these races to call it one yet.",
+      hotLimiters: "You fade in the heat — {{count}} of {{total}} limiters were at 24°C or above.",
+      underFueled: "Under-fuelled in {{count}} of {{total}} limiters, against the target for the duration.",
+      coolStrengths: "Your strongest races have been cool — {{count}} of {{total}} at 14°C or below.",
     },
     col: {
       race: "Race",
       distance: "Distance",
       finish: "Finish",
       conditions: "Conditions",
+      shape: "Shape",
       debrief: "Debrief",
     },
     humidityShort: "{{pct, number}}% hum",
@@ -218,6 +226,11 @@ export default {
   debrief: {
     eyebrow: "Race debrief",
     editRace: "Edit race",
+    kind: {
+      strength: "Strength",
+      limiter: "Limiter",
+      context: "Data gap",
+    },
     stat: {
       finishTime: "Finish time",
       placement: "Placement",

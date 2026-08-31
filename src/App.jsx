@@ -108,6 +108,19 @@ const FONT_IMPORT = (
 
     button { font-family: inherit; }
 
+    /* The only responsive rules in the app. Layout is otherwise fixed
+       gridTemplateColumns in inline styles, which cannot carry a media query —
+       so the multi-column blocks that genuinely break below ~900px collapse
+       here instead. Keep the selectors in sync with the components that set
+       these classNames (RaceDebrief, SeasonForm). */
+    @media (max-width: 900px) {
+      .takeaway-grid,
+      .fueling-grid,
+      .season-form {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
     }

@@ -1,8 +1,8 @@
 # Photos
 
-Drop images here and RaceIQ picks them up at build time by file name. Nothing
-ships in this folder by default; without a photo, a topographic placeholder is
-drawn instead. See `docs/design-visual-identity.md`.
+Drop images here and RaceIQ picks them up at build time by file name. Without
+a photo, a topographic placeholder is drawn instead. See
+`docs/design-visual-identity.md`.
 
 | File name | Shown on |
 |---|---|
@@ -20,3 +20,24 @@ or digit turned into a hyphen and accents removed:
 
 `.jpg`, `.jpeg`, `.png`, `.webp` and `.avif` all work. Landscape photos around
 1600 px wide, under ~300 KB, look best. Only use photos you have the rights to.
+
+## Credits
+
+The current photos are from [Unsplash](https://unsplash.com), used under the
+[Unsplash License](https://unsplash.com/license). Each was cropped to 3:2 and
+compressed to 1600 px wide.
+
+| File | Photographer |
+|---|---|
+| `hero.jpg` | Brian Metzler |
+| `race-tunkhannock-trail-50k.jpg` | Oliver Schmid |
+| `race-brandywine-valley-marathon.jpg` | Tara Glaser |
+| `race-lakefront-10k.jpg` | Lucas Canino |
+| `race-hollow-road-gravel-classic.jpg` | Justin Kauffman |
+| `sport-trail-running.jpg` | Brian Erickson |
+| `sport-road-running.jpg` | Todd Diemer |
+| `sport-gravel-cycling.jpg` | Racim Amr |
+| `sport-road-cycling.jpg` | Ryuta F |
+
+All are trail-running scenes, so the cycling and road slots are stand-ins until
+photos of those sports are added.

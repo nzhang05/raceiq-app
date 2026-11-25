@@ -226,7 +226,7 @@ function RaceCard({ race, isBest, onOpen, onDelete, onToggleSelect, isSelected, 
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpen(race.id); }}
-            style={{ all: "unset", cursor: "pointer", display: "block", maxWidth: "100%", boxSizing: "border-box", fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 500, lineHeight: 1.2, color: T.paper, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            style={{ all: "unset", cursor: "pointer", maxWidth: "100%", boxSizing: "border-box", fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 500, lineHeight: 1.2, color: T.paper, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
           >
             {race.name}
           </button>

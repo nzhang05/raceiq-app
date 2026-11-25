@@ -8,9 +8,11 @@ describe("photo slots", () => {
     expect(slugify("  Valle Verde — Gran Fondo! ")).toBe("valle-verde-gran-fondo");
   });
 
-  it("returns null when no photo was added, so the placeholder is drawn", () => {
-    expect(heroPhoto()).toBeNull();
-    expect(racePhoto({ name: "Lakefront 10K", sport: "Road Running" })).toBeNull();
+  it("prefers the race's own photo, then its sport's, then the placeholder", () => {
+    expect(heroPhoto()).toMatch(/hero/);
+    expect(racePhoto({ name: "Lakefront 10K", sport: "Road Running" })).toMatch(/race-lakefront-10k/);
+    expect(racePhoto({ name: "Some New Trail Race", sport: "Trail Running" })).toMatch(/sport-trail-running/);
+    expect(racePhoto({ name: "Some Swim", sport: "Swimming" })).toBeNull();
     expect(racePhoto(null)).toBeNull();
   });
 });

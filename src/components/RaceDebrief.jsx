@@ -52,7 +52,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
   // engine's is a catalog key. headlineText() handles both, plus the literal
   // stored on races saved before this change.
   const headline = narrative?.headline || headlineText(t, race);
-  const analysisNote = status === "loading" ? t("debrief.analysing") : status === "ready" ? t("debrief.aiAnalysis") : null;
+  const analysisNote = status === "loading" ? t("debrief.analysing") : status === "ready" ? t(narrative?.recorded ? "debrief.recordedAnalysis" : "debrief.aiAnalysis") : null;
   const vColor = verdictColor(race.verdict);
 
   return (

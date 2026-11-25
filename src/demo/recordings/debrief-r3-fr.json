@@ -1,0 +1,67 @@
+{
+  "id": "debrief-r3-fr",
+  "task": "debrief",
+  "locale": "fr",
+  "raceId": "r3",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Hollow Road a fléchi en milieu de course : votre allure est passée de 2:06/km au km 20 à 2:24/km au km 80, avant de finir à 2:18/km.",
+    "findings": [
+      {
+        "kind": "limiter",
+        "title": "Le parcours a dérivé en milieu de course",
+        "body": "Votre dernier tiers était à 2:18/km contre 2:06/km pour le premier, soit une dérive de +9,5 %.",
+        "evidence": [
+          "km 20 : 2:06/km · km 80 : 2:24/km",
+          "dérive +9,5 %"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "Le vent a sans doute pesé, sans qu'on sache où",
+        "body": "À 22 km/h, c'était votre course la plus ventée, mais les intervalles ne montrent pas où il a frappé.",
+        "evidence": [
+          "vent 22 km/h",
+          "Brandywine Valley Marathon : vent 14 km/h"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Nutrition dans la plage, et une fin solide",
+        "body": "64 g/h, dans la plage de 60–90 g/h, et votre dernier intervalle est remonté à 2:18/km.",
+        "evidence": [
+          "glucides 64 g/h vs cible 60–90 g/h",
+          "km 105 : 2:18/km"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Roulez les 20 premiers km un peu plus facilement sur votre prochaine course gravel.",
+        "why": "Votre premier intervalle à 2:06/km était le plus rapide, et les trois suivants ont ralenti jusqu'à 2:24/km.",
+        "evidence": [
+          "km 20 : 2:06/km",
+          "km 80 : 2:24/km"
+        ]
+      },
+      {
+        "action": "Gardez un apport d'au moins 64 g/h.",
+        "why": "Il se situait dans la plage de 60–90 g/h pour cette sortie de 231 minutes.",
+        "evidence": [
+          "glucides 64 g/h vs cible 60–90 g/h",
+          "Durée : 231 min"
+        ]
+      },
+      {
+        "action": "Enregistrez le vent ou la puissance par intervalle lors de votre prochaine sortie.",
+        "why": "Avec 22 km/h de vent et aucune donnée de puissance, RaceIQ ne peut pas distinguer vent de face et fatigue en milieu de course.",
+        "evidence": [
+          "vent 22 km/h"
+        ]
+      }
+    ]
+  }
+}

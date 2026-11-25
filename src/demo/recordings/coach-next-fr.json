@@ -1,0 +1,22 @@
+{
+  "id": "coach-next-fr",
+  "task": "coach",
+  "locale": "fr",
+  "suggestion": "next",
+  "question": "Que devrais-je changer avant mon prochain marathon ?",
+  "contextRaceIds": "any",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Votre seul marathon enregistré, le Brandywine Valley Marathon, réunit vos deux facteurs limitants : il s'est couru à 27 °C, et vous avez pris 52 g/h de glucides, ce qui en fait votre seule course limitée par la nutrition. Vos points forts sont venus par temps frais, Tunkhannock Trail 50K à 6 °C et Lakefront 10K à 14 °C. Les deux choses à changer sont donc un plan chaleur si le jour J s'annonce chaud, et davantage de glucides que 52 g/h.\n\nCe constat repose toutefois sur un seul marathon. Planifiez le prochain dans RaceIQ avec son fichier de parcours, et les conseils pourront tenir compte de ce parcours et de sa météo.",
+    "intent": "planning",
+    "sourceRaceIds": [
+      "r1",
+      "r2",
+      "r3",
+      "r4"
+    ]
+  }
+}

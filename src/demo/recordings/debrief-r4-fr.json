@@ -1,0 +1,59 @@
+{
+  "id": "debrief-r4-fr",
+  "task": "debrief",
+  "locale": "fr",
+  "raceId": "r4",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Lakefront était un negative split d'école : chaque intervalle plus rapide que le précédent, de 3:31/km à 3:26/km, par 13–14 °C.",
+    "findings": [
+      {
+        "kind": "strength",
+        "title": "Un negative split propre",
+        "body": "Chaque intervalle a été plus rapide que le précédent, de 3:31/km à 3:26/km, soit -2,3 %.",
+        "evidence": [
+          "3:31 → 3:30 → 3:28 → 3:26/km",
+          "dérive -2,3 %"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Votre course la plus régulière",
+        "body": "La variation d'un intervalle à l'autre était de 0,9 %, la plus faible de toutes vos courses.",
+        "evidence": [
+          "cv 0,9 %",
+          "Tunkhannock Trail 50K cv 1,5 %"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "La fraîcheur a servi votre gestion",
+        "body": "Il faisait 13–14 °C ; votre seule course chaude, le Brandywine à 27 °C, a dérivé de +32,7 %.",
+        "evidence": [
+          "13 °C–14 °C",
+          "Brandywine Valley Marathon : dérive +32,7 % à 27 °C"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Gardez cette gestion comme modèle pour les courses sur route courtes.",
+        "why": "Partir à 3:31/km et finir à 3:26/km vous a valu la 9e place sur 640.",
+        "evidence": [
+          "3:31/km → 3:26/km",
+          "9/640"
+        ]
+      },
+      {
+        "action": "Appliquez la même retenue au départ sur les courses sur route plus longues.",
+        "why": "Votre marathon, le Brandywine Valley Marathon, a dérivé de +32,7 %, alors qu'ici vous avez fini plus vite que vous n'êtes parti.",
+        "evidence": [
+          "Brandywine Valley Marathon : dérive +32,7 %"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "id": "debrief-r2-fr",
+  "task": "debrief",
+  "locale": "fr",
+  "raceId": "r2",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Tunkhannock était un ultra bien géré : une fois la pente prise en compte, vous avez tenu 6:01–6:19/km sur 50 km et 1640 m de dénivelé.",
+    "findings": [
+      {
+        "kind": "strength",
+        "title": "Effort régulier, une fois la pente prise en compte",
+        "body": "L'allure brute est passée de 6:06/km à 7:06/km, mais ajustée à la pente de 6:04/km à 6:14/km.",
+        "evidence": [
+          "premier tiers 6:04/km · dernier tiers 6:14/km (ajusté à la pente)",
+          "cv 1,5 %"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Les montées finales ne vous ont pas cassé",
+        "body": "Du km 24 au km 32 (+2,8 %), l'allure brute a baissé, mais ajustée à la pente elle était à 6:05/km.",
+        "evidence": [
+          "km 32 : 7:03/km brut, 6:05/km ajusté, +2,8 %"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "Glucides juste sous la plage ultra",
+        "body": "78 g/h, soit 2 g/h sous la plage de 80–120 g/h pour un effort de 348 minutes.",
+        "evidence": [
+          "glucides 78 g/h vs cible 80–120 g/h",
+          "Durée : 348 min"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Montez l'apport en glucides à au moins 80 g/h sur votre prochain ultra.",
+        "why": "À 78 g/h, vous étiez 2 g/h sous le bas de la plage de 80–120 g/h pour un effort de 348 minutes.",
+        "evidence": [
+          "glucides 78 g/h vs cible 80–120 g/h"
+        ]
+      },
+      {
+        "action": "Prenez la gestion de Tunkhannock comme modèle pour les courses longues et vallonnées.",
+        "why": "Votre variation d'un intervalle à l'autre était de 1,5 %, contre 4,7 % à Hollow Road et 12,7 % au Brandywine.",
+        "evidence": [
+          "cv 1,5 %",
+          "Hollow Road Gravel Classic cv 4,7 %"
+        ]
+      },
+      {
+        "action": "Préparez un plan chaleur si votre prochain ultra s'annonce chaud.",
+        "why": "Votre seule course chaude, le Brandywine Valley Marathon à 27 °C, a dérivé de +32,7 %, alors qu'ici vous êtes resté régulier à 6 °C.",
+        "evidence": [
+          "Brandywine Valley Marathon : dérive +32,7 % à 27 °C",
+          "dérive +2,9 % à 6 °C"
+        ]
+      }
+    ]
+  }
+}

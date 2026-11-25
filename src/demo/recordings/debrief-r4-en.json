@@ -1,0 +1,59 @@
+{
+  "id": "debrief-r4-en",
+  "task": "debrief",
+  "locale": "en",
+  "raceId": "r4",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Lakefront was a textbook negative split: every split was quicker than the last, from 3:31/km to 3:26/km, at 13–14°C.",
+    "findings": [
+      {
+        "kind": "strength",
+        "title": "A clean negative split",
+        "body": "Each split was quicker than the one before, from 3:31/km to 3:26/km, a -2.3% change.",
+        "evidence": [
+          "3:31 → 3:30 → 3:28 → 3:26/km",
+          "fade -2.3%"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Your most even race on record",
+        "body": "Split-to-split variation was 0.9%, the lowest of any race you've logged.",
+        "evidence": [
+          "cv 0.9%",
+          "Tunkhannock Trail 50K cv 1.5%"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Cool conditions played to your pacing",
+        "body": "It was 13–14°C; your one hot race, Brandywine at 27°C, faded +32.7%.",
+        "evidence": [
+          "13°C–14°C",
+          "Brandywine Valley Marathon fade +32.7% at 27°C"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Keep this pacing pattern as your template for short road races.",
+        "why": "Opening at 3:31/km and finishing at 3:26/km earned 9th of 640.",
+        "evidence": [
+          "3:31/km → 3:26/km",
+          "9/640"
+        ]
+      },
+      {
+        "action": "Carry the same opening discipline into longer road races.",
+        "why": "Your marathon, Brandywine Valley Marathon, faded +32.7%, while here you finished faster than you started.",
+        "evidence": [
+          "Brandywine Valley Marathon fade +32.7%"
+        ]
+      }
+    ]
+  }
+}

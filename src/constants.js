@@ -1,3 +1,5 @@
+import { withGap } from "./utils/pace.js";
+
 /* ---------------------------------------------------------
    Design tokens — "modern sport-tech" (v2)
    Cooler neutral-slate dark surfaces, soft depth, a single
@@ -142,6 +144,19 @@ export function isCyclingSport(sport) {
 // `headlineKey` indexes `seed.*` in the debrief catalog rather than carrying
 // prose — these are demo data, but they are still user-visible sentences.
 // Race *names* stay as they are: they are proper nouns.
+//
+// Each `verdict` must equal what the engine derives from the splits
+// (deriveVerdict in src/utils/ratings.js) — a test holds this. The sample
+// athlete is the first thing a visitor sees, and a label the engine itself
+// disagrees with would undercut the "every number is computed" claim.
+//
+// Tunkhannock carries per-split elevation so it exercises grade-adjusted pace
+// the way an uploaded trail file would; seedGap() adds gapPace/gradePct exactly
+// as enrichRace() does for races entered in the app.
+function seedGap(race) {
+  return { ...race, usesGap: true, splits: withGap(race.splits, race.sport) };
+}
+
 export const SEED_RACES = [
   {
     id: "r1",
@@ -175,7 +190,7 @@ export const SEED_RACES = [
     ],
     fueling: { carbsPerHr: 52, sodiumPerHr: 280, fluidsPerHr: 480, caffeine: 80 },
   },
-  {
+  seedGap({
     id: "r2",
     name: "Tunkhannock Trail 50K",
     sport: "Trail Running",
@@ -195,15 +210,15 @@ export const SEED_RACES = [
     verdict: "strength",
     headlineKey: "seed.r2",
     splits: [
-      { km: 8, pace: 6.1, tempC: 4 },
-      { km: 16, pace: 6.4, tempC: 5 },
-      { km: 24, pace: 6.55, tempC: 6 },
-      { km: 32, pace: 7.05, tempC: 7 },
-      { km: 40, pace: 7.0, tempC: 7 },
-      { km: 50, pace: 7.1, tempC: 6 },
+      { km: 8, pace: 6.1, tempC: 4, elevM: 310 },
+      { km: 16, pace: 6.4, tempC: 5, elevM: 400 },
+      { km: 24, pace: 6.55, tempC: 6, elevM: 490 },
+      { km: 32, pace: 7.05, tempC: 7, elevM: 710 },
+      { km: 40, pace: 7.0, tempC: 7, elevM: 900 },
+      { km: 50, pace: 7.1, tempC: 6, elevM: 1120 },
     ],
     fueling: { carbsPerHr: 78, sodiumPerHr: 540, fluidsPerHr: 620, caffeine: 120 },
-  },
+  }),
   {
     id: "r3",
     name: "Hollow Road Gravel Classic",

@@ -1,0 +1,22 @@
+{
+  "id": "coach-fit-fr",
+  "task": "coach",
+  "locale": "fr",
+  "suggestion": "fit",
+  "question": "Quels types de courses me conviennent le mieux ?",
+  "contextRaceIds": "any",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Les courses par temps frais vous conviennent le mieux. Vos deux points forts sont venus dans le froid ou la fraîcheur, Tunkhannock Trail 50K à 6 °C en single et Lakefront 10K à 14 °C sur route, soit 10 °C en moyenne, tandis que votre seul facteur limitant, le Brandywine Valley Marathon, s'est couru à 27 °C. Ce sont aussi vos meilleurs résultats en percentile : 98,6e à Lakefront et 95,2e à Tunkhannock.\n\nLa température sépare vos résultats plus nettement que la distance ou le terrain. Vous avez signé des points forts sur un 10 km sur route comme sur un trail de 50 km, et vos deux courses sur route se partagent 1 point fort et 1 facteur limitant, la chaleur faisant clairement la différence. Le gravel reste une question ouverte : Hollow Road Gravel Classic est votre seule sortie vélo et elle est mitigée à 11 °C, une seule course ne suffit donc pas pour dire si le vélo vous convient.",
+    "intent": "fit",
+    "sourceRaceIds": [
+      "r1",
+      "r2",
+      "r3",
+      "r4"
+    ]
+  }
+}

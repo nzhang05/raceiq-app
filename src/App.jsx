@@ -13,6 +13,7 @@ import CompareView from "./components/Compare.jsx";
 import RacePlanForm from "./components/RacePlanForm.jsx";
 import RacePlanView from "./components/RacePlanView.jsx";
 import LanguageToggle from "./components/LanguageToggle.jsx";
+import { isDemo, resetDemoData } from "./lib/demo.js";
 
 const FONT_IMPORT = (
   <style>{`
@@ -179,6 +180,20 @@ export default function RaceIQApp() {
   );
 
   const activeRace = allRaces.find((r) => r.id === activeId);
+
+  // Header identity. A signed-in athlete sees their own name; everyone else is
+  // looking at the sample athlete, and the header says so. The number beside
+  // it is season form — the latest race's RaceIQ score, the same figure the
+  // season card on the race list leads with — not a stored constant.
+  const signedIn = isConfigured && Boolean(user);
+  const athleteName = signedIn ? (profile?.display_name || user.email) : t("nav.sampleAthlete");
+  const seasonRating = allRaces[0]?.rating ?? null;
+
+  function handleResetDemo() {
+    if (!window.confirm(t("demo.resetConfirm"))) return;
+    resetDemoData();
+    window.location.reload();
+  }
   const coachContextRace = coachContextRaceId ? allRaces.find(r => r.id === coachContextRaceId) : null;
 
   function toggleSelect(id) {
@@ -252,17 +267,29 @@ export default function RaceIQApp() {
             >
               {t("nav.askRaceIQ")}
             </button>
-            <button
-              onClick={() => setView("profile")}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: view === "profile" ? T.surfaceHi : T.surface, border: `1px solid ${view === "profile" ? T.brass : T.line}`, cursor: "pointer", transition: "all 140ms ease" }}
-            >
-              <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
-                {profile?.display_name ?? user?.email ?? "Alex Moreno"}
-              </span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}>
-                {profile?.rating ?? 1842}
-              </span>
-            </button>
+            {(() => {
+              // Only a signed-in athlete has a profile to edit; the sample
+              // athlete's chip is a label, not a link to a form that can't save.
+              const Chip = signedIn ? "button" : "div";
+              return (
+                <Chip
+                  {...(signedIn ? { type: "button", onClick: () => setView("profile") } : {})}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: view === "profile" ? T.surfaceHi : T.surface, border: `1px solid ${view === "profile" ? T.brass : T.line}`, cursor: signedIn ? "pointer" : "default", transition: "all 140ms ease" }}
+                >
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
+                    {athleteName}
+                  </span>
+                  {seasonRating != null && (
+                    <span
+                      aria-label={t("nav.seasonForm", { rating: seasonRating })}
+                      style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}
+                    >
+                      {seasonRating}
+                    </span>
+                  )}
+                </Chip>
+              );
+            })()}
             {isConfigured && user && (
               <button
                 onClick={signOut}
@@ -308,6 +335,20 @@ export default function RaceIQApp() {
                 {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>{t("nav.askRaceIQ")}</span>}
               </>
             )}
+          </div>
+        )}
+
+        {isDemo && (
+          <div role="note" className="demo-banner" style={{ borderTop: `1px solid ${T.line}`, padding: "8px 32px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13, color: T.ink }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 11, fontWeight: 600, letterSpacing: 0.8, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "2px 8px" }}>{t("demo.badge")}</span>
+            <span style={{ flex: "1 1 240px" }}>{t("demo.banner")}</span>
+            <button
+              type="button"
+              onClick={handleResetDemo}
+              style={{ background: "none", border: "none", padding: 0, color: T.brass, fontFamily: "inherit", fontSize: "inherit", fontWeight: 600, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              {t("demo.reset")}
+            </button>
           </div>
         )}
       </div>

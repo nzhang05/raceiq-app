@@ -4,6 +4,7 @@ import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO } from "../constants.js";
 import { fmtDate, fmtTimeOfDay } from "../utils/time.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { askCoach, CoachApiError } from "../lib/coachApi.js";
+import { isDemo } from "../lib/demo.js";
 import { inputStyle } from "./ui.jsx";
 
 /*
@@ -16,6 +17,16 @@ const COACH_HISTORY_KEY = "raceiq:coach-history";
 const OOS_INTENTS = new Set(["oos_medical", "oos_training"]);
 
 const SUGGESTED_KEYS = ["bonk", "improving", "fit", "next"];
+
+// In the demo, "the server has no AI" and "there is no server" both mean the
+// same thing to a visitor: live questions are off, the suggested ones work.
+const DEMO_OFF_KEYS = new Set(["errors.notConfigured", "errors.unreachable", "errors.requestFailed", "errors.demoLiveOff"]);
+
+function errorMessage(t, err) {
+  if (!(err instanceof CoachApiError)) return t("errors.generic");
+  if (isDemo && DEMO_OFF_KEYS.has(err.key)) return t("errors.demoLiveOff");
+  return t(err.key, err.values);
+}
 
 function loadCoachHistory() {
   try { return JSON.parse(localStorage.getItem(COACH_HISTORY_KEY) || "[]"); } catch { return []; }
@@ -31,6 +42,7 @@ function CoachMessage({ msg }) {
     <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: isCoach ? "flex-start" : "flex-end" }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>
         {t(isCoach ? "coachLabel" : "youLabel")} · {fmtTimeOfDay(msg.timestamp)}
+        {isCoach && msg.recorded && <> · {t("recorded")}</>}
       </div>
       <div style={{ maxWidth: "82%", padding: "14px 18px", borderRadius: 4, fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.65, color: isCoach ? T.ink : T.bg, background: isCoach ? T.bg2 : T.brass, border: isCoach ? `1px solid ${T.line}` : "none", whiteSpace: "pre-wrap" }}>
         {msg.content}
@@ -51,13 +63,14 @@ function CoachMessage({ msg }) {
   );
 }
 
-function SignInNotice() {
+// `kind` is "signInRequired" or "demoNotice" — same panel, different copy.
+function Notice({ kind }) {
   const { t } = useTranslation("coach");
   return (
     <div style={{ padding: "16px 20px", marginBottom: 24, background: `${T.brass}12`, border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>{t("signInRequired.title")}</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>{t(`${kind}.title`)}</div>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, lineHeight: 1.55 }}>
-        {t("signInRequired.body")}
+        {t(`${kind}.body`)}
       </div>
     </div>
   );
@@ -77,7 +90,7 @@ export default function CoachView({ races, contextRace, onBack }) {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history, loading]);
   useEffect(() => { saveCoachHistory(history); }, [history]);
 
-  async function handleSend(questionOverride) {
+  async function handleSend(questionOverride, suggestion = null) {
     const question = (questionOverride || input).trim();
     if (!question || loading) return;
 
@@ -103,6 +116,7 @@ export default function CoachView({ races, contextRace, onBack }) {
         contextRaceId: contextRace?.id || null,
         history: historySnapshot,
         profile,
+        suggestion,
       });
 
       const sources = (res.sourceRaceIds || [])
@@ -116,9 +130,10 @@ export default function CoachView({ races, contextRace, onBack }) {
         timestamp: new Date().toISOString(),
         sources,
         intentCategory: res.intent,
+        recorded: Boolean(res.recorded),
       }]);
     } catch (err) {
-      setError(err instanceof CoachApiError ? t(err.key, err.values) : t("errors.generic"));
+      setError(errorMessage(t, err));
       // Drop the unanswered question so a retry doesn't duplicate it.
       setHistory((prev) => prev.filter((m) => m.id !== userMsg.id));
       setInput(question);
@@ -133,7 +148,7 @@ export default function CoachView({ races, contextRace, onBack }) {
   }
 
   const hasMessages = history.length > 0;
-  const canAsk = Boolean(user);
+  const canAsk = Boolean(user) || isDemo;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 140px)" }}>
@@ -163,7 +178,8 @@ export default function CoachView({ races, contextRace, onBack }) {
         )}
       </div>
 
-      {!canAsk && <SignInNotice />}
+      {isDemo && <Notice kind="demoNotice" />}
+      {!canAsk && <Notice kind="signInRequired" />}
 
       <div style={{ flex: 1 }}>
         {!hasMessages ? (
@@ -173,10 +189,10 @@ export default function CoachView({ races, contextRace, onBack }) {
             </div>
             <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>{t("tryAsking")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {SUGGESTED_KEYS.map((key) => t(`suggested.${key}`)).map((q) => (
+              {SUGGESTED_KEYS.map((key) => ({ key, q: t(`suggested.${key}`) })).map(({ key, q }) => (
                 <button
-                  key={q}
-                  onClick={() => handleSend(q)}
+                  key={key}
+                  onClick={() => handleSend(q, key)}
                   disabled={!canAsk}
                   style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, color: T.ink, fontFamily: FONT_BODY, fontSize: 15, padding: "13px 18px", cursor: canAsk ? "pointer" : "default", opacity: canAsk ? 1 : 0.5, textAlign: "left", transition: "border-color 120ms ease" }}
                   onMouseEnter={(e) => canAsk && (e.currentTarget.style.borderColor = T.brass)}

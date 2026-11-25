@@ -1,0 +1,22 @@
+{
+  "id": "coach-improving-fr",
+  "task": "coach",
+  "locale": "fr",
+  "suggestion": "improving",
+  "question": "Est-ce que je progresse sur l'ensemble de mon historique ?",
+  "contextRaceIds": "any",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Pas d'une manière que les données permettent encore de confirmer. Votre score RaceIQ est passé de 1830 au Lakefront 10K (14 sept. 2025) à 1842 au Brandywine Valley Marathon (19 avr. 2026), soit +12, tandis que votre percentile est passé du 98,6e au 92,3e, soit -6,3 points. Ces deux mouvements vont en sens inverse, et les quatre courses sont trop différentes pour être comparées directement : un 10 km sur route, une sortie gravel de 105 km, un 50 km en single et un marathon sur route de 42,2 km.\n\nLes conditions en disent plus que le calendrier. Vos deux points forts sont venus par temps frais, Tunkhannock Trail 50K à 6 °C et Lakefront 10K à 14 °C, et votre seul facteur limitant, le Brandywine, s'est couru à 27 °C. Votre meilleur score, 1910, a été obtenu à Tunkhannock. La lecture honnête : vous courez bien au frais et perdez du terrain à la chaleur. Pour mesurer une progression, il faudrait deux courses comparables, par exemple deux marathons sur route par une météo similaire.",
+    "intent": "trend",
+    "sourceRaceIds": [
+      "r4",
+      "r3",
+      "r2",
+      "r1"
+    ]
+  }
+}

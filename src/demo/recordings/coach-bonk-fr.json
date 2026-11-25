@@ -1,0 +1,22 @@
+{
+  "id": "coach-bonk-fr",
+  "task": "coach",
+  "locale": "fr",
+  "suggestion": "bonk",
+  "question": "Pourquoi ai-je explosé sur ma dernière course ?",
+  "contextRaceIds": [
+    null,
+    "r1"
+  ],
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Sur le Brandywine Valley Marathon (19 avril 2026), il s'agit moins d'une explosion soudaine que d'une lente dérive. Votre allure est passée de 4:25/km sur le premier intervalle à 6:09/km sur le dernier, avec la plus forte baisse au km 40, par 27 °C et 71 % d'humidité, ce que les données signalent comme un stress thermique. La nutrition aggrave le tableau : 52 g de glucides/h pour une cible de 60–90 g/h sur un effort de 205 minutes, soit 8 g/h sous le minimum. La chaleur et l'apport trop faible coïncident tous deux avec la dérive, mais une seule course ne permet pas de dire quelle part revient à chacun.",
+    "intent": "diagnostic",
+    "sourceRaceIds": [
+      "r1"
+    ]
+  }
+}

@@ -39,6 +39,11 @@ export default {
     general: "Ask about your race history…",
     signedOut: "Sign in to ask the coach…",
   },
+  demoNotice: {
+    title: "DEMO · SAMPLE ATHLETE",
+    body: "The suggested questions replay recorded answers about the sample athlete's races, and every number in them is checked against the race data by the test suite. Your own questions go to the live coach only when this demo has a live budget switched on.",
+  },
+  recorded: "RECORDED ANSWER",
   signInRequired: {
     title: "SIGN IN REQUIRED",
     body: "The AI coach analyses your logged races on RaceIQ's servers. Sign in to use it — your race data is only ever sent for questions you ask.",
@@ -62,5 +67,8 @@ export default {
     malformedBody: "Malformed request body.",
     unknownTask: "Unknown task \"{{task}}\".",
     serverError: "Something went wrong generating that answer.",
+    questionTooLong: "That question is too long — keep it under {{max, number}} characters.",
+    demoLiveOff: "Live questions are switched off in this demo. Try one of the suggested questions: they replay recorded answers about the sample athlete.",
+    demoBudgetSpent: "The demo's live budget is used up for now. The suggested questions still work: they replay recorded answers about the sample athlete.",
   },
 };

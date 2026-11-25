@@ -1,0 +1,67 @@
+{
+  "id": "debrief-r1-en",
+  "task": "debrief",
+  "locale": "en",
+  "raceId": "r1",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Brandywine turned at km 25: as the course warmed past 23°C, your pace jumped from 4:33/km to 5:03/km and kept sliding.",
+    "findings": [
+      {
+        "kind": "limiter",
+        "title": "The race broke at km 25",
+        "body": "You held 4:25–4:33/km to km 20, then stepped to 5:03/km and slid to 6:09/km.",
+        "evidence": [
+          "km 20–25: 4:33→5:03/km",
+          "km 42.2: 6:09/km"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "The slowdown tracked the heat",
+        "body": "Course temperature rose from 18°C to 27°C; at 6°C, at Tunkhannock, you held even.",
+        "evidence": [
+          "18°C at km 5 → 27°C at km 35",
+          "Tunkhannock Trail 50K fade +2.9% at 6°C"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "Fueling ran light for the distance",
+        "body": "You took 52g/hr, 8g/hr under the 60–90g/hr range for a 205-minute effort.",
+        "evidence": [
+          "carbs 52g/hr vs 60–90g/hr target",
+          "Duration: 205 min"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Start 4–6% slower through halfway when the forecast is above 24°C.",
+        "why": "Your pace gave way as the course passed 23°C and reached 27°C by km 35.",
+        "evidence": [
+          "km 20: 4:33/km at 23°C",
+          "km 35: 5:31/km at 27°C"
+        ]
+      },
+      {
+        "action": "Raise carbohydrate intake to at least 60g/hr.",
+        "why": "At 52g/hr you were 8g/hr under the low end of the 60–90g/hr range for this duration.",
+        "evidence": [
+          "carbs 52g/hr vs 60–90g/hr target"
+        ]
+      },
+      {
+        "action": "Hold the opening third 3–5 sec/km slower than target.",
+        "why": "Your opening third averaged 4:27/km and your closing third 5:55/km, a +32.7% fade.",
+        "evidence": [
+          "opening third 4:27/km · closing third 5:55/km",
+          "fade +32.7%"
+        ]
+      }
+    ]
+  }
+}

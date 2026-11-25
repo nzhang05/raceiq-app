@@ -8,7 +8,12 @@
 */
 
 import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { isDemo } from "./demo.js";
 import { activeLocale } from "../i18n/index.js";
+
+// Only a demo build loads the recordings (src/demo/replay.js); `isDemo` is a
+// build-time constant, so a regular build drops this import entirely.
+const replay = isDemo ? import("../demo/replay.js") : null;
 
 const ENDPOINT = "/api/claude";
 const CACHE_PREFIX = "raceiq:narrative:v1:";
@@ -41,15 +46,20 @@ async function post(payload) {
   // answers in and the language of the server's canned fallbacks.
   payload = { ...payload, locale: activeLocale() };
   const token = await accessToken();
-  if (!token) {
+  // A demo visitor has no session; the server decides whether its demo budget
+  // covers the call (api/_lib/demo.js).
+  if (!token && !isDemo) {
     throw new CoachApiError("errors.signedOut", 401);
   }
+
+  const headers = { "content-type": "application/json" };
+  if (token) headers.authorization = `Bearer ${token}`;
 
   let res;
   try {
     res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      headers,
       body: JSON.stringify(payload),
     });
   } catch {
@@ -68,7 +78,13 @@ async function post(payload) {
   return body;
 }
 
-export async function askCoach({ question, races, contextRaceId, history, profile }) {
+// `suggestion` is the catalog key of a suggested question when the athlete
+// clicked one; the demo uses it to find a recorded answer.
+export async function askCoach({ question, races, contextRaceId, history, profile, suggestion = null }) {
+  if (replay) {
+    const recorded = (await replay).replayCoach({ suggestion, races, contextRaceId, locale: activeLocale() });
+    if (recorded) return recorded;
+  }
   return post({ task: "coach", question, races, contextRaceId, history, profile });
 }
 
@@ -90,9 +106,10 @@ export async function estimateFinishTime({ course, sport, tempC, races, isCyclin
 }
 
 // True when the signed-in state allows a Claude-backed call at all — lets a
-// caller skip the round trip and go straight to its deterministic path.
+// caller skip the round trip and go straight to its deterministic path. A demo
+// visitor may have a live budget, so the demo always tries.
 export async function canUseClaude() {
-  return Boolean(await accessToken());
+  return isDemo || Boolean(await accessToken());
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +169,11 @@ function historyFingerprint(races) {
     .join("|");
 }
 
-export function narrateDebrief({ race, races, plan, profile }) {
+export async function narrateDebrief({ race, races, plan, profile }) {
+  if (replay) {
+    const recorded = (await replay).replayDebrief({ race, races, locale: activeLocale() });
+    if (recorded) return recorded;
+  }
   // Only the inputs the analysis actually reads participate in the key, so a
   // cosmetic edit (renaming a race) doesn't force a regeneration.
   const seed = [

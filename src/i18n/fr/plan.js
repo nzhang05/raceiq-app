@@ -94,6 +94,14 @@ export default {
     carryCapacity: "Capacité de portage (ml)",
     carryCapacityHint: "Volume de liquide que vous pouvez porter entre deux ravitaillements. Les segments qui la dépassent sont signalés.",
     carryCapacityPlaceholder: "ex. 1000",
+    toggleYes: "OUI",
+    toggleNo: "NON",
+    cancel: "ANNULER",
+    startTimePlaceholder: "ex. 05:00",
+    tempPlaceholder: "ex. 18",
+    humidityPlaceholder: "ex. 60",
+    windPlaceholder: "ex. 10",
+    weatherSimulated: "SIMULÉ : le service de prévisions est injoignable d'ici, ces conditions sont donc estimées.",
 
     waypoints: {
       foundNone_one: " {{count}} point d'intérêt trouvé dans le fichier, aucun reconnu comme ravitaillement — vérifiez-les en section 6.",

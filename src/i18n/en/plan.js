@@ -94,6 +94,14 @@ export default {
     carryCapacity: "Carry Capacity (ml)",
     carryCapacityHint: "Fluid you can hold between stations. Legs that exceed it get flagged.",
     carryCapacityPlaceholder: "e.g. 1000",
+    toggleYes: "YES",
+    toggleNo: "NO",
+    cancel: "CANCEL",
+    startTimePlaceholder: "e.g. 05:00",
+    tempPlaceholder: "e.g. 18",
+    humidityPlaceholder: "e.g. 60",
+    windPlaceholder: "e.g. 10",
+    weatherSimulated: "SIMULATED: the forecast service can't be reached from here, so these conditions are estimated.",
 
     waypoints: {
       foundNone_one: " Found {{count}} waypoint in the file, none recognisable as aid stations — check them in Section 6.",

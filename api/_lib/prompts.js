@@ -59,9 +59,12 @@ function profileBlock(profile) {
   return bits.length ? `\nATHLETE PROFILE: ${bits.join(" · ")}\n` : "";
 }
 
+// null when there is no name to use — the demo's sample athlete, or a profile
+// without a display name. Callers phrase around it rather than splicing a
+// placeholder like "there" into "there's race performance".
 function athleteFirstName(profile) {
   const name = (profile?.display_name || "").trim();
-  return name ? name.split(/\s+/)[0] : "there";
+  return name ? name.split(/\s+/)[0] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,13 +77,23 @@ function athleteFirstName(profile) {
   would fall through to the analyst path instead of the medical referral.
   Accents are stripped first so "blessé"/"blesse" and "côté"/"cote" both match.
 */
-const OOS_MEDICAL = /\b(pain|hurt|ache|injur|knee|ankle|shin|tendon|blister|medical|doctor|physio|cramp|douleur|mal|blessur|blesse|genou|cheville|tibia|tendon|ampoule|medecin|kine|crampe|courbature|entorse)\b/;
-const OOS_TRAINING = /\b(training plan|workout plan|program|weekly plan|base building|periodization|plan d.?entrainement|programme|seance|planification|periodisation|semaine type|prepa)\b/;
-const TREND = /\b(improv|trend|better|faster|progress|getting|how has|over time|this year|season|am i getting|progress|progresse|amelior|mieux|plus vite|tendance|evolution|au fil|cette annee|saison)\b/;
-const FIT = /\b(fit|which race|best race|suited|which course|should i do|trail or road|road or trail|type of race|best at|excel|convient|quelle course|meilleure course|adapte|quel parcours|type de course|excelle|point fort)\b/;
-const PLANNING = /\b(next|prepare|change|before|upcoming|should i|ready|goal race|what to|how to improve|prochain|prepar|changer|avant|a venir|dois.?je|pret|course objectif|comment m.?ameliorer)\b/;
-const BENCHMARKING = /\b(compar|similar athlete|how do i rank|versus|\bvs\b|peer|age group|cohort|other athlete|classe|me situe|par rapport|categorie|autres athletes)\b/;
-const DIAGNOSTIC = /\b(bonk|what went wrong|why did|this race|faded|died|collapsed|blew up|slowed|second half|late|explos|fringale|mur|qu.?est.?ce qui|pourquoi|cette course|craque|ralenti|seconde moitie|deuxieme moitie|fin de course)\b/;
+// Each pattern is anchored at a word start. Entries ending in \w* are stems and
+// match their inflections ("injur\w*" → injury, injured; "improv\w*" →
+// improving). The rest are whole words, kept exact where a prefix would
+// misfire: "mal" must not match "malgré", "prepa" (training block) must not
+// swallow "préparer" (planning). These used to be wrapped in \b(...)\b, which
+// made every stem unmatchable — "my injury" skipped the medical referral and
+// "am I improving?" never reached the trend path. See the routing table in
+// src/__tests__/grounding.test.js.
+const OOS_MEDICAL = /\b(?:pain\w*|hurt\w*|aches?|aching|injur\w*|knees?|ankles?|shins?|tendon\w*|blisters?|medical|doctors?|physio\w*|cramp\w*|douleurs?|mal|blessur\w*|blesse\w*|genoux?|chevilles?|tibias?|ampoules?|medecins?|kine\w*|courbatures?|entorses?)\b/;
+const OOS_TRAINING = /\b(?:training plans?|workout plans?|program\w*|weekly plans?|base building|periodi[sz]ation|plans? d.?entrainement|seances?|planification|semaine type|prepa)\b/;
+// "mieux" alone is "better" (a trend question), but "le mieux" is "best" — the
+// French for "which races fit me best?" must route to FIT like the English does.
+const TREND = /\b(?:improv\w*|trend\w*|better|faster|progress\w*|getting|how has|over time|this year|seasons?|amelior\w*|(?<!le )mieux|plus vite|tendances?|evolution|au fil|cette annee|saisons?)\b/;
+const FIT = /\b(?:fits?|which races?|best races?|suited|which courses?|should i do|trail or road|road or trail|types? of races?|best at|excels?|excelle\w*|convien\w*|quelles? courses?|quels types de courses?|meilleures? courses?|adapte\w*|quels? parcours|types? de courses?|points? forts?)\b/;
+const PLANNING = /\b(?:next|prepar\w*|change|before|upcoming|should i|ready|goal race|what to|how to improve|prochain\w*|changer|avant|a venir|dois.?je|pret(?:e|s|es)?|course objectif|comment m.?ameliorer)\b/;
+const BENCHMARKING = /\b(?:compar\w*|similar athletes?|how do i rank|versus|vs|peers?|age groups?|cohorts?|other athletes?|classe\w*|me situe|par rapport|categories?|autres athletes)\b/;
+const DIAGNOSTIC = /\b(?:bonk\w*|what went wrong|why did|this race|faded|died|collapsed|blew up|slowed|second half|late|explos\w*|fringale|mur|qu.?est.?ce qui|pourquoi|cette course|craque\w*|ralenti\w*|seconde moitie|deuxieme moitie|fin de course)\b/;
 const SPORT_HINTS = [
   "road running", "trail running", "gravel cycling", "marathon", "trail", "ultra",
   "course sur route", "sur route", "cyclisme", "gravel", "velo",
@@ -162,18 +175,19 @@ export function sourceRaceIds(intent, data) {
 // ---------------------------------------------------------------------------
 export function buildCoachSystem(races, profile, locale = "en") {
   const name = athleteFirstName(profile);
+  const subject = name ? `${name}'s` : "the athlete's";
   const sports = [...new Set(races.map((r) => r.sport))].join(", ") || "none";
   const sorted = [...races].sort((a, b) => new Date(a.date) - new Date(b.date));
   const range = races.length >= 2
     ? `${fmtDate(sorted[0].date)} – ${fmtDate(sorted[sorted.length - 1].date)}`
     : races.length === 1 ? fmtDate(sorted[0].date) : "no races logged";
 
-  return `You are RaceIQ's AI Coach — a race intelligence system for endurance athletes. You answer questions about ${name}'s race performance using only the structured data provided with each question. You never invent splits, times, percentiles, or comparisons.
+  return `You are RaceIQ's AI Coach — a race intelligence system for endurance athletes. You answer questions about ${subject} race performance using only the structured data provided with each question. You never invent splits, times, percentiles, or comparisons.
 
-ATHLETE: ${name} · ${races.length} races logged (${sports}) · ${range}
+ATHLETE: ${name ?? "(no name on file)"} · ${races.length} races logged (${sports}) · ${range}
 ${profileBlock(profile)}
 ${GROUNDING_RULES}
-6. Be conversational and precise. Address ${name} by first name. Avoid bullet lists unless summarising 3+ races.
+6. Be conversational and precise. ${name ? `Address ${name} by first name.` : "Address the athlete as \"you\"; there is no name on file."} Avoid bullet lists unless summarising 3+ races.
 7. Aim for 2–4 sentences on simple questions, up to 3 focused paragraphs for trend or fit analysis.
 8. If the question references a debrief the athlete has already seen, refer to it ("the same pattern the debrief flagged") rather than restating it verbatim.
 
@@ -200,10 +214,15 @@ export function buildCoachContext(intent, data, question, contextRaceId) {
       ctx += `Pace: first split ${firstPace} → last split ${lastPace} (${drift > 0 ? "+" : ""}${drift}% drift${race.usesGap ? ", grade-adjusted" : ""})\n`;
       if (turnKm) ctx += `Largest pace drop: at km ${turnKm}\n`;
       ctx += `Verdict: ${race.verdict.toUpperCase()}\n`;
-      if (needsCarbs && race.fueling) {
+      if (needsCarbs && race.fueling?.carbsPerHr != null) {
         ctx += `Fueling: ${race.fueling.carbsPerHr}g carbs/hr (target for ${durationMin}-min effort: ${fuelRange}`;
         ctx += fuelingGap != null && fuelingGap < 0 ? `; ${Math.abs(fuelingGap)}g/hr below minimum)\n` : "; within range)\n";
-        ctx += `Sodium: ${race.fueling.sodiumPerHr}mg/hr · Fluids: ${race.fueling.fluidsPerHr}ml/hr · Caffeine: ${race.fueling.caffeine}mg\n`;
+        const extras = [
+          race.fueling.sodiumPerHr != null && `Sodium: ${race.fueling.sodiumPerHr}mg/hr`,
+          race.fueling.fluidsPerHr != null && `Fluids: ${race.fueling.fluidsPerHr}ml/hr`,
+          race.fueling.caffeine != null && `Caffeine: ${race.fueling.caffeine}mg`,
+        ].filter(Boolean);
+        if (extras.length) ctx += `${extras.join(" · ")}\n`;
         if (race.fueling.inputMode === "sections" && race.fueling.sections?.length) {
           ctx += `Fueling by section:\n`;
           for (const s of race.fueling.sections) {
@@ -358,7 +377,7 @@ export const NARRATIVE_SCHEMA = {
 };
 
 export function buildNarrativeSystem(profile, locale = "en") {
-  return `You are RaceIQ's race analyst. You explain why ${athleteFirstName(profile)} performed the way they did on race day, working from the athlete's own data.
+  return `You are RaceIQ's race analyst. You explain why ${athleteFirstName(profile) ?? "the athlete"} performed the way they did on race day, working from the athlete's own data.
 
 You are given, for the race in question: every split, the fueling log, the conditions, the result — plus DERIVED METRICS already computed for you, this athlete's other races, and the pre-race plan when one exists. Analyse it yourself. Find what is actually there.
 
@@ -434,8 +453,8 @@ function derivedMetrics(race) {
 
   lines.push(
     fuel.needsCarbs
-      ? `Carbohydrate target for this duration: ${fuel.carbsLabel}. ${fuel.rationale}`
-      : `Carbohydrate: ${fuel.rationale}`,
+      ? `Carbohydrate target for this duration: ${fuel.carbsLabel}. ${EN(`plan:${fuel.rationaleKey}`)}`
+      : `Carbohydrate: ${EN(`plan:${fuel.rationaleKey}`)}`,
   );
   return lines.map((l) => `  ${l}`).join("\n");
 }
@@ -465,17 +484,30 @@ function historyBlock(race, history) {
   }).join("\n") + "\n";
 }
 
+// "52g/hr carbs · 280mg/hr sodium", skipping fields that weren't logged. A
+// hand-entered race can carry nulls, which would otherwise reach the model as
+// "nullg/hr carbs".
+function fuelParts(f, { caffeine = true } = {}) {
+  const parts = [];
+  if (f?.carbsPerHr != null) parts.push(`${f.carbsPerHr}g/hr carbs`);
+  if (f?.sodiumPerHr != null) parts.push(`${f.sodiumPerHr}mg/hr sodium`);
+  if (f?.fluidsPerHr != null) parts.push(`${f.fluidsPerHr}ml/hr fluid`);
+  if (caffeine && f?.caffeine != null) parts.push(`${f.caffeine}mg caffeine total`);
+  return parts;
+}
+
 function fuelingBlock(race) {
   const f = race.fueling;
-  if (!f) return "  No fueling logged for this race.\n";
+  if (!f || !fuelParts(f).length && !f.sections?.length) return "  No fueling logged for this race.\n";
 
   if (f.inputMode === "sections" && f.sections?.length) {
     const rows = f.sections.map((s) =>
       `  km ${s.fromKm}–${s.toKm}: ${s.carbsPerHr}g/hr carbs · ${s.sodiumPerHr}mg/hr sodium · ${s.fluidsPerHr}ml/hr fluid`
     ).join("\n");
-    return `${rows}\n  Race average: ${f.carbsPerHr}g/hr carbs · ${f.caffeine}mg caffeine total\n`;
+    const avg = [f.carbsPerHr != null && `${f.carbsPerHr}g/hr carbs`, f.caffeine != null && `${f.caffeine}mg caffeine total`].filter(Boolean);
+    return `${rows}\n${avg.length ? `  Race average: ${avg.join(" · ")}\n` : ""}`;
   }
-  return `  ${f.carbsPerHr}g/hr carbs · ${f.sodiumPerHr}mg/hr sodium · ${f.fluidsPerHr}ml/hr fluid · ${f.caffeine}mg caffeine total\n`;
+  return `  ${fuelParts(f).join(" · ")}\n`;
 }
 
 // The deterministic engine's own output, supplied as a floor rather than an

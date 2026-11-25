@@ -38,7 +38,7 @@ export default function CourseSection({ sport, setSport, raceDate, setRaceDate, 
 
       <Field label={P("form.upload")}>
         <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", padding: "14px 16px", border: `1px dashed ${importStatus === "done" ? T.green : T.line}`, borderRadius: 4, background: T.bg2, transition: "border-color 150ms" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{P("form.chooseFile")}</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{P("form.chooseFile")}</span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: gpxData ? T.paper : T.inkDim }}>
             {gpxData ? gpxData.name : P("form.noFile")}
           </span>
@@ -60,8 +60,8 @@ export default function CourseSection({ sport, setSport, raceDate, setRaceDate, 
             { label: P("form.stat.profile"), value: P(`form.stat.${gpxData.elevationM > 500 ? "hilly" : gpxData.elevationM > 150 ? "rolling" : "flat"}`) },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "10px 14px" }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label.toUpperCase()}</div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>{value}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 4 }}>{label.toUpperCase()}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, color: T.paper }}>{value}</div>
             </div>
           ))}
         </div>

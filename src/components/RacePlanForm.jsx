@@ -187,7 +187,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 640 }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 600, margin: "0 0 6px", color: T.paper }}>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 500, margin: "0 0 6px", color: T.paper }}>
           {P("form.title")}
         </h1>
         <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.inkDim, margin: 0, lineHeight: 1.5 }}>
@@ -240,7 +240,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         <button
           type="submit"
           disabled={submitting || !gpxData}
-          style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, fontWeight: 600, padding: "11px 24px", borderRadius: 3, border: "none", background: gpxData ? T.brass : T.bg2, color: gpxData ? T.bg : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
+          style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, fontWeight: 600, padding: "11px 24px", borderRadius: 3, border: "none", background: gpxData ? T.brass : T.bg2, color: gpxData ? T.bg : T.inkDim, cursor: gpxData ? "pointer" : "not-allowed" }}
         >
           {submitting ? P("form.building") : P("form.build")}
         </button>

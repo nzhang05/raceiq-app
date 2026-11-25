@@ -11,6 +11,7 @@ Live: <https://raceiq-app-mr8i.vercel.app> (full app with sign-in, deployed from
 - **Modes.** With no Supabase env vars, it runs locally on localStorage with the sample athlete (`SEED_RACES` in `src/constants.js`). With `VITE_DEMO_MODE=true` you get the public demo: never Supabase, recorded AI answers from `src/demo/recordings/`, and live AI only within `DEMO_AI_*` budgets. Signed-in athletes never see sample races.
 - **i18n.** English and French catalogs in `src/i18n/{en,fr}/`, shared with the server. Errors cross the API as catalog keys.
 - **Planning form.** `RacePlanForm.jsx` orchestrates. Each section lives in `src/components/racePlan/`.
+- **Look.** "The endurance journal": tokens in `src/constants.js`, rationale in `docs/design-visual-identity.md`. Sentence case in the UI; photos come only from `src/assets/photos/` (never stock or generated). Home-page claims come from `src/utils/season.js`.
 
 ## Rules
 

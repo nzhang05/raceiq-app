@@ -56,7 +56,7 @@ export default function FuelingSectionEditor({
 
       {/* Entry mode toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>{t("fuelSections.enterAs")}</span>
+        <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{t("fuelSections.enterAs")}</span>
         {modeBtn("rate", t("fuelSections.modeRate"))}
         {modeBtn("amount", t("fuelSections.modeAmount"))}
         {amount && (
@@ -80,7 +80,7 @@ export default function FuelingSectionEditor({
           <div key={sec.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "9px 0", borderBottom: `1px solid ${T.line}22`, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.brass }}>S{i + 1}</div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 1 }}>{t("fuelSections.fromKm", { km: sec.fromKm })}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 1 }}>{t("fuelSections.fromKm", { km: sec.fromKm })}</div>
             </div>
             {isLast ? (
               <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.inkDim }}>{sec.toKm}</div>

@@ -167,7 +167,7 @@ export default function CourseMap({ path, distanceKm, stations, height = 320, ac
       {/* Segment legend — identity is never carried by colour alone. */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", padding: "10px 12px", borderTop: `1px solid ${T.line}` }}>
         {segments.map((seg) => (
-          <span key={seg.index} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: FONT_MONO, fontSize: 11, color: T.ink }}>
+          <span key={seg.index} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: FONT_MONO, fontSize: 12.5, color: T.ink }}>
             <span style={{ width: 12, height: 3, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
             {seg.label}
             <span style={{ color: T.inkDim }}>

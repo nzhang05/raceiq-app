@@ -168,6 +168,8 @@ const FONT_IMPORT = (
       .pattern-panel figure { grid-column: 1 / -1; }
     }
     @media (max-width: 900px) {
+      .debrief-head { grid-template-columns: 1fr !important; gap: 22px !important; }
+      .debrief-head .debrief-photo { min-height: 180px !important; order: -1; }
       .takeaway-grid,
       .fueling-grid {
         grid-template-columns: 1fr !important;
@@ -216,7 +218,10 @@ const FONT_IMPORT = (
       .stat-strip > :nth-child(n+3) { border-top: 1px solid ${T.line}; }
 
       .form-grid-2, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr !important; }
-      .page-title { font-size: 28px !important; }
+      .page-title { font-size: 30px !important; }
+      .debrief-head h1 { font-size: 34px !important; }
+      .plan-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .debrief-head p { font-size: 22px !important; }
       .compare-bar { left: 16px !important; right: 16px; transform: none !important; justify-content: space-between; }
       /* Compare tables keep their columns and scroll sideways inside their own
          box (a focusable region), rather than squeezing figures or pushing the
@@ -363,7 +368,7 @@ export default function RaceIQApp() {
             type="button"
             onClick={() => setView("list")}
             aria-label={t("nav.home")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, letterSpacing: -0.4, color: T.brass, lineHeight: 1 }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500, letterSpacing: -0.4, color: T.brass, lineHeight: 1 }}
           >
             RaceIQ
           </button>

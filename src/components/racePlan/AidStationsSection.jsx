@@ -95,7 +95,7 @@ export default function AidStationsSection({ gpxData, stations, showUltra, setSh
           <button
             type="button"
             onClick={() => setShowOtherWaypoints((v) => !v)}
-            style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer" }}
+            style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer" }}
           >
             {showOtherWaypoints ? "▾" : "▸"} {P("form.waypoints.otherToggle", { count: otherWaypoints.length })}
           </button>
@@ -119,7 +119,7 @@ export default function AidStationsSection({ gpxData, stations, showUltra, setSh
                       onChange={() => togglePromoted(w)}
                       style={{ accentColor: T.brass, cursor: offCourse ? "default" : "pointer" }}
                     />
-                    <span style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: offCourse ? T.inkDim : T.ink }}>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: offCourse ? T.inkDim : T.ink }}>
                       {offCourse ? "—" : `${w.km} km`}
                     </span>
                     <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: offCourse ? T.inkDim : T.paper }}>
@@ -171,7 +171,7 @@ export default function AidStationsSection({ gpxData, stations, showUltra, setSh
           <button
             type="button"
             onClick={() => setShowUltraOverride(!showUltra)}
-            style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: 0.5, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer", textDecoration: "underline" }}
+            style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer", textDecoration: "underline" }}
           >
             {P(showUltra ? "form.ultra.hide" : "form.ultra.show")}
           </button>

@@ -137,7 +137,7 @@ export default function PaceHeatStrip({ race }) {
                 <line x1="0" y1="5" x2="16" y2="5" stroke={item.color} strokeWidth={item.thick ? 2.5 : 1.5} strokeDasharray={item.dash || "none"} strokeOpacity={item.dim ? 0.5 : 0.9} />
               </svg>
             )}
-            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: visible[item.key] ? T.ink : T.inkDim }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: visible[item.key] ? T.ink : T.inkDim }}>
               {item.label}
             </span>
           </button>
@@ -248,28 +248,28 @@ export default function PaceHeatStrip({ race }) {
             {t("chart.tooltipKm", { km: hoveredSplit.km })}
           </div>
           {visible.pace && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.paper, marginBottom: 4 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.paper, marginBottom: 4 }}>
               <span style={{ color: T.inkDim }}>{t(showGap ? "chart.tooltip.gap" : "chart.tooltip.pace")} </span>
               {fmtPaceStr(hoveredSplit[primaryKey])}
             </div>
           )}
           {showGap && visible.rawPace && hoveredSplit.pace != null && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginBottom: 4 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginBottom: 4 }}>
               <span>{t("chart.tooltip.raw")}  </span>{fmtPaceStr(hoveredSplit.pace)}
             </div>
           )}
           {visible.temp && hoveredSplit.tempC != null && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.temp, marginBottom: 4 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.temp, marginBottom: 4 }}>
               <span style={{ color: T.inkDim }}>{t("chart.tooltip.temp")} </span>{hoveredSplit.tempC}°C
             </div>
           )}
           {showElev && visible.elev && hoveredSplit.elevM != null && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, marginBottom: showGap && hoveredSplit.gradePct != null ? 4 : 0 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.brass, marginBottom: showGap && hoveredSplit.gradePct != null ? 4 : 0 }}>
               <span style={{ color: T.inkDim }}>{t("chart.tooltip.elev")} </span>{hoveredSplit.elevM}m
             </div>
           )}
           {showGap && hoveredSplit.gradePct != null && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim }}>
               <span>{t("chart.tooltip.grade")} </span>{hoveredSplit.gradePct > 0 ? "+" : ""}{hoveredSplit.gradePct}%
             </div>
           )}

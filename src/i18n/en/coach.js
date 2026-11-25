@@ -12,27 +12,27 @@
   the model.
 */
 export default {
-  eyebrow: "AI COACH",
+  eyebrow: "AI coach",
   title: "Ask RaceIQ",
-  backToDebrief: "← BACK TO DEBRIEF",
-  backToRaces: "← BACK TO RACE RESUME",
-  clearHistory: "CLEAR HISTORY",
+  backToDebrief: "← Back to debrief",
+  backToRaces: "← Back to races",
+  clearHistory: "Clear history",
   clearConfirm: "Clear conversation history?",
-  context: "CONTEXT: {{name}}",
+  context: "Context: {{name}}",
   intro: "Ask anything about your race history, {{name}}. Every answer is drawn from your logged data.",
   defaultName: "there",
-  tryAsking: "TRY ASKING",
+  tryAsking: "Try asking",
   suggested: {
     bonk: "Why did I bonk at my last race?",
     improving: "Am I improving across my race history?",
     fit: "Which types of races fit me best?",
     next: "What should I change before my next marathon?",
   },
-  coachLabel: "RACEIQ COACH",
-  youLabel: "YOU",
-  basedOn: "BASED ON:",
+  coachLabel: "RaceIQ coach",
+  youLabel: "You",
+  basedOn: "Based on:",
   analyzing: "Analyzing your data…",
-  send: "SEND",
+  send: "Send",
   inputLabel: "Your question",
   inputHint: "Enter to send · Shift+Enter for new line",
   placeholder: {
@@ -41,12 +41,12 @@ export default {
     signedOut: "Sign in to ask the coach…",
   },
   demoNotice: {
-    title: "DEMO · SAMPLE ATHLETE",
+    title: "Demo · sample athlete",
     body: "The suggested questions replay recorded answers about the sample athlete's races, and every number in them is checked against the race data by the test suite. Your own questions go to the live coach only when this demo has a live budget switched on.",
   },
-  recorded: "RECORDED ANSWER",
+  recorded: "Recorded answer",
   signInRequired: {
-    title: "SIGN IN REQUIRED",
+    title: "Sign in required",
     body: "The AI coach analyses your logged races on RaceIQ's servers. Sign in to use it — your race data is only ever sent for questions you ask.",
   },
 

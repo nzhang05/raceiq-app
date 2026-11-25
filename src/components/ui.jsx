@@ -318,7 +318,7 @@ export function Finding({ kind, title, body, evidence }) {
       }}
     >
       <div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 5, letterSpacing: -0.1 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 500, color: T.paper, marginBottom: 5, letterSpacing: -0.1 }}>
           {title}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.ink }}>{body}</div>

@@ -10,17 +10,19 @@ import { buildDebrief, toThreeFindings } from "../utils/analysis.js";
 import { findingText, recText, headlineText } from "../i18n/render.js";
 import { useNarrative } from "../hooks/useNarrative.js";
 import PaceHeatStrip from "./PaceHeatStrip.jsx";
-import { FindingCard, Recommendation, Card, Button, Pill } from "./ui.jsx";
-import RowSparkline from "./RowSparkline.jsx";
+import { FindingCard, Recommendation, Card, Button } from "./ui.jsx";
+import { PhotoSlot } from "./Topo.jsx";
+import { racePhoto } from "../lib/photos.js";
+import { ArrowUpRightIcon, AlertIcon, BalanceIcon, SparkIcon } from "./icons.jsx";
 
 function SectionHeader({ title, sub, note }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, letterSpacing: -0.3, color: T.paper }}>{title}</div>
-        {note && <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{note}</span>}
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, letterSpacing: -0.4, color: T.paper, margin: 0 }}>{title}</h2>
+        {note && <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{note}</span>}
       </div>
-      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginTop: 4, maxWidth: 620 }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.inkDim, marginTop: 6, maxWidth: 620 }}>{sub}</div>}
     </div>
   );
 }
@@ -54,6 +56,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
   const headline = narrative?.headline || headlineText(t, race);
   const analysisNote = status === "loading" ? t("debrief.analysing") : status === "ready" ? t(narrative?.recorded ? "debrief.recordedAnalysis" : "debrief.aiAnalysis") : null;
   const vColor = verdictColor(race.verdict);
+  const VerdictIcon = race.verdict === "strength" ? ArrowUpRightIcon : race.verdict === "limiter" ? AlertIcon : BalanceIcon;
   // Older stored races (and some imports) carry no fueling object at all; the
   // log then shows "—" per field instead of the page failing to render.
   const fueling = race.fueling ?? {};
@@ -69,31 +72,37 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         )}
       </div>
 
-      {/* Narrative lead — the "why" comes first */}
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, letterSpacing: 0.4, textTransform: "uppercase", color: T.brass, marginBottom: 10 }}>{t("debrief.eyebrow")}</div>
-      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 700, margin: "0 0 8px", color: T.paper, letterSpacing: -0.7, maxWidth: 760 }}>{race.name}</h1>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 22 }}>
-        {fmtDate(race.date)} · {t(`sport.${race.sport}`)} · {race.distanceKm} km · +{race.elevationM} m
-      </div>
-
-      {/* The headline is the page's thesis, so it outranks the race name above
-          it. The course silhouette sits behind it as a watermark — the shape of
-          the day, at a weight low enough not to compete with the text. */}
-      <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 40 }}>
-        <div style={{ position: "absolute", inset: 0, opacity: 0.06, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
-          <RowSparkline race={race} width={760} height={110} variant="watermark" />
+      {/* Editorial header: the race as a story, with its photo when there is
+          one. The verdict reads as words with an icon, not a capitalised pill,
+          and the headline — the AI's lede when it has arrived, the engine's
+          otherwise — is the page's thesis. */}
+      <header className="debrief-head" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr)", gap: 36, alignItems: "stretch", marginBottom: 44 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase", color: T.brass, marginBottom: 10 }}>{t("debrief.eyebrow")}</div>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 46, fontWeight: 500, lineHeight: 1.08, margin: "0 0 10px", color: T.paper, letterSpacing: -1, textWrap: "balance" }}>{race.name}</h1>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.inkDim, marginBottom: 26 }}>
+            {fmtDate(race.date)} · {t(`sport.${race.sport}`)} · {race.distanceKm} km · +{race.elevationM} m
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, color: vColor, marginBottom: 10 }}>
+            <VerdictIcon size={19} />
+            {t(`debrief.verdictLine.${verdictKey(race.verdict)}`)}
+          </div>
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 27, fontWeight: 400, fontStyle: "italic", lineHeight: 1.32, color: T.paper, margin: 0, maxWidth: 640, letterSpacing: -0.3 }}>
+            {headline}
+          </p>
+          {analysisNote && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: FONT_BODY, fontSize: 13, color: T.inkDim, marginTop: 14 }}>
+              <SparkIcon size={13} />{analysisNote}
+            </div>
+          )}
         </div>
-        <div style={{ width: 3, alignSelf: "stretch", background: vColor, borderRadius: 2, flexShrink: 0 }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ marginBottom: 12 }}><Pill color={vColor}>{t(`verdict.${verdictKey(race.verdict)}`)}</Pill></div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, lineHeight: 1.3, color: T.paper, maxWidth: 700, letterSpacing: -0.4 }}>{headline}</div>
-        </div>
-      </div>
+        <PhotoSlot className="debrief-photo" src={racePhoto(race)} alt={race.name} seed={race.id} style={{ borderRadius: R.lg, minHeight: 260 }} />
+      </header>
 
-      {/* The three takeaways lead the page — they are what the athlete came for. */}
+      {/* The findings lead the page — they are what the athlete came for. */}
       <div style={{ marginBottom: 56 }}>
-        <SectionHeader title={t("debrief.findings.title")} sub={t("debrief.findings.sub")} note={analysisNote} />
-        <div className="takeaway-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        <SectionHeader title={t("debrief.findings.title")} sub={t("debrief.findings.sub")} />
+        <div className="takeaway-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {allFindings.map((f, i) => {
             const { title, body, evidence } = findingText(t, f);
             return (
@@ -115,17 +124,17 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
       {/* Key figures. One strip with dividers rather than four bordered boxes:
           with the takeaway cards above, a second row of cards read as noise and
           left the RaceIQ score with nothing to stand out against. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", border: `1px solid ${T.line}`, background: T.surface, borderRadius: R.lg, overflow: "hidden", marginBottom: 56 }}>
+      <div className="stat-strip" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", border: `1px solid ${T.line}`, background: T.surface, borderRadius: R.lg, overflow: "hidden", marginBottom: 56 }}>
         {[
           { label: t("debrief.stat.finishTime"), value: race.finishTime, sub: null, accent: T.paper, hero: false },
           { label: t("debrief.stat.placement"), value: `${race.placement}/${race.field}`, sub: t("debrief.percentile", { pct: race.percentile }), accent: T.paper, hero: false },
           { label: t("debrief.stat.score"), value: race.rating, sub: fmtSigned(race.ratingDelta), accent: T.brass, hero: true },
           { label: t("debrief.stat.conditions"), value: `${race.tempC}°C`, sub: t("debrief.humidity", { pct: race.humidity }), accent: T.paper, hero: false },
         ].map(({ label, value, sub, accent, hero }, i) => (
-          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 70}ms`, background: hero ? `${T.brass}12` : "transparent", borderLeft: i ? `1px solid ${T.line}` : "none", padding: "18px 20px" }}>
+          <div key={label} className="stat-enter" style={{ animationDelay: `${i * 70}ms`, background: hero ? T.sageTint : "transparent", borderLeft: i ? `1px solid ${T.line}` : "none", padding: "18px 20px" }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.inkDim, marginBottom: 12 }}>{label}</div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, color: accent, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
-            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim, marginTop: 8 }}>{sub}</div>}
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 34, fontWeight: 500, color: accent, lineHeight: 1, letterSpacing: -0.5 }}>{value}</div>
+            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 8 }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -198,7 +207,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
           </div>
 
           <div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: T.paper, marginBottom: 10 }}>{t("debrief.fuelingContext.title")}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 500, letterSpacing: -0.2, color: T.paper, marginBottom: 10 }}>{t("debrief.fuelingContext.title")}</div>
             {(() => {
               const bench = fuelingBenchmarks(race.finishTime);
               const durationMin = Math.round(parseClockToMinutes(race.finishTime));
@@ -238,7 +247,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
           and a subtitle sitting over nothing. */}
       {shownRecs.length > 0 && (
         <div style={{ marginBottom: 56 }}>
-          <SectionHeader title={t("debrief.recommendations.title")} sub={t("debrief.recommendations.sub")} note={analysisNote} />
+          <SectionHeader title={t("debrief.recommendations.title")} sub={t("debrief.recommendations.sub")} />
           <div>
             {shownRecs.map((r, i) => {
               const { action, why, evidence } = recText(t, r);
@@ -248,7 +257,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
         </div>
       )}
 
-      <Card style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", background: T.surfaceHi }}>
+      <Card style={{ padding: "22px 26px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", background: T.sageTint, border: "none" }}>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink }}>
           <Trans
             i18nKey="debrief.askCoach.prompt"

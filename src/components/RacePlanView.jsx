@@ -52,7 +52,7 @@ function KitProgress({ label, value, target, unit }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, color: T.inkDim }}>{label.toUpperCase()}</span>
+        <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{label.toUpperCase()}</span>
         <span style={{ fontFamily: FONT_MONO, fontSize: 12, color: met ? T.green : T.paper }}>
           {value}<span style={{ color: T.inkDim }}> / {target} {unit}</span>
         </span>
@@ -129,10 +129,10 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
     <div>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.7, color: T.inkDim, marginBottom: 8 }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 8 }}>
           {t("view.eyebrow", { ns: "plan" })} · {raceDate ?? ""}
         </div>
-        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 36, fontWeight: 600, margin: "0 0 4px", color: T.paper }}>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 36, fontWeight: 500, margin: "0 0 4px", color: T.paper }}>
           {course.name}
         </h1>
         <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim }}>
@@ -141,12 +141,12 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
       </div>
 
       {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+      <div className="plan-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 32 }}>
         {summaryCards.map(({ label, value, sub, accent }) => (
           <div key={label} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "16px 18px" }}>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 8 }}>{label.toUpperCase()}</div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: accent, lineHeight: 1.1 }}>{value}</div>
-            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 4 }}>{sub}</div>}
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 8 }}>{label.toUpperCase()}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 500, color: accent, lineHeight: 1.1 }}>{value}</div>
+            {sub && <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 4 }}>{sub}</div>}
           </div>
         ))}
       </div>
@@ -155,7 +155,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
       {course.path?.length > 1 && (
         <div style={{ marginBottom: 36 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>{t("view.course.title", { ns: "plan" })}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, color: T.paper }}>{t("view.course.title", { ns: "plan" })}</div>
             <button
               onClick={() => setShowProfile((v) => !v)}
               style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, padding: "6px 11px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
@@ -203,10 +203,10 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
       {schedule && (
         <div style={{ marginBottom: 36 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 6, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, color: T.paper }}>
               {t("view.schedule.title", { ns: "plan" })}
             </div>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim }}>
               {t("view.schedule.startFinish", { ns: "plan", start: schedule.startClock, finish: schedule.finishClock })}
               {schedule.finishDayOffset > 0 ? ` (+${schedule.finishDayOffset}d)` : ""}
             </span>
@@ -245,7 +245,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
                 {/* The window is the honest number; the point estimate above it is
                     convenience. A crew that plans against the point estimate waits. */}
                 {pt.window && (
-                  <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.inkDim, marginTop: 2 }}>
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>
                     {pt.window.earlyClock}–{pt.window.lateClock}
                   </div>
                 )}
@@ -299,10 +299,10 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
                   <span style={{ width: 3, borderRadius: 2, background: segments[i]?.color ?? T.line, alignSelf: "stretch", flexShrink: 0 }} />
                   <div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.paper }}>
-                      <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginRight: 6 }}>{segments[i]?.label}</span>
+                      <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginRight: 6 }}>{segments[i]?.label}</span>
                       {sec.fromName} → {sec.toName}
                     </div>
-                    <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: labelColor(sec.label), marginTop: 2 }}>
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: labelColor(sec.label), marginTop: 2 }}>
                       km {sec.fromKm}–{sec.toKm} · {t(`segment.${sec.label}`, { ns: "plan" })}{sec.elevGainM > 0 ? ` · +${sec.elevGainM}m` : ""}
                     </div>
                   </div>
@@ -333,7 +333,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
                 <div style={{ fontFamily: FONT_MONO, fontSize: 14, fontWeight: 500, color: T.paper }}>
                   {fmtPace(split.suggestedPace)}<span style={{ fontSize: 11, color: T.inkDim }}> /km</span>
                 </div>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: labelColor(split.label) }}>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: labelColor(split.label) }}>
                   {t(`segment.${split.label}`, { ns: "plan" })}
                 </div>
               </div>
@@ -356,19 +356,19 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
               ...(nutrition.caffeineMg ? [{ label: t("view.nutrition.caffeine", { ns: "plan" }), value: `${nutrition.caffeineMg} mg`, source: nutrition.sources?.caffeine }] : []),
             ].map(({ label, value, source }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: `1px solid ${T.line}33` }}>
-                <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{label.toUpperCase()}</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{label.toUpperCase()}</span>
                 <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                   <SourceTag source={source} />
-                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper }}>{value}</span>
+                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 500, color: T.paper }}>{value}</span>
                 </span>
               </div>
             ))}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, lineHeight: 1.6 }}>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 8 }}>{t("view.nutrition.rationale", { ns: "plan" })}</div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 8 }}>{t("view.nutrition.rationale", { ns: "plan" })}</div>
             {t(nutrition.rationaleKey, { ns: "plan" })}
             {nutrition.basedOnRaces > 0 && (
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.brass, marginTop: 12 }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.brass, marginTop: 12 }}>
                 {t("view.nutrition.personalised", { ns: "plan", count: nutrition.basedOnRaces })}
               </div>
             )}
@@ -398,7 +398,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
           {/* Pack at the start */}
           {carryPlan.packAtStart && (
             <div style={{ background: T.bg2, border: `1px solid ${T.brassDim}`, borderRadius: 4, padding: "14px 18px", marginBottom: 16 }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 8 }}>{t("view.carry.packAtStart", { ns: "plan" })}</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 8 }}>{t("view.carry.packAtStart", { ns: "plan" })}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, lineHeight: 1.5 }}>
                 <Trans
                   i18nKey={carryPlan.packAtStart.gels > 0 ? "plan:view.carry.packLine" : "plan:view.carry.packLine_none"}
@@ -425,7 +425,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
               <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 1fr 1fr", gap: 8, alignItems: "baseline" }}>
                 <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.paper }}>
                   {leg.fromName} → {leg.toName}
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, display: "block", marginTop: 2 }}>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, display: "block", marginTop: 2 }}>
                     km {leg.fromKm}–{leg.toKm}
                   </span>
                 </div>
@@ -448,7 +448,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
 
           {/* Totals */}
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 1fr 1fr", gap: 8, padding: "12px 0 0", alignItems: "baseline" }}>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim }}>{t("view.carry.raceTotal", { ns: "plan" })}</div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{t("view.carry.raceTotal", { ns: "plan" })}</div>
             <div />
             <div />
             <div style={{ fontFamily: FONT_MONO, fontSize: 13, fontWeight: 500, color: T.brass }}>{carryPlan.totals.carbsG} g</div>
@@ -475,7 +475,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
               <div key={i} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.paper }}>{bag.name}</span>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim }}>km {bag.km}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim }}>km {bag.km}</span>
                 </div>
                 {bag.items.map((it) => (
                   <div key={it.key} style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.ink, padding: "3px 0" }}>
@@ -514,7 +514,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
 
           {/* Tally vs targets */}
           <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "16px 18px" }}>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.inkDim, marginBottom: 12 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 12 }}>
               {t(carryPlan ? "view.kit.vsTargetRaceTotal" : "view.kit.vsTarget", { ns: "plan" })}
             </div>
             {dropBags.bags.length > 0 && dropBags.totals.carbsG > 0 && (
@@ -535,11 +535,11 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
       {/* Tactical Recommendations */}
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.paper }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, color: T.paper }}>
             {t("view.recommendations.title", { ns: "plan" })}
           </div>
           {narrativeNote && (
-            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{narrativeNote}</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{narrativeNote}</span>
           )}
         </div>
         {narrative?.headline && (
@@ -557,7 +557,7 @@ export default function RacePlanView({ plan, allRaces, onBack, onLogRace, onAskC
       <div style={{ display: "flex", gap: 12, paddingTop: 24, borderTop: `1px solid ${T.line}`, flexWrap: "wrap" }}>
         <button
           onClick={onLogRace}
-          style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, fontWeight: 600, padding: "11px 22px", borderRadius: 3, border: "none", background: T.brass, color: T.bg, cursor: "pointer" }}
+          style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, fontWeight: 600, padding: "11px 22px", borderRadius: 3, border: "none", background: T.brass, color: T.bg, cursor: "pointer" }}
         >
           {t("view.logRace", { ns: "plan" })}
         </button>

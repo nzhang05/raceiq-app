@@ -45,7 +45,7 @@ export default function FuelItemPicker({ quantities, onBump, dense = false }) {
           >
             <div>
               <div style={{ fontFamily: FONT_BODY, fontSize: dense ? 13 : 14, color: qty > 0 ? T.paper : T.ink }}>{name}</div>
-              {!dense && <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: T.inkDim, marginTop: 2 }}>{macro || "—"}</div>}
+              {!dense && <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>{macro || "—"}</div>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button type="button" onClick={() => onBump(item.key, -1)} aria-label={P("view.kit.removeOne", { item: name })} style={stepperStyle(qty > 0, size)}>−</button>

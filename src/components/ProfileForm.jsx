@@ -126,7 +126,7 @@ export default function ProfileForm({ onBack }) {
 
   return (
     <div style={{ animation: "slideUp 300ms ease both" }}>
-      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 600, letterSpacing: -0.3, color: T.paper, margin: "0 0 4px" }}>
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 500, letterSpacing: -0.3, color: T.paper, margin: "0 0 4px" }}>
         {t("profile.title")}
       </h1>
       <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.ink, margin: "0 0 24px" }}>

@@ -28,7 +28,7 @@ export function StationToggle({ on, onClick }) {
 function MiniField({ label, children }) {
   return (
     <div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 4 }}>{label}</div>
       {children}
     </div>
   );
@@ -109,7 +109,7 @@ export default function StationRow({ station, index, distanceKm, showUltra, expa
           {showUltra && badges.length > 0 && !expanded && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
               {badges.map((b) => (
-                <span key={b} style={{ fontFamily: FONT_MONO, fontSize: 9, letterSpacing: 0.4, color: T.brass, background: "rgba(201,162,75,0.1)", borderRadius: 2, padding: "1px 5px" }}>{b}</span>
+                <span key={b} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, background: "rgba(201,162,75,0.1)", borderRadius: 2, padding: "1px 5px" }}>{b}</span>
               ))}
             </div>
           )}
@@ -160,7 +160,7 @@ export default function StationRow({ station, index, distanceKm, showUltra, expa
           )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: bag ? 12 : 0 }}>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim }}>{P("form.ultra.dropBag")}</span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{P("form.ultra.dropBag")}</span>
             <StationToggle on={!!bag} onClick={() => onUpdate({ dropBag: bag ? null : { items: {}, gear: [], notes: "" } })} />
           </div>
 
@@ -168,7 +168,7 @@ export default function StationRow({ station, index, distanceKm, showUltra, expa
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
               <FuelItemPicker quantities={bag.items} onBump={bumpBagItem} dense />
               <div>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.gear")}</div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.gear")}</div>
                 {(bag.gear ?? []).map((line, i) => (
                   <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                     <input value={line} onChange={(e) => updateGear(i, e.target.value)} placeholder={P("form.ultra.gearPlaceholder")} style={{ ...panelInput, padding: "6px 8px", flex: 1, minWidth: 0 }} />
@@ -189,7 +189,7 @@ export default function StationRow({ station, index, distanceKm, showUltra, expa
                 {/* Derived suggestions — one tap to accept, never auto-inserted. */}
                 {suggestions?.length > 0 && (
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, letterSpacing: 0.6, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.suggested")}</div>
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 6 }}>{P("form.ultra.suggested")}</div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {suggestions.map((s, i) => (
                         <button

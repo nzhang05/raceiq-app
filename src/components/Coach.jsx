@@ -69,7 +69,7 @@ function Notice({ kind }) {
   return (
     <div style={{ padding: "16px 20px", marginBottom: 24, background: `${T.brass}12`, border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>{t(`${kind}.title`)}</div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, lineHeight: 1.55 }}>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.ink, lineHeight: 1.55 }}>
         {t(`${kind}.body`)}
       </div>
     </div>
@@ -228,6 +228,7 @@ export default function CoachView({ races, contextRace, onBack }) {
         <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
           <textarea
             ref={inputRef}
+            aria-label={t("inputLabel")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

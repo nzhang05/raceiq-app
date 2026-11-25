@@ -54,6 +54,9 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
   const headline = narrative?.headline || headlineText(t, race);
   const analysisNote = status === "loading" ? t("debrief.analysing") : status === "ready" ? t(narrative?.recorded ? "debrief.recordedAnalysis" : "debrief.aiAnalysis") : null;
   const vColor = verdictColor(race.verdict);
+  // Older stored races (and some imports) carry no fueling object at all; the
+  // log then shows "—" per field instead of the page failing to render.
+  const fueling = race.fueling ?? {};
 
   return (
     <div>
@@ -141,23 +144,23 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
       <div style={{ marginBottom: 56 }}>
         <SectionHeader
           title={t("debrief.fuelingLog.title")}
-          sub={t(race.fueling.inputMode === "sections" && race.fueling.sections?.length
+          sub={t(fueling.inputMode === "sections" && fueling.sections?.length
             ? "debrief.fuelingLog.subSections"
             : "debrief.fuelingLog.subTotals")}
         />
         <div className="fueling-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 40, alignItems: "start" }}>
           <div>
-            {race.fueling.inputMode === "sections" && race.fueling.sections?.length ? (
+            {fueling.inputMode === "sections" && fueling.sections?.length ? (
               <Card style={{ padding: "16px 18px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, paddingBottom: 10, borderBottom: `1px solid ${T.line}`, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 500, color: T.inkDim }}>
                   <div>{t("debrief.fuelingLog.colSection")}</div><div>{t("debrief.fuelingLog.colCarbs")}</div><div>{t("debrief.fuelingLog.colSodium")}</div><div>{t("debrief.fuelingLog.colFluid")}</div>
                 </div>
                 {(() => {
                   const bench = fuelingBenchmarks(race.finishTime);
-                  return race.fueling.sections.map((s, i) => {
+                  return fueling.sections.map((s, i) => {
                     const low = bench.needsCarbs && s.carbsPerHr < bench.carbsLow;
                     return (
-                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, padding: "10px 0", borderBottom: i < race.fueling.sections.length - 1 ? `1px solid ${T.line}88` : "none", alignItems: "baseline", fontFamily: FONT_MONO, fontSize: 12.5 }}>
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr 0.8fr 0.8fr", gap: 8, padding: "10px 0", borderBottom: i < fueling.sections.length - 1 ? `1px solid ${T.line}88` : "none", alignItems: "baseline", fontFamily: FONT_MONO, fontSize: 12.5 }}>
                         <span style={{ color: T.ink }}>km {s.fromKm}–{s.toKm}</span>
                         <span style={{ color: low ? T.ember : T.paper }}>{s.carbsPerHr} g/hr</span>
                         <span style={{ color: T.ink }}>{s.sodiumPerHr}</span>
@@ -167,7 +170,7 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
                   });
                 })()}
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.line}`, fontFamily: FONT_MONO, fontSize: 11.5, color: T.inkDim }}>
-                  {t("debrief.fuelingLog.raceAvg", { carbs: race.fueling.carbsPerHr, caffeine: race.fueling.caffeine })}
+                  {t("debrief.fuelingLog.raceAvg", { carbs: fueling.carbsPerHr, caffeine: fueling.caffeine })}
                 </div>
               </Card>
             ) : (
@@ -177,10 +180,10 @@ export default function RaceDebrief({ race, allRaces, plan, onBack, onAskCoach, 
                   // raw "{{value, number}}" in place when the value is
                   // undefined, and "0 g/hr" would assert something the athlete
                   // never told us.
-                  ["debrief.fuelingLog.carbohydrate", "debrief.fuelingLog.carbsValue", race.fueling.carbsPerHr],
-                  ["debrief.fuelingLog.sodium", "debrief.fuelingLog.sodiumValue", race.fueling.sodiumPerHr],
-                  ["debrief.fuelingLog.fluids", "debrief.fuelingLog.fluidsValue", race.fueling.fluidsPerHr],
-                  ["debrief.fuelingLog.caffeine", "debrief.fuelingLog.caffeineValue", race.fueling.caffeine],
+                  ["debrief.fuelingLog.carbohydrate", "debrief.fuelingLog.carbsValue", fueling.carbsPerHr],
+                  ["debrief.fuelingLog.sodium", "debrief.fuelingLog.sodiumValue", fueling.sodiumPerHr],
+                  ["debrief.fuelingLog.fluids", "debrief.fuelingLog.fluidsValue", fueling.fluidsPerHr],
+                  ["debrief.fuelingLog.caffeine", "debrief.fuelingLog.caffeineValue", fueling.caffeine],
                 ].map(([labelKey, valueKey, value]) => [
                   t(labelKey),
                   value == null ? "—" : t(valueKey, { value }),

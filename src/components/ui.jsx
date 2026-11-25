@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId, createContext, useContext } from "react";
 import { T, R, FONT_MONO, FONT_BODY, FONT_DISPLAY } from "../constants.js";
 
 export const inputStyle = {
@@ -14,15 +14,33 @@ export const inputStyle = {
   transition: "border-color 140ms ease, box-shadow 140ms ease",
 };
 
+/*
+  A Field names the control(s) inside it. The label is linked by
+  aria-labelledby rather than <label for>, because some fields hold more than
+  one input (h / m / s) and some hold button groups, which a wrapping <label>
+  would "click" on any tap of the label text. TextInput, Select and
+  LocationAutocomplete pick the ids up from context; a raw <input> inside a
+  Field can spread useFieldAria().
+*/
+const FieldContext = createContext(null);
+
+export function useFieldAria(props = {}) {
+  const ctx = useContext(FieldContext);
+  if (!ctx || props["aria-label"] || props["aria-labelledby"]) return {};
+  return { "aria-labelledby": ctx.labelId, ...(ctx.hintId ? { "aria-describedby": ctx.hintId } : {}) };
+}
+
 export function Field({ label, children, hint }) {
+  const id = useId();
+  const ctx = { labelId: `${id}label`, hintId: hint ? `${id}hint` : null };
   return (
     <div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.ink, marginBottom: 7 }}>
+      <div id={ctx.labelId} style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.ink, marginBottom: 7 }}>
         {label}
       </div>
-      {children}
+      <FieldContext.Provider value={ctx}>{children}</FieldContext.Provider>
       {hint && (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 5 }}>{hint}</div>
+        <div id={ctx.hintId} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.inkDim, marginTop: 5 }}>{hint}</div>
       )}
     </div>
   );
@@ -100,8 +118,10 @@ export function Pill({ color = T.ink, children, style }) {
 }
 
 export function TextInput(props) {
+  const aria = useFieldAria(props);
   return (
     <input
+      {...aria}
       {...props}
       style={inputStyle}
       onFocus={(e) => { e.target.style.borderColor = T.brass; e.target.style.boxShadow = `0 0 0 3px ${T.brass}22`; }}
@@ -110,7 +130,11 @@ export function TextInput(props) {
   );
 }
 
+// An ARIA combobox: the input owns a listbox of suggestions, and arrow keys
+// move aria-activedescendant so screen readers announce the highlighted place.
 export function LocationAutocomplete({ value, onChange, onSelect, placeholder, onKeyDown }) {
+  const aria = useFieldAria();
+  const listId = useId();
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -168,6 +192,12 @@ export function LocationAutocomplete({ value, onChange, onSelect, placeholder, o
   return (
     <div ref={containerRef} style={{ position: "relative", flex: 1 }}>
       <input
+        {...aria}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={open && activeIdx >= 0 ? `${listId}-${activeIdx}` : undefined}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
@@ -178,7 +208,7 @@ export function LocationAutocomplete({ value, onChange, onSelect, placeholder, o
         autoComplete="off"
       />
       {open && (
-        <div style={{
+        <div id={listId} role="listbox" style={{
           position: "absolute", top: "100%", left: 0, right: 0, zIndex: 999,
           background: T.bg, border: `1px solid ${T.line}`, borderTop: "none",
           borderRadius: "0 0 3px 3px", boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
@@ -187,6 +217,9 @@ export function LocationAutocomplete({ value, onChange, onSelect, placeholder, o
           {suggestions.map((s, i) => (
             <div
               key={i}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === activeIdx}
               onMouseDown={(e) => { e.preventDefault(); select(s); }}
               onMouseEnter={() => setActiveIdx(i)}
               style={{
@@ -210,10 +243,11 @@ export function LocationAutocomplete({ value, onChange, onSelect, placeholder, o
 
 /* `options` accepts plain strings, or { value, label } when the stored value is
    data (a sport, a locale) and the label is translated. */
-export function Select({ value, onChange, options }) {
+export function Select({ value, onChange, options, ...rest }) {
   const items = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
+  const aria = useFieldAria(rest);
   return (
-    <select value={value} onChange={onChange} style={{ ...inputStyle, cursor: "pointer" }}>
+    <select {...aria} {...rest} value={value} onChange={onChange} style={{ ...inputStyle, cursor: "pointer" }}>
       {items.map((o) => (
         <option key={o.value} value={o.value} style={{ background: T.bg }}>
           {o.label}

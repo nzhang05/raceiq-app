@@ -73,6 +73,9 @@ export default function FuelingSectionEditor({
 
       {sections.map((sec, i) => {
         const isLast = i === sections.length - 1;
+        // Each cell is named "<column> · S<n>", since the visual column header
+        // isn't programmatically tied to the inputs in this CSS grid.
+        const cell = (col) => t("fuelSections.cellAria", { col, n: i + 1 });
         return (
           <div key={sec.id} style={{ display: "grid", gridTemplateColumns: GRID, gap: 8, padding: "9px 0", borderBottom: `1px solid ${T.line}22`, alignItems: "center" }}>
             <div>
@@ -85,13 +88,14 @@ export default function FuelingSectionEditor({
               <input
                 type="number" step="0.1" value={sec.toKm}
                 onChange={(e) => onMoveBoundary(sec.id, parseFloat(e.target.value))}
+                aria-label={cell(t("fuelSections.colToKm"))}
                 style={{ ...inputStyle, padding: "6px 7px" }}
               />
             )}
-            <input type="number" value={sec.carbs} onChange={(e) => onUpdateSection(sec.id, { carbs: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
-            <input type="number" value={sec.sodium} onChange={(e) => onUpdateSection(sec.id, { sodium: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
-            <input type="number" value={sec.fluids} onChange={(e) => onUpdateSection(sec.id, { fluids: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
-            <input type="number" value={sec.caffeine} onChange={(e) => onUpdateSection(sec.id, { caffeine: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
+            <input type="number" aria-label={cell(t("fuelSections.colCarbs", { unit: units.c }))} value={sec.carbs} onChange={(e) => onUpdateSection(sec.id, { carbs: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
+            <input type="number" aria-label={cell(t("fuelSections.colSodium", { unit: units.s }))} value={sec.sodium} onChange={(e) => onUpdateSection(sec.id, { sodium: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
+            <input type="number" aria-label={cell(t("fuelSections.colFluids", { unit: units.f }))} value={sec.fluids} onChange={(e) => onUpdateSection(sec.id, { fluids: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
+            <input type="number" aria-label={cell(t("fuelSections.colCaffeine"))} value={sec.caffeine} onChange={(e) => onUpdateSection(sec.id, { caffeine: e.target.value })} style={{ ...inputStyle, padding: "6px 7px" }} />
             <button
               type="button"
               onClick={() => !isLast && onRemoveBoundary(sec.id)}

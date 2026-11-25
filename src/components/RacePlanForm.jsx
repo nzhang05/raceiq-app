@@ -648,6 +648,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
         <Field label={P("form.raceDate")}>
           <input
             type="date"
+            aria-label={P("form.raceDate")}
             value={raceDate}
             onChange={(e) => setRaceDate(e.target.value)}
             style={{ width: "100%", fontFamily: FONT_MONO, fontSize: 13, color: T.paper, background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 3, padding: "9px 10px", outline: "none", colorScheme: "dark" }}

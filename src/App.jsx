@@ -89,11 +89,11 @@ const FONT_IMPORT = (
     }
 
     .race-row {
-      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+      transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease;
     }
     .race-row:hover {
-      background: ${T.surfaceHi} !important;
-      border-color: ${T.brass}44 !important;
+      border-color: ${T.brass}55 !important;
+      box-shadow: 0 8px 24px rgba(30, 41, 35, 0.08);
       transform: translateY(-1px);
     }
     /* The row's secondary controls appear on hover — and also whenever the
@@ -153,12 +153,27 @@ const FONT_IMPORT = (
        so the multi-column blocks that genuinely break below ~900px collapse
        here instead. Keep the selectors in sync with the components that set
        these classNames (RaceDebrief, SeasonForm). */
+    @media (max-width: 900px) and (min-width: 641px) {
+      .race-card {
+        grid-template-columns: 150px minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.9fr) 28px !important;
+        grid-template-areas: "photo name time cond chev" "photo insight insight insight chev";
+      }
+      .race-card .rc-photo { grid-area: photo; }
+      .race-card .rc-name { grid-area: name; }
+      .race-card .rc-time { grid-area: time; }
+      .race-card .rc-cond { grid-area: cond; }
+      .race-card .rc-insight { grid-area: insight; border-left: none !important; border-top: 1px solid ${T.line}; margin: 0 22px 18px !important; padding: 12px 0 0 !important; }
+      .race-card .rc-chevron { grid-area: chev; }
+      .pattern-panel { grid-template-columns: auto minmax(0, 1fr) !important; }
+      .pattern-panel figure { grid-column: 1 / -1; }
+    }
     @media (max-width: 900px) {
       .takeaway-grid,
-      .fueling-grid,
-      .season-form {
+      .fueling-grid {
         grid-template-columns: 1fr !important;
       }
+      .season-grid { grid-template-columns: repeat(3, auto) !important; row-gap: 18px; }
+      .season-strongest { grid-column: 1 / -1; border-left: none !important; padding-left: 0 !important; }
     }
 
     /* Phones (checked at 390px). Fixed inline grids reflow here; selectors
@@ -173,19 +188,28 @@ const FONT_IMPORT = (
       .demo-banner { padding: 8px 16px !important; }
       .app-main { padding: 24px 16px 72px !important; }
 
-      .race-list-head { display: none !important; }
-      .race-row {
-        grid-template-columns: 22px minmax(0, 1fr) auto auto !important;
-        grid-template-areas: "cb name name del" "cb dist finish verdict";
-        column-gap: 12px !important; row-gap: 8px !important; padding: 12px !important;
+      .home-hero { grid-template-columns: 1fr !important; min-height: 0 !important; }
+      .home-hero > div:first-child { padding: 24px 22px 26px !important; }
+      .home-hero h1 { font-size: 34px !important; letter-spacing: -0.6px !important; }
+      .home-hero .home-hero-photo { inset: 0 !important; opacity: 0.35; }
+      .season-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; row-gap: 18px !important; }
+      .season-stat { flex-direction: column; align-items: flex-start !important; gap: 6px !important; padding-right: 8px !important; }
+      .season-stat svg { width: 24px; height: 24px; }
+      .season-stat > div > div:first-child { font-size: 26px !important; }
+      .season-strongest { grid-column: 1 / -1; border-left: none !important; border-top: 1px solid ${T.line}; padding: 14px 0 0 !important; }
+      .pattern-panel { grid-template-columns: 1fr !important; padding: 20px !important; gap: 14px !important; }
+      .pattern-panel > span:first-child { display: none !important; }
+      .race-card {
+        grid-template-columns: 96px minmax(0, 1fr) auto 28px !important;
+        grid-template-areas: "photo name name chev" "time time cond cond" "insight insight insight insight";
       }
-      .race-row .rl-cb { grid-area: cb; align-self: start; padding-top: 2px; }
-      .race-row .rl-name { grid-area: name; }
-      .race-row .rl-dist { grid-area: dist; }
-      .race-row .rl-finish { grid-area: finish; font-size: 15px !important; }
-      .race-row .rl-verdict { grid-area: verdict; }
-      .race-row .rl-del { grid-area: del; align-self: start; }
-      .race-row .rl-cond, .race-row .rl-shape { display: none !important; }
+      .race-card .rc-photo { grid-area: photo; min-height: 96px; }
+      .race-card .rc-name { grid-area: name; padding: 14px 14px !important; }
+      .race-card .rc-name h3 button { font-size: 19px !important; white-space: normal !important; }
+      .race-card .rc-chevron { grid-area: chev; }
+      .race-card .rc-time { grid-area: time; justify-content: flex-start !important; gap: 18px; border-left: none !important; border-top: 1px solid ${T.line}; margin: 0 0 0 14px !important; padding: 12px 0; font-size: 24px !important; }
+      .race-card .rc-cond { grid-area: cond; border-left: none !important; border-top: 1px solid ${T.line}; margin: 0 14px 0 0 !important; padding: 10px 0 0 !important; align-items: flex-end; text-align: right; }
+      .race-card .rc-insight { grid-area: insight; border-left: none !important; border-top: 1px solid ${T.line}; margin: 0 14px 14px !important; padding: 12px 0 0 !important; }
 
       .stat-strip { grid-template-columns: 1fr 1fr !important; }
       .stat-strip > :nth-child(odd) { border-left: none !important; }
@@ -461,7 +485,7 @@ export default function RaceIQApp() {
         )}
       </header>
 
-      <main key={view} className="view-enter app-main" style={{ maxWidth: 920, margin: "0 auto", padding: "40px 32px 80px" }}>
+      <main key={view} className="view-enter app-main" style={{ maxWidth: view === "list" ? 1160 : 1040, margin: "0 auto", padding: "40px 32px 80px" }}>
         {view === "list" && (
           <RaceList
             races={allRaces}

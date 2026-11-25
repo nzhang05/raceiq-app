@@ -81,7 +81,7 @@ export default defineConfig(({ mode }) => {
     // into jsdom with a `// @vitest-environment jsdom` pragma.
     test: {
       environment: "node",
-      include: ["src/**/*.test.js", "api/**/*.test.js"],
+      include: ["src/**/*.test.{js,jsx}", "api/**/*.test.js"],
       // The noisy-elevation GPX fixture takes ~3s on a laptop; give CI room.
       testTimeout: 20_000,
     },

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: i18n · tests · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Translation parity (en ↔ fr)
+        run: npm run check:i18n
+
+      - name: Tests (engine, GPX parser, grounding check)
+        run: npm test
+
+      - name: Build
+        run: npx vite build
+
+      # The public demo is a separate bundle; make sure it builds too.
+      - name: Build (demo mode)
+        run: npx vite build --mode demo

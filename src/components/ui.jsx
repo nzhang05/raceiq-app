@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useId, createContext, useContext } from "react";
 import { T, R, FONT_MONO, FONT_BODY, FONT_DISPLAY } from "../constants.js";
+import { ArrowUpRightIcon, AlertIcon, InfoIcon } from "./icons.jsx";
 
 export const inputStyle = {
   width: "100%",
-  fontFamily: FONT_MONO,
-  fontSize: 13.5,
+  fontFamily: FONT_BODY,
+  fontSize: 15,
   color: T.paper,
-  background: T.bg,
+  background: T.surface,
   border: `1px solid ${T.line}`,
   borderRadius: R.sm,
   padding: "11px 12px",
@@ -35,7 +36,7 @@ export function Field({ label, children, hint }) {
   const ctx = { labelId: `${id}label`, hintId: hint ? `${id}hint` : null };
   return (
     <div>
-      <div id={ctx.labelId} style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, color: T.ink, marginBottom: 7 }}>
+      <div id={ctx.labelId} style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: T.paper, marginBottom: 7 }}>
         {label}
       </div>
       <FieldContext.Provider value={ctx}>{children}</FieldContext.Provider>
@@ -69,18 +70,17 @@ export function Card({ children, style, className, ...rest }) {
 export function Button({ children, variant = "primary", style, ...rest }) {
   const base = {
     fontFamily: FONT_BODY,
-    fontSize: 13.5,
+    fontSize: 14.5,
     fontWeight: 600,
-    padding: "10px 18px",
+    padding: "11px 22px",
     borderRadius: R.pill,
     cursor: "pointer",
     transition: "all 140ms ease",
     whiteSpace: "nowrap",
   };
   const variants = {
-    // White on the green accent is 5.2:1; the old near-black ink was tuned for
-    // a light orange fill and drops to ~2.6:1 here.
-    primary: { border: "none", background: T.brass, color: "#FFFFFF" },
+    // White on forest is 6.5:1.
+    primary: { border: `1px solid ${T.brass}`, background: T.brass, color: "#FFFFFF" },
     secondary: { border: `1px solid ${T.line}`, background: T.surface, color: T.paper },
     ghost: { border: `1px solid ${T.brass}55`, background: `${T.brass}14`, color: T.brass },
   };
@@ -262,14 +262,13 @@ export function FormSectionTitle({ children }) {
     <div
       style={{
         fontFamily: FONT_DISPLAY,
-        fontSize: 17,
-        fontWeight: 600,
-        letterSpacing: -0.2,
+        fontSize: 24,
+        fontWeight: 500,
+        letterSpacing: -0.3,
+        lineHeight: 1.2,
         color: T.paper,
-        marginTop: 34,
+        marginTop: 48,
         marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: `1px solid ${T.line}`,
       }}
     >
       {children}
@@ -287,14 +286,13 @@ export function EvidenceList({ items }) {
         <span
           key={i}
           style={{
-            fontFamily: FONT_MONO,
-            fontSize: 11,
+            fontFamily: FONT_BODY,
+            fontSize: 12,
             lineHeight: 1.5,
-            color: T.inkDim,
-            background: T.surfaceHi,
-            border: `1px solid ${T.line}`,
-            borderRadius: R.sm,
-            padding: "3px 8px",
+            color: T.ink,
+            background: T.sageTint,
+            borderRadius: R.pill,
+            padding: "3px 10px",
           }}
         >
           {item}
@@ -338,29 +336,32 @@ export function Finding({ kind, title, body, evidence }) {
 // `kindLabel` is passed in already translated — this module stays language-free.
 export function FindingCard({ kind, kindLabel, title, body, evidence, style, className }) {
   const color = kind === "strength" ? T.green : kind === "limiter" ? T.ember : T.inkDim;
+  const KindIcon = kind === "strength" ? ArrowUpRightIcon : kind === "limiter" ? AlertIcon : InfoIcon;
   return (
     <div
       className={className}
       style={{
         display: "flex",
         flexDirection: "column",
-        padding: "18px 20px 20px",
+        padding: "20px 22px 22px",
         background: T.surface,
         border: `1px solid ${T.line}`,
-        borderTop: `3px solid ${color}`,
         borderRadius: R.lg,
         ...style,
       }}
     >
+      {/* The kind reads as a plain-language kicker with an icon, not a
+          classification label shouted in capitals. */}
       {kindLabel && (
-        <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 0.6, textTransform: "uppercase", color, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color, marginBottom: 10 }}>
+          <KindIcon size={17} />
           {kindLabel}
         </div>
       )}
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.paper, marginBottom: 6, letterSpacing: -0.1 }}>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, lineHeight: 1.25, color: T.paper, marginBottom: 8, letterSpacing: -0.2 }}>
         {title}
       </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.ink, flex: 1 }}>{body}</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.6, color: T.ink, flex: 1 }}>{body}</div>
       <EvidenceList items={evidence} />
     </div>
   );
@@ -371,14 +372,12 @@ export function Recommendation({ index, action, why, evidence }) {
     <div style={{ display: "flex", gap: 16, padding: "18px 0", borderBottom: `1px solid ${T.line}` }}>
       <div
         style={{
-          fontFamily: FONT_MONO,
-          fontSize: 13,
+          fontFamily: FONT_DISPLAY,
+          fontSize: 22,
           fontWeight: 500,
           color: T.brass,
-          background: `${T.brass}18`,
-          borderRadius: R.pill,
           width: 26,
-          height: 26,
+          height: 30,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -388,10 +387,10 @@ export function Recommendation({ index, action, why, evidence }) {
         {index}
       </div>
       <div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, letterSpacing: -0.1, color: T.paper, marginBottom: 4 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 500, letterSpacing: -0.2, lineHeight: 1.3, color: T.paper, marginBottom: 5 }}>
           {action}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, lineHeight: 1.55 }}>{why}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.ink, lineHeight: 1.6 }}>{why}</div>
         <EvidenceList items={evidence} />
       </div>
     </div>

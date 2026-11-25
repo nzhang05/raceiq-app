@@ -28,8 +28,11 @@ export default {
     racePlan: "Plan de course",
     language: "Langue",
     sampleAthlete: "Athlète exemple",
+    home: "Accueil RaceIQ",
+    main: "Principal",
+    plan: "Planifier",
+    profileOf: "Profil : {{name}}",
     breadcrumb: "Fil d'Ariane",
-    seasonForm: "Forme de la saison {{rating}}",
   },
 
   errorPage: {

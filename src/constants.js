@@ -1,75 +1,77 @@
 import { withGap } from "./utils/pace.js";
 
 /* ---------------------------------------------------------
-   Design tokens — "modern sport-tech" (v2)
-   Cooler neutral-slate dark surfaces, soft depth, a single
-   vivid accent (green). Token *names* are unchanged
-   from v1 so every view re-skins for free; only values moved.
-     bg        app background (deepest)
-     surface   card / panel base
-     surfaceHi elevated + hover state
-     line      hairline dividers
-     paper     primary text (near-white)
-     ink       secondary text
-     inkDim    tertiary / captions
-     brass     THE accent — CTAs, scores, active states
+   Design tokens — "the endurance journal" (v3)
+   Warm ivory, forest green as the brand colour, a deep
+   charcoal-green for text, muted sage for quiet fills.
+   See docs/design-visual-identity.md. Token *names* are
+   unchanged from v1/v2 so every view re-skins for free.
+     bg        app background (warm ivory)
+     bg2       quiet inset surface (inputs, upload wells)
+     surface   card / panel base (warm white)
+     surfaceHi hover + elevated state
+     line      hairline dividers — deliberately faint; use space first
+     paper     primary text          ink  secondary   inkDim  captions
+     brass     THE brand colour (forest) — CTAs, links, active states
+     sage      muted accent fill (panels, inactive bars) — never text
      green     strength   ember  limiter   neutral  "mixed"
 
    CONTRAST RULE: every token used as *text* clears WCAG AA 4.5:1
-   against the worst surface it lands on (light: surfaceHi #EDF0F4;
-   dark: surfaceHi #1E262F), and as pill text against its own 9%
-   tint. Body copy here runs 10.5–13px, so the large-text 3:1
-   allowance does not apply. Re-run the contrast audit if you
-   touch these values — several were previously 2.7–3.5:1. Last audit:
-   axe-core (wcag2aa) on every view, Nov 2026 — zero contrast findings.
+   on bg, surface, surfaceHi and sageTint, and on its own 10% tint
+   (pills). Audit, Nov 2026 (worst case in brackets):
+     paper 12.3 · ink 7.8 · inkDim 4.9 (on sageTint) · brass 5.1
+     (own tint) · ember 5.2 · neutral 5.0 · temp 4.8.
+   White text on brass is 6.5:1. Re-run the audit if you touch
+   these values, and run axe-core on every view.
 
-   `brass` and `green` are deliberately the SAME green: the accent
-   and the "strength" verdict are one idea, and two greens a few
-   points apart read as a rendering bug rather than a distinction.
-   "mixed" therefore uses `neutral`, not the accent. --------- */
+   `brass` and `green` are deliberately the SAME forest green:
+   the brand and the "strength" verdict are one idea. "mixed"
+   therefore uses `neutral`, not the brand colour. --------- */
 
 /* Two palettes sharing identical token *names* so components read `T`
-   without caring about mode. `T` is the active theme; a future dark-mode
-   toggle swaps which object `T` points at (see project-design-system memo
-   — a runtime toggle will need CSS-variable/context theming since imports
-   are static). "paper" = primary text, "bg" = app background in both. */
+   without caring about mode. `T` is the active theme; the app ships light
+   only. "paper" = primary text, "bg" = app background in both. */
 
 const LIGHT = {
-  bg: "#F4F6F8",       // app background (cool light gray)
-  bg2: "#FFFFFF",      // legacy alias — base card surface
-  surface: "#FFFFFF",
-  surfaceHi: "#EDF0F4", // elevated + hover
-  paper: "#151A21",    // primary text (near-black)
-  ink: "#525A64",      // secondary text — 6.1:1 on surfaceHi
-  inkDim: "#646D79",   // tertiary / captions — 4.6:1 on surfaceHi (was #8B939D, 2.7:1)
-  line: "#E3E7EC",     // hairline dividers
-  brass: "#08714F",    // THE accent — deep green, 5.3:1 on surfaceHi, 4.6:1 as pill text on its own tint over the translucent header (was #0A7C57, 4.1:1 there)
-  brassDim: "#08553C", // darker green for borders / secondary accent text
-  green: "#08714F",    // strength — same green as the accent, by design
-  greenDim: "#BFE0D0", // pale green, borders/tints only (never text)
-  ember: "#B52D39",    // limiter — 5.4:1 on surfaceHi, 5.0:1 on its own tint (was #C4333F, 4.3:1 on the tint)
-  emberDim: "#F0C4C7", // pale red, borders/tints only (never text)
-  neutral: "#5A6472",  // "mixed" verdict — 5.3:1 on surfaceHi
-  temp: "#2E7590",     // temperature series — 4.5:1 on surfaceHi (was #3E90AA, 3.2:1)
+  bg: "#F6F4ED",        // warm ivory
+  bg2: "#FBF9F3",       // quiet inset (inputs, wells)
+  surface: "#FFFDF8",   // warm white cards
+  surfaceHi: "#EFEBE0", // hover / elevated
+  paper: "#1E2923",     // primary text — deep charcoal-green
+  ink: "#3D4840",       // secondary text
+  inkDim: "#5C665F",    // captions
+  line: "#E3DED0",      // hairline
+  brass: "#176B50",     // forest — the brand colour
+  brassDim: "#0F4D39",  // darker forest for borders / pressed states
+  sage: "#8FA88F",      // muted accent — fills and inactive marks only
+  sageTint: "#E4EADF",  // sage panel background
+  green: "#176B50",     // strength — same as the brand, by design
+  greenDim: "#CFE0D4",  // pale green, borders/tints only (never text)
+  ember: "#A3392B",     // limiter / warning — earthy red
+  emberDim: "#EBCBC3",  // pale red, borders/tints only (never text)
+  neutral: "#58625B",   // "mixed" verdict
+  temp: "#2A6A82",      // temperature series
 };
 
 const DARK = {
-  bg: "#0E1217",
-  bg2: "#161C23",
-  surface: "#161C23",
-  surfaceHi: "#1E262F",
-  paper: "#F2F5F8",
-  ink: "#AAB4C0",
-  inkDim: "#96A0AC",   // lifted from #6B7580 (3.4:1) to clear AA on surfaceHi
-  line: "#242C35",
-  brass: "#34D399",    // same green as light, lightened for dark surfaces
-  brassDim: "#125940",
-  green: "#34D399",    // strength — same green as the accent, by design
-  greenDim: "#16332B", // borders/tints only (never text)
-  ember: "#F5737A",    // lifted from #F0555C to clear AA on surfaceHi
-  emberDim: "#331B20", // borders/tints only (never text)
-  neutral: "#A3ADBA",  // "mixed" verdict
-  temp: "#7FC3D8",
+  bg: "#121814",
+  bg2: "#18201B",
+  surface: "#1A221D",
+  surfaceHi: "#222C26",
+  paper: "#EEF1EA",
+  ink: "#BAC4BC",
+  inkDim: "#9AA59D",
+  line: "#2A352E",
+  brass: "#5FC39A",
+  brassDim: "#1D5A43",
+  sage: "#6F866F",
+  sageTint: "#1F2A22",
+  green: "#5FC39A",
+  greenDim: "#1E3A2D",
+  ember: "#F08A7A",
+  emberDim: "#3A211D",
+  neutral: "#A9B3AB",
+  temp: "#86C2D6",
 };
 
 export const THEMES = { light: LIGHT, dark: DARK };
@@ -123,15 +125,19 @@ export const SEGMENT_RAMP = T === LIGHT ? SEGMENT_RAMP_LIGHT : SEGMENT_RAMP_DARK
 export const GRADE_SCALE = T === LIGHT ? GRADE_SCALE_LIGHT : GRADE_SCALE_DARK;
 
 // Radius scale for the rounded-card language
-export const R = { sm: 8, md: 12, lg: 16, pill: 999 };
+export const R = { sm: 6, md: 10, lg: 14, pill: 999 };
 
 // Three separable hues for overlaid race series. `green` is omitted on purpose
 // — it is the same value as `brass`, so using both would draw two identical lines.
 export const COMPARE_COLORS = [T.paper, T.brass, T.temp];
 
-export const FONT_DISPLAY = "'Space Grotesk', 'Inter', system-ui, sans-serif";
+// Editorial serif for headings, a clean sans for everything else. Data used to
+// be set in a monospace face; it is now Inter with tabular numerals (set on
+// <body> in App.jsx), so times and distances still align in columns.
+// FONT_MONO stays as a name so the many data styles keep a single handle.
+export const FONT_DISPLAY = "'Newsreader', Georgia, 'Times New Roman', serif";
 export const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif";
-export const FONT_MONO = "'IBM Plex Mono', 'SFMono-Regular', monospace";
+export const FONT_MONO = FONT_BODY;
 
 export const SPORTS = ["All", "Road Running", "Trail Running", "Road Cycling", "Gravel Cycling"];
 export const SPORT_OPTIONS = SPORTS.filter((s) => s !== "All");

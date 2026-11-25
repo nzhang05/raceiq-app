@@ -14,10 +14,17 @@ import RacePlanForm from "./components/RacePlanForm.jsx";
 import RacePlanView from "./components/RacePlanView.jsx";
 import LanguageToggle from "./components/LanguageToggle.jsx";
 import { isDemo, resetDemoData } from "./lib/demo.js";
+import { SparkIcon } from "./components/icons.jsx";
+
+// "Noah Zhang" → "NZ"; "noah@example.com" → "N".
+function initials(name) {
+  const parts = String(name || "").replace(/@.*/, "").split(/[\s._-]+/).filter(Boolean);
+  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+}
 
 const FONT_IMPORT = (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400&display=swap');
 
     :root {
       --bg: ${T.bg};
@@ -35,7 +42,12 @@ const FONT_IMPORT = (
     * { box-sizing: border-box; }
     html, body {
       background: ${T.bg};
+      color: ${T.paper};
       margin: 0;
+      font-family: ${FONT_BODY};
+      /* Tabular figures everywhere: finish times, paces and distances line up
+         in columns without a monospace face. */
+      font-variant-numeric: tabular-nums;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
@@ -61,12 +73,19 @@ const FONT_IMPORT = (
       z-index: 100;
       backdrop-filter: blur(14px) saturate(140%);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
-      /* tracks light T.bg (#F4F6F8) at ~72% — update alongside theme toggle */
-      background: rgba(244, 246, 248, 0.72) !important;
+      /* T.bg (#F6F4ED) at ~86% — update alongside a theme toggle */
+      background: rgba(246, 244, 237, 0.86) !important;
     }
 
     .view-enter {
       animation: fadeInView 220ms ease both;
+    }
+
+    .app-tab:hover { color: ${T.paper} !important; }
+
+    /* Gentle motion only, and none for people who ask for none. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
     }
 
     .race-row {
@@ -145,9 +164,11 @@ const FONT_IMPORT = (
     /* Phones (checked at 390px). Fixed inline grids reflow here; selectors
        match classNames in App, RaceList, RaceDebrief, Compare and the forms. */
     @media (max-width: 640px) {
-      .app-header-row { padding: 12px 16px !important; flex-wrap: wrap; gap: 10px; }
-      .app-header-actions { gap: 8px !important; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+      .app-header-row { padding: 10px 16px 0 !important; flex-wrap: wrap; column-gap: 10px !important; row-gap: 6px !important; }
+      .app-header-actions { gap: 8px !important; flex-wrap: wrap; justify-content: flex-end; }
       .app-header-actions .nav-pill { padding: 6px 12px !important; }
+      /* Tabs drop to their own full-width row under the wordmark. */
+      .app-tabs { order: 3; flex: 1 0 100%; min-height: 40px; margin: 0 -16px; padding: 0 6px; overflow-x: auto; }
       .app-breadcrumb { padding: 0 16px 10px !important; flex-wrap: wrap; }
       .demo-banner { padding: 8px 16px !important; }
       .app-main { padding: 24px 16px 72px !important; }
@@ -245,13 +266,11 @@ export default function RaceIQApp() {
 
   const activeRace = allRaces.find((r) => r.id === activeId);
 
-  // Header identity. A signed-in athlete sees their own name; everyone else is
-  // looking at the sample athlete, and the header says so. The number beside
-  // it is season form — the latest race's RaceIQ score, the same figure the
-  // season card on the race list leads with — not a stored constant.
+  // Header identity. A signed-in athlete sees their initials (linking to their
+  // profile); everyone else is looking at the sample athlete, and the header
+  // says so.
   const signedIn = isConfigured && Boolean(user);
   const athleteName = signedIn ? (profile?.display_name || user.email) : t("nav.sampleAthlete");
-  const seasonRating = allRaces[0]?.rating ?? null;
 
   function handleResetDemo() {
     if (!window.confirm(t("demo.resetConfirm"))) return;
@@ -315,53 +334,74 @@ export default function RaceIQApp() {
       {FONT_IMPORT}
 
       <header className="app-header" style={{ borderBottom: `1px solid ${T.line}` }}>
-        <div className="app-header-row" style={{ padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="app-header-row" style={{ padding: "0 32px", minHeight: 64, display: "flex", alignItems: "center", gap: 40 }}>
           <button
+            type="button"
             onClick={() => setView("list")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "baseline", gap: 1 }}
+            aria-label={t("nav.home")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, letterSpacing: -0.4, color: T.brass, lineHeight: 1 }}
           >
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.paper }}>Race</span>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.brass }}>IQ</span>
+            RaceIQ
           </button>
-          <div className="app-header-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+          {/* Top-level sections. The tab underline marks where you are; nested
+              views (a race, the compare page) still belong to Races. */}
+          <nav aria-label={t("nav.main")} className="app-tabs" style={{ display: "flex", alignSelf: "stretch", gap: 4 }}>
+            {[
+              { key: "races", label: t("nav.races"), views: ["list", "debrief", "add", "compare"], go: () => setView("list") },
+              { key: "plan", label: t("nav.plan"), views: ["plan", "plan-view"], go: () => setView("plan") },
+              ...(signedIn ? [{ key: "profile", label: t("nav.profile"), views: ["profile"], go: () => setView("profile") }] : []),
+            ].map((tab) => {
+              const active = tab.views.includes(view);
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className="app-tab"
+                  aria-current={active ? "page" : undefined}
+                  onClick={tab.go}
+                  style={{ background: "none", border: "none", borderBottom: `2px solid ${active ? T.brass : "transparent"}`, padding: "0 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: active ? 600 : 500, color: active ? T.paper : T.ink, transition: "color 140ms ease, border-color 140ms ease" }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="app-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
             <LanguageToggle />
             <button
               type="button"
               className="nav-pill"
               aria-current={view === "coach" ? "page" : undefined}
               onClick={() => openCoach(null)}
-              style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 16px", borderRadius: 999, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? `${T.brass}1A` : "transparent", color: view === "coach" ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 500, padding: "8px 16px", borderRadius: 999, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? `${T.brass}14` : T.surface, color: view === "coach" ? T.brass : T.paper, cursor: "pointer", transition: "all 140ms ease" }}
             >
+              <SparkIcon size={15} />
               {t("nav.askRaceIQ")}
             </button>
-            {(() => {
-              // Only a signed-in athlete has a profile to edit; the sample
-              // athlete's chip is a label, not a link to a form that can't save.
-              const Chip = signedIn ? "button" : "div";
-              return (
-                <Chip
-                  {...(signedIn ? { type: "button", onClick: () => setView("profile") } : {})}
-                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px 5px 12px", borderRadius: 999, background: view === "profile" ? T.surfaceHi : T.surface, border: `1px solid ${view === "profile" ? T.brass : T.line}`, cursor: signedIn ? "pointer" : "default", transition: "all 140ms ease" }}
-                >
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink }}>
-                    {athleteName}
-                  </span>
-                  {seasonRating != null && (
-                    <span
-                      aria-label={t("nav.seasonForm", { rating: seasonRating })}
-                      role="img"
-                      style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}
-                    >
-                      {seasonRating}
-                    </span>
-                  )}
-                </Chip>
-              );
-            })()}
-            {isConfigured && user && (
+            {signedIn ? (
               <button
+                type="button"
+                onClick={() => setView("profile")}
+                aria-label={t("nav.profileOf", { name: athleteName })}
+                title={athleteName}
+                style={{ width: 36, height: 36, borderRadius: 999, border: `1px solid ${view === "profile" ? T.brass : T.line}`, background: T.sageTint, color: T.brassDim, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                {initials(athleteName)}
+              </button>
+            ) : (
+              // The sample athlete is a label, not a link to a profile that
+              // can't be saved without an account.
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, color: T.ink, padding: "7px 12px", borderRadius: 999, background: T.sageTint }}>
+                {athleteName}
+              </span>
+            )}
+            {signedIn && (
+              <button
+                type="button"
                 onClick={signOut}
-                style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 999, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, cursor: "pointer", transition: "all 140ms ease" }}
+                style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: 0, border: "none", background: "none", color: T.inkDim, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
               >
                 {t("nav.signOut")}
               </button>
@@ -369,8 +409,8 @@ export default function RaceIQApp() {
           </div>
         </div>
 
-        {view !== "list" && (
-          <nav aria-label={t("nav.breadcrumb")} className="app-breadcrumb" style={{ padding: "0 32px 12px", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
+        {["debrief", "add", "compare", "plan-view"].includes(view) || (view === "coach" && coachContextRace) ? (
+          <nav aria-label={t("nav.breadcrumb")} className="app-breadcrumb" style={{ padding: "10px 32px", borderTop: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
             <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
               {t("nav.races")}
             </button>
@@ -404,7 +444,7 @@ export default function RaceIQApp() {
               </>
             )}
           </nav>
-        )}
+        ) : null}
 
         {isDemo && (
           <div role="note" className="demo-banner" style={{ borderTop: `1px solid ${T.line}`, padding: "8px 32px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13, color: T.ink }}>

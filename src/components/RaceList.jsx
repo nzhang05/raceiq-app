@@ -164,7 +164,7 @@ export default function RaceList({ races, onOpen, onAddRace, onPlanRace, onDelet
             {t("raceList.meta", { count: filtered.length, km: totalDistanceKm })} · {t("raceList.subtitle")}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={onPlanRace}>{t("nav.planRace")}</Button>
           <Button onClick={onAddRace}>{t("raceList.addRace")}</Button>
         </div>

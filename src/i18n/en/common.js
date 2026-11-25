@@ -28,8 +28,11 @@ export default {
     racePlan: "Race plan",
     language: "Language",
     sampleAthlete: "Sample athlete",
+    home: "RaceIQ home",
+    main: "Main",
+    plan: "Plan",
+    profileOf: "Profile: {{name}}",
     breadcrumb: "Breadcrumb",
-    seasonForm: "Season form {{rating}}",
   },
 
   errorPage: {

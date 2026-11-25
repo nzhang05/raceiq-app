@@ -39,7 +39,7 @@ All text tokens clear WCAG AA (4.5:1) on ivory, on warm white, on the hover surf
 
 ## Imagery
 
-No stock or AI-generated photos ship with the app. Photos are discovered at build time from `src/assets/photos/` by file name:
+The app never generates images, and it uses only photos the owner has chosen and credited (the current set is from Unsplash; credits are in `src/assets/photos/README.md`). Photos are discovered at build time from `src/assets/photos/` by file name:
 
 | File | Used for |
 |---|---|

@@ -7,14 +7,10 @@ import { gatherLimiterPatterns } from "./analysis.js";
 import { parseClockToMinutes } from "./time.js";
 import { splitIntervalKm } from "./gpx.js";
 import { isCyclingSport } from "../constants.js";
+import { fmtClock } from "./clock.js";
 
 export function minutesToClock(min) {
-  const h = Math.floor(min / 60);
-  const m = Math.floor(min % 60);
-  const s = Math.round((min * 60) % 60);
-  return h > 0
-    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${m}:${String(s).padStart(2, "0")}`;
+  return fmtClock(min);
 }
 
 export async function forecastWeather(lat, lon, dateStr) {

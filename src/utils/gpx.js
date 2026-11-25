@@ -1,6 +1,7 @@
 import { isCyclingSport } from "../constants.js";
 import { haversineMeters } from "./geo.js";
 import { resolveWaypoints } from "./waypoints.js";
+import { fmtClock } from "./clock.js";
 
 /*
   Failures carry a catalog key (in the `plan` namespace) rather than a sentence,
@@ -323,11 +324,7 @@ export async function parseTrackFile(file, sport, options) {
   const hasTime = rawPoints.every((p) => p.time != null);
   let finishTime = "";
   if (hasTime) {
-    const totalMin = (rawPoints[rawPoints.length - 1].time - rawPoints[0].time) / 60000;
-    const h = Math.floor(totalMin / 60);
-    const m = Math.floor(totalMin % 60);
-    const s = Math.round((totalMin * 60) % 60);
-    finishTime = h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+    finishTime = fmtClock((rawPoints[rawPoints.length - 1].time - rawPoints[0].time) / 60000);
   }
 
   const elevationGain = elevationGainM(points);

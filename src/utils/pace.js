@@ -1,3 +1,5 @@
+import { fmtMinSec } from "./clock.js";
+
 // Minetti-derived polynomial, normalized so cost(0) = 1.
 // Running: energy cost of locomotion curve from Minetti 2002.
 // Cycling: power penalty approximated from grade.
@@ -44,10 +46,9 @@ export function sportUsesGap(sport) {
   return sport === "Trail Running" || sport === "Gravel Cycling" || sport === "Road Cycling";
 }
 
+// 4.999 → "5:00/km", not "4:60/km" — see src/utils/clock.js.
 export function fmtPace(minPerKm) {
-  const m = Math.floor(minPerKm);
-  const s = Math.round((minPerKm - m) * 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
+  return `${fmtMinSec(minPerKm)}/km`;
 }
 
 export function paceDriftPct(splits) {

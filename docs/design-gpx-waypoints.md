@@ -300,8 +300,12 @@ Two options; I'd take the first:
 - Inject a parser: `parseRouteFile(file, sport, { parser })` defaulting to `new DOMParser()`,
   letting tests pass a `jsdom` instance. Small, contained, and makes the module testable
   as a whole rather than only through the browser harness.
-- Otherwise, drive it through the existing Playwright harness
-  ([`src/__harness.jsx`](../src/__harness.jsx), [`__shot.mjs`](../__shot.mjs)).
+- Otherwise, drive it through a Playwright harness against a dev server.
+
+> **Outcome (Nov 2026):** shipped as the Playwright harness first, which proved fragile
+> (browser version drift broke it in a clean environment). The tests now run under Vitest
+> with jsdom's `DOMParser` — see [`src/__tests__/waypoints.test.js`](../src/__tests__/waypoints.test.js).
+> No parser injection was needed: jsdom provides the global.
 
 Fixtures to add under `src/__fixtures__/gpx/`:
 

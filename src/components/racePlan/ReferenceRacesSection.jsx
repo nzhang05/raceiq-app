@@ -55,17 +55,17 @@ export default function ReferenceRacesSection({ sport, candidateRaces, selectedR
                       width: 14, height: 14, borderRadius: 2, border: `1.5px solid ${checked ? T.brass : T.inkDim}`,
                       background: checked ? T.brass : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                      {checked && <span style={{ color: T.bg, fontSize: 11, lineHeight: 1, fontFamily: FONT_MONO }}>✓</span>}
+                      {checked && <span style={{ color: T.bg, fontSize: 12.5, lineHeight: 1, fontFamily: FONT_MONO }}>✓</span>}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: checked ? T.paper : T.inkDim }}>{race.name}</div>
-                    <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 2 }}>{fmtDate(race.date)} · {race.distanceKm} km</div>
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 2 }}>{fmtDate(race.date)} · {race.distanceKm} km</div>
                   </div>
                   <div style={{ fontFamily: FONT_MONO, fontSize: 13, color: checked ? T.paper : T.inkDim, textAlign: "right" }}>
                     {race.finishTime}
                   </div>
-                  <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, textAlign: "right" }}>
+                  <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, textAlign: "right" }}>
                     {P("form.percentileShort", { pct: race.percentile })}
                   </div>
                 </div>

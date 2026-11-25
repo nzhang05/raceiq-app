@@ -66,12 +66,12 @@ export default function SignIn() {
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: T.bg, padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 1, justifyContent: "center", marginBottom: 28 }}>
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: -0.4, color: T.paper }}>Race</span>
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: -0.4, color: T.brass }}>IQ</span>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500, letterSpacing: -0.4, color: T.paper }}>Race</span>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 500, letterSpacing: -0.4, color: T.brass }}>IQ</span>
         </div>
 
         <Card>
-          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: T.paper, margin: "0 0 18px" }}>{title}</h1>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 500, color: T.paper, margin: "0 0 18px" }}>{title}</h1>
 
           {mode !== "reset" && (
             <>

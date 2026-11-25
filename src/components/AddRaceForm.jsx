@@ -373,14 +373,14 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
   return (
     <div>
-      <button onClick={onCancel} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 28 }}>
+      <button onClick={onCancel} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, cursor: "pointer", padding: 0, marginBottom: 28 }}>
         {t("compare.back")}
       </button>
 
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 6 }}>
         {A(editing ? "eyebrowEdit" : "eyebrowAdd")}
       </div>
-      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: "0 0 8px", color: T.paper }}>
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 500, margin: "0 0 8px", color: T.paper }}>
         {A(editing ? "titleEdit" : "titleAdd")}
       </h1>
       <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.inkDim, marginBottom: 8, maxWidth: 600 }}>
@@ -389,12 +389,12 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
       <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, padding: "18px 20px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.paper, marginBottom: 4 }}>{A("import.title")}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 500, color: T.paper, marginBottom: 4 }}>{A("import.title")}</div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.inkDim, maxWidth: 440 }}>
             {A("import.body")}
           </div>
         </div>
-        <label style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "11px 18px", cursor: "pointer", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
+        <label style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "11px 18px", cursor: "pointer", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
           {A(importStatus === "loading" ? "import.reading" : "import.chooseFile")}
           <input type="file" accept=".gpx,.tcx" onChange={handleFileImport} style={{ display: "none" }} disabled={importStatus === "loading"} />
         </label>
@@ -451,7 +451,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
             <button
               onClick={handleLocationWeatherLookup}
               disabled={!locationQuery.trim() || weatherStatus === "loading"}
-              style={{ fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.5, color: T.bg, background: locationQuery.trim() ? T.brass : T.line, border: "none", borderRadius: 3, padding: "10px 16px", cursor: locationQuery.trim() ? "pointer" : "default", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}
+              style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.bg, background: locationQuery.trim() ? T.brass : T.line, border: "none", borderRadius: 3, padding: "10px 16px", cursor: locationQuery.trim() ? "pointer" : "default", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}
             >
               {A(weatherStatus === "loading" ? "lookingUp" : "lookUpWeather")}
             </button>
@@ -533,7 +533,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
           ? [A("colCheckpoint"), A("colPace"), A("colElev"), A("colTempShort"), ""]
           : [A("colCheckpoint"), A("colPace"), A("colTemp"), ""]
         ).map((h) => (
-          <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{h}</div>
+          <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim }}>{h}</div>
         ))}
       </div>
       {splitRows.map((row, i) => {
@@ -561,7 +561,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
       )}
 
       <div style={{ display: "flex", gap: 12, marginTop: 28, paddingTop: 24, borderTop: `1px solid ${T.line}` }}>
-        <button onClick={handleSubmit} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "12px 22px", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={handleSubmit} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.bg, background: T.brass, border: "none", borderRadius: 3, padding: "12px 22px", cursor: "pointer", fontWeight: 600 }}>
           {A(editing ? "update" : "save")}
         </button>
         <button onClick={onCancel} style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.6, color: T.inkDim, background: "none", border: `1px solid ${T.line}`, borderRadius: 3, padding: "12px 22px", cursor: "pointer" }}>

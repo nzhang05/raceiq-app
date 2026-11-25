@@ -7,27 +7,27 @@
   vers un professionnel.
 */
 export default {
-  eyebrow: "COACH IA",
+  eyebrow: "Coach IA",
   title: "Demander à RaceIQ",
-  backToDebrief: "← RETOUR AU DÉBRIEFING",
-  backToRaces: "← RETOUR AU PALMARÈS",
-  clearHistory: "EFFACER L'HISTORIQUE",
+  backToDebrief: "← Retour au débriefing",
+  backToRaces: "← Retour aux courses",
+  clearHistory: "Effacer l'historique",
   clearConfirm: "Effacer l'historique de la conversation ?",
-  context: "CONTEXTE : {{name}}",
+  context: "Contexte : {{name}}",
   intro: "Posez n'importe quelle question sur votre historique de courses, {{name}}. Chaque réponse est tirée de vos données enregistrées.",
   defaultName: "vous",
-  tryAsking: "ESSAYEZ DE DEMANDER",
+  tryAsking: "Essayez de demander",
   suggested: {
     bonk: "Pourquoi ai-je explosé sur ma dernière course ?",
     improving: "Est-ce que je progresse sur l'ensemble de mon historique ?",
     fit: "Quels types de courses me conviennent le mieux ?",
     next: "Que devrais-je changer avant mon prochain marathon ?",
   },
-  coachLabel: "COACH RACEIQ",
-  youLabel: "VOUS",
-  basedOn: "D'APRÈS :",
+  coachLabel: "Coach RaceIQ",
+  youLabel: "Vous",
+  basedOn: "D'après :",
   analyzing: "Analyse de vos données…",
-  send: "ENVOYER",
+  send: "Envoyer",
   inputLabel: "Votre question",
   inputHint: "Entrée pour envoyer · Maj+Entrée pour un saut de ligne",
   placeholder: {
@@ -36,12 +36,12 @@ export default {
     signedOut: "Connectez-vous pour interroger le coach…",
   },
   demoNotice: {
-    title: "DÉMO · ATHLÈTE EXEMPLE",
+    title: "Démo · athlète exemple",
     body: "Les questions suggérées rejouent des réponses enregistrées sur les courses de l'athlète exemple, et chaque chiffre qu'elles citent est vérifié par la suite de tests par rapport aux données de course. Vos propres questions ne sont envoyées au coach en direct que si cette démo dispose d'un budget actif.",
   },
-  recorded: "RÉPONSE ENREGISTRÉE",
+  recorded: "Réponse enregistrée",
   signInRequired: {
-    title: "CONNEXION REQUISE",
+    title: "Connexion requise",
     body: "Le coach IA analyse vos courses enregistrées sur les serveurs de RaceIQ. Connectez-vous pour l'utiliser — vos données de course ne sont envoyées que pour les questions que vous posez.",
   },
 

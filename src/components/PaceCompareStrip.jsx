@@ -88,13 +88,13 @@ export default function PaceCompareStrip({ races }) {
             <svg width="16" height="10" style={{ display: "block", flexShrink: 0 }}>
               <line x1="0" y1="5" x2="16" y2="5" stroke={COMPARE_COLORS[i]} strokeWidth={i === 0 ? 2.5 : 2} />
             </svg>
-            <span style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.ink }}>
+            <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.ink }}>
               {r.name.toUpperCase()} · {shortDate(r.date)}
             </span>
           </div>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>{t("chart.tempToggle")}</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, letterSpacing: 0.1 }}>{t("chart.tempToggle")}</span>
           <button
             onClick={() => setShowTempFor(-1)}
             style={{
@@ -204,7 +204,7 @@ export default function PaceCompareStrip({ races }) {
           {races.map((r, ri) => {
             const pace = interpolatePace(ri, hoveredX);
             return (
-              <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontFamily: FONT_MONO, fontSize: 11, marginBottom: 4 }}>
+              <div key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontFamily: FONT_MONO, fontSize: 12.5, marginBottom: 4 }}>
                 <span style={{ color: T.inkDim }}>{shortDate(r.date)}</span>
                 <span style={{ color: COMPARE_COLORS[ri] }}>{fmtPaceStr(pace)}</span>
               </div>

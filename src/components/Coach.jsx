@@ -40,7 +40,7 @@ function CoachMessage({ msg }) {
   const isCoach = msg.role === "coach";
   return (
     <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: isCoach ? "flex-start" : "flex-end" }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 6 }}>
         {t(isCoach ? "coachLabel" : "youLabel")} · {fmtTimeOfDay(msg.timestamp)}
         {isCoach && msg.recorded && <> · {t("recorded")}</>}
       </div>
@@ -49,7 +49,7 @@ function CoachMessage({ msg }) {
       </div>
       {isCoach && msg.sources?.length > 0 && !OOS_INTENTS.has(msg.intentCategory) && (
         <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, letterSpacing: 0.5 }}>{t("basedOn")}</span>
+          <span style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, letterSpacing: 0.1 }}>{t("basedOn")}</span>
           {/* Text is `brass`, not `brassDim`: brassDim is a border-weight colour
               and inverts to a dark green in the dark palette. */}
           {msg.sources.map((r) => (
@@ -68,7 +68,7 @@ function Notice({ kind }) {
   const { t } = useTranslation("coach");
   return (
     <div style={{ padding: "16px 20px", marginBottom: 24, background: `${T.brass}12`, border: `1px solid ${T.brassDim}`, borderRadius: 4 }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.6, color: T.brass, marginBottom: 6 }}>{t(`${kind}.title`)}</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 6 }}>{t(`${kind}.title`)}</div>
       <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.ink, lineHeight: 1.55 }}>
         {t(`${kind}.body`)}
       </div>
@@ -153,13 +153,13 @@ export default function CoachView({ races, contextRace, onBack }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 140px)" }}>
       <div style={{ marginBottom: 28 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 20 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, cursor: "pointer", padding: 0, marginBottom: 20 }}>
           {t(contextRace ? "backToDebrief" : "backToRaces")}
         </button>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>{t("eyebrow")}</div>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: 0, color: T.paper }}>{t("title")}</h1>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 6 }}>{t("eyebrow")}</div>
+            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 500, margin: 0, color: T.paper }}>{t("title")}</h1>
           </div>
           {hasMessages && (
             <button
@@ -187,7 +187,7 @@ export default function CoachView({ races, contextRace, onBack }) {
             <div style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.inkDim, marginBottom: 28, lineHeight: 1.6 }}>
               {t("intro", { name: athleteName })}
             </div>
-            <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.inkDim, marginBottom: 14 }}>{t("tryAsking")}</div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 14 }}>{t("tryAsking")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {SUGGESTED_KEYS.map((key) => ({ key, q: t(`suggested.${key}`) })).map(({ key, q }) => (
                 <button
@@ -208,9 +208,9 @@ export default function CoachView({ races, contextRace, onBack }) {
             {history.map((msg) => <CoachMessage key={msg.id} msg={msg} />)}
             {loading && (
               <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.8, color: T.inkDim, marginBottom: 6 }}>{t("coachLabel")}</div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.inkDim, marginBottom: 6 }}>{t("coachLabel")}</div>
                 <div style={{ padding: "14px 18px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4 }}>
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim, letterSpacing: 0.5 }}>{t("analyzing")}</span>
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 13, color: T.inkDim, letterSpacing: 0.1 }}>{t("analyzing")}</span>
                 </div>
               </div>
             )}
@@ -243,12 +243,12 @@ export default function CoachView({ races, contextRace, onBack }) {
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || loading || !canAsk}
-            style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, padding: "10px 18px", borderRadius: 3, border: "none", fontWeight: 600, flexShrink: 0, background: input.trim() && !loading && canAsk ? T.brass : T.line, color: input.trim() && !loading && canAsk ? T.bg : T.inkDim, cursor: input.trim() && !loading && canAsk ? "pointer" : "default" }}
+            style={{ fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, padding: "10px 18px", borderRadius: 3, border: "none", fontWeight: 600, flexShrink: 0, background: input.trim() && !loading && canAsk ? T.brass : T.line, color: input.trim() && !loading && canAsk ? T.bg : T.inkDim, cursor: input.trim() && !loading && canAsk ? "pointer" : "default" }}
           >
             {loading ? "…" : t("send")}
           </button>
         </div>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: T.inkDim, marginTop: 8, letterSpacing: 0.3 }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, color: T.inkDim, marginTop: 8, letterSpacing: 0.1 }}>
           {t("inputHint")}
         </div>
       </div>

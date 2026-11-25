@@ -90,7 +90,7 @@ function normalizePlan(plan) {
 describe("RacePlanForm", () => {
   it("starts empty: build disabled, no course, road-running references preselected", () => {
     setup();
-    expect(screen.getByRole("button", { name: /BUILD MY PLAN/ }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: /build my plan/i }).disabled).toBe(true);
     expect(screen.getByText("No file selected")).toBeTruthy();
     expect(screen.getByText(/2 of 2 selected/)).toBeTruthy(); // Brandywine + Lakefront
   });
@@ -99,7 +99,7 @@ describe("RacePlanForm", () => {
     const { user } = setup();
     await user.selectOptions(screen.getByRole("combobox", { name: "Sport" }), "Trail Running");
     expect(screen.getByText(/1 of 1 selected/)).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "DESELECT ALL" }));
+    await user.click(screen.getByRole("button", { name: /deselect all/i }));
     expect(screen.getByText(/0 of 1 selected/)).toBeTruthy();
   });
 
@@ -120,7 +120,7 @@ describe("RacePlanForm", () => {
     const { user, fileInput, onPlanGenerated } = setup();
     await loadCourse(user, fileInput);
     await user.clear(byLabel(/Your Target/));
-    await user.click(screen.getByRole("button", { name: /BUILD MY PLAN/ }));
+    await user.click(screen.getByRole("button", { name: /build my plan/i }));
     expect(onPlanGenerated).not.toHaveBeenCalled();
     expect(screen.getByText(i18n.t("form.errorNoTarget", { ns: "plan" }))).toBeTruthy();
   });
@@ -128,7 +128,7 @@ describe("RacePlanForm", () => {
   it("weather lookup falls back to simulated conditions when the network is unavailable", async () => {
     const { user } = setup();
     await user.type(screen.getByRole("combobox", { name: /Location/ }), "Chamonix");
-    await user.click(screen.getByRole("button", { name: "LOOK UP" }));
+    await user.click(screen.getByRole("button", { name: /^look up$/i }));
     await screen.findByText(/SIMULATED/);
     expect(numberField(/Temp/).value).not.toBe("");
   });
@@ -139,7 +139,7 @@ describe("RacePlanForm", () => {
     await user.click(screen.getAllByRole("button", { name: "Remove station" })[0]);
     expect(stationKms(container)).toHaveLength(2);
 
-    const importBtn = screen.getByRole("button", { name: /IMPORT 3/ });
+    const importBtn = screen.getByRole("button", { name: /import 3/i });
     vi.spyOn(window, "confirm").mockReturnValueOnce(false);
     await user.click(importBtn);
     expect(stationKms(container)).toHaveLength(2);
@@ -152,7 +152,7 @@ describe("RacePlanForm", () => {
   it("auto-spaces stations every 8 km for a run", async () => {
     const { user, fileInput, container } = setup();
     await loadCourse(user, fileInput);
-    await user.click(screen.getByRole("button", { name: "AUTO-SPACE" }));
+    await user.click(screen.getByRole("button", { name: /^auto-space$/i }));
     const kms = stationKms(container).map(Number);
     expect(kms.length).toBeGreaterThan(0);
     kms.forEach((km, i) => expect(km).toBeCloseTo(8 * (i + 1), 5));
@@ -162,7 +162,7 @@ describe("RacePlanForm", () => {
     const { user, fileInput, container } = setup();
     await loadCourse(user, fileInput, "french.gpx");
     const before = stationKms(container).length;
-    await user.click(screen.getByRole("button", { name: /OTHER WAYPOINT/ }));
+    await user.click(screen.getByRole("button", { name: /other waypoint/i }));
     const sommet = screen.getByText(/Sommet/).closest("label");
     await user.click(within(sommet).getByRole("checkbox"));
     const kms = stationKms(container).map(Number);
@@ -193,16 +193,16 @@ describe("RacePlanForm", () => {
     await user.clear(names[1]);
     await user.type(names[1], "Col de Voza");
     const firstRow = names[0].closest("div").parentElement;
-    await user.click(within(firstRow).getAllByRole("button", { name: "YES" })[1]); // food off at the first station
+    await user.click(within(firstRow).getAllByRole("button", { name: /^yes$/i })[1]); // food off at the first station
     if (!screen.queryByRole("button", { name: /hide ultra/i })) {
       await user.click(screen.getByRole("button", { name: /Show ultra options/ }));
     }
-    await user.click(screen.getAllByRole("button", { name: "MORE" })[2]);
+    await user.click(screen.getAllByRole("button", { name: /^more$/i })[2]);
     const stop = container.querySelectorAll('input[type="number"][min="0"]')[0];
     await user.type(stop, "12");
     await user.type(numberField(/Carry Capacity/), "1000");
 
-    await user.click(screen.getByRole("button", { name: /BUILD MY PLAN/ }));
+    await user.click(screen.getByRole("button", { name: /build my plan/i }));
     await waitFor(() => expect(onPlanGenerated).toHaveBeenCalledTimes(1));
 
     const plan = onPlanGenerated.mock.calls[0][0];
@@ -216,7 +216,7 @@ describe("RacePlanForm", () => {
 
   it("cancel calls back without building", async () => {
     const { user, onCancel, onPlanGenerated } = setup();
-    await user.click(screen.getByRole("button", { name: "CANCEL" }));
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onPlanGenerated).not.toHaveBeenCalled();
   });

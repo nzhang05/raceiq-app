@@ -114,12 +114,12 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.5, cursor: "pointer", padding: 0, marginBottom: 28 }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: T.inkDim, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 0.1, cursor: "pointer", padding: 0, marginBottom: 28 }}>
         {t("compare.back")}
       </button>
 
-      <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1.5, color: T.brass, marginBottom: 6 }}>{t("compare.eyebrow")}</div>
-      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, margin: "0 0 6px", color: T.paper, maxWidth: 780 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 6 }}>{t("compare.eyebrow")}</div>
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 500, margin: "0 0 6px", color: T.paper, maxWidth: 780 }}>
         {sorted.map((r) => r.name).join(t("compare.vs"))}
       </h1>
       <div style={{ fontFamily: FONT_MONO, fontSize: 12, color: T.inkDim, marginBottom: 28 }}>
@@ -147,7 +147,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
           <div key={ri} className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
             <div style={labelCellStyle}>{row.label}</div>
             {sorted.map((r, i) => (
-              <div key={r.id} style={{ padding: "14px 16px 14px 0", fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: row.valueColors ? row.valueColors[i] : COMPARE_COLORS[i] }}>
+              <div key={r.id} style={{ padding: "14px 16px 14px 0", fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 500, color: row.valueColors ? row.valueColors[i] : COMPARE_COLORS[i] }}>
                 {row.values[i]}
               </div>
             ))}
@@ -161,7 +161,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       <div style={{ marginBottom: 44 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 4 }}>{t("compare.paceOverlay.title")}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 500, color: T.paper, marginBottom: 4 }}>{t("compare.paceOverlay.title")}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16, maxWidth: 620 }}>
           {t(distancesMismatched ? "compare.paceOverlay.subPercent" : "compare.paceOverlay.subDirect")}
         </div>
@@ -171,7 +171,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       <div style={{ marginBottom: 44 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 4 }}>{t("compare.conditions.title")}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 500, color: T.paper, marginBottom: 4 }}>{t("compare.conditions.title")}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16, maxWidth: 620 }}>
           {t("compare.conditions.sub", { race: refRace.name, tempC: refRace.tempC })}
         </div>
@@ -208,7 +208,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       <div style={{ marginBottom: 44 }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 16 }}>{t("compare.fueling.title")}</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 500, color: T.paper, marginBottom: 16 }}>{t("compare.fueling.title")}</div>
         <div className="compare-table" role="region" tabIndex={0} aria-label={t("compare.tableAria")} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
           <div className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
             <div style={{ ...headerCellStyle, padding: "10px 16px", color: T.inkDim }} />
@@ -242,7 +242,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
       </div>
 
       <div style={{ marginBottom: 44, padding: "20px 24px", background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4 }}>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: T.brass, marginBottom: 10 }}>{t("compare.analysisEyebrow")}</div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, letterSpacing: 0.1, color: T.brass, marginBottom: 10 }}>{t("compare.analysisEyebrow")}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.65, color: T.ink }}>{narrative}</div>
       </div>
 

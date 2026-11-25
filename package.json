@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo",
     "build": "node scripts/check-i18n.mjs && vite build",
+    "build:demo": "node scripts/check-i18n.mjs && vite build --mode demo",
     "preview": "vite preview",
     "smoke": "node --env-file=.env.local scripts/smoke-claude.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "test:waypoints": "node scripts/test-waypoints.mjs"
+    "test:waypoints": "node scripts/test-waypoints.mjs",
+    "record:demo": "node --env-file=.env.local scripts/record-demo.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
@@ -25,5 +28,8 @@
     "@vitejs/plugin-react": "^4.3.1",
     "playwright": "^1.61.1",
     "vite": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

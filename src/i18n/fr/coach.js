@@ -34,6 +34,11 @@ export default {
     general: "Posez une question sur votre historique de courses…",
     signedOut: "Connectez-vous pour interroger le coach…",
   },
+  demoNotice: {
+    title: "DÉMO · ATHLÈTE EXEMPLE",
+    body: "Les questions suggérées rejouent des réponses enregistrées sur les courses de l'athlète exemple, et chaque chiffre qu'elles citent est vérifié par la suite de tests par rapport aux données de course. Vos propres questions ne sont envoyées au coach en direct que si cette démo dispose d'un budget actif.",
+  },
+  recorded: "RÉPONSE ENREGISTRÉE",
   signInRequired: {
     title: "CONNEXION REQUISE",
     body: "Le coach IA analyse vos courses enregistrées sur les serveurs de RaceIQ. Connectez-vous pour l'utiliser — vos données de course ne sont envoyées que pour les questions que vous posez.",
@@ -56,6 +61,9 @@ export default {
     rateLimited: "Trop de requêtes — réessayez dans {{seconds, number}} s.",
     malformedBody: "Corps de requête mal formé.",
     unknownTask: "Tâche inconnue « {{task}} ».",
+    questionTooLong: "Cette question est trop longue : restez sous {{max, number}} caractères.",
+    demoLiveOff: "Les questions en direct sont désactivées dans cette démo. Essayez une des questions suggérées : elles rejouent des réponses enregistrées sur l'athlète exemple.",
+    demoBudgetSpent: "Le budget en direct de la démo est épuisé pour le moment. Les questions suggérées fonctionnent toujours : elles rejouent des réponses enregistrées sur l'athlète exemple.",
     serverError: "Une erreur est survenue lors de la génération de cette réponse.",
   },
 };

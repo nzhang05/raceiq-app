@@ -23,6 +23,8 @@ function apiDevServer(env) {
         // The handler falls back to these when the unprefixed pair is unset —
         // they're public anyway, so there's no second copy to keep in sync.
         "VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY",
+        // Demo mode: the same flag the client reads, plus the live budget.
+        "VITE_DEMO_MODE", "DEMO_AI_PER_CLIENT_PER_DAY", "DEMO_AI_GLOBAL_PER_DAY",
       ];
       for (const key of serverKeys) {
         if (env[key] && !process.env[key]) process.env[key] = env[key];
@@ -31,7 +33,7 @@ function apiDevServer(env) {
       // Env is read once, at startup — so say plainly at boot when the key is
       // missing. Without this the only symptom is a 503 from /api/claude after
       // you've already clicked into the app, which doesn't point at .env.local.
-      if (!process.env.ANTHROPIC_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY && process.env.VITE_DEMO_MODE !== "true") {
         server.config.logger.warn(
           "\n  ⚠  ANTHROPIC_API_KEY not found — AI features will return 503.\n" +
           "     Add it to .env.local (no VITE_ prefix), then restart this server.\n"

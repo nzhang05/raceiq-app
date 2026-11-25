@@ -1,0 +1,66 @@
+{
+  "id": "debrief-r2-en",
+  "task": "debrief",
+  "locale": "en",
+  "raceId": "r2",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Tunkhannock was a well-judged ultra: once the climbs are accounted for, you held 6:01–6:19/km across 50km and 1640m of climbing.",
+    "findings": [
+      {
+        "kind": "strength",
+        "title": "Even effort once grade is accounted for",
+        "body": "Raw pace slowed from 6:06/km to 7:06/km, but grade-adjusted you went from 6:04/km to 6:14/km.",
+        "evidence": [
+          "opening third 6:04/km · closing third 6:14/km (grade-adjusted)",
+          "cv 1.5%"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "The late climbs didn't break you",
+        "body": "Km 24–32 climbed at +2.8% and cost raw pace, yet your grade-adjusted split was 6:05/km.",
+        "evidence": [
+          "km 32: 7:03/km raw, 6:05/km gap-adj, +2.8%"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "Carbs sat just under the ultra range",
+        "body": "You took 78g/hr, 2g/hr below the 80–120g/hr range for a 348-minute effort.",
+        "evidence": [
+          "carbs 78g/hr vs 80–120g/hr target",
+          "Duration: 348 min"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Raise carbohydrate intake to at least 80g/hr for your next ultra.",
+        "why": "At 78g/hr you were 2g/hr under the low end of the 80–120g/hr range for a 348-minute effort.",
+        "evidence": [
+          "carbs 78g/hr vs 80–120g/hr target"
+        ]
+      },
+      {
+        "action": "Use Tunkhannock's grade-adjusted pacing as the template for long, hilly races.",
+        "why": "Your split-to-split variation was 1.5%, against 4.7% at Hollow Road and 12.7% at Brandywine.",
+        "evidence": [
+          "cv 1.5%",
+          "Hollow Road Gravel Classic cv 4.7%"
+        ]
+      },
+      {
+        "action": "Plan for heat if your next ultra is warm.",
+        "why": "Your one hot race, Brandywine Valley Marathon at 27°C, faded +32.7%, while you held even here at 6°C.",
+        "evidence": [
+          "Brandywine Valley Marathon fade +32.7% at 27°C",
+          "fade +2.9% at 6°C"
+        ]
+      }
+    ]
+  }
+}

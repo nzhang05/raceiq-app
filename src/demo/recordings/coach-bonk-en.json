@@ -1,0 +1,22 @@
+{
+  "id": "coach-bonk-en",
+  "task": "coach",
+  "locale": "en",
+  "suggestion": "bonk",
+  "question": "Why did I bonk at my last race?",
+  "contextRaceIds": [
+    null,
+    "r1"
+  ],
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Brandywine Valley Marathon (Apr 19, 2026) reads less like a sudden bonk than a slow bleed. Your pace went from 4:25/km on the first split to 6:09/km on the last, with the largest single drop at km 40, and it was 27°C with 71% humidity, which the data flags as heat stress. Fueling compounds it: 52g carbs/hr against a 60–90g/hr target for a 205-minute effort, 8g/hr below the minimum. Heat and light fueling both line up with the fade, but one race can't tell you how much each contributed.",
+    "intent": "diagnostic",
+    "sourceRaceIds": [
+      "r1"
+    ]
+  }
+}

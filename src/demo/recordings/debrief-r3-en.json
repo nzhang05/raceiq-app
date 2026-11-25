@@ -1,0 +1,67 @@
+{
+  "id": "debrief-r3-en",
+  "task": "debrief",
+  "locale": "en",
+  "raceId": "r3",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "headline": "Hollow Road sagged through the middle: your pace eased from 2:06/km at km 20 to 2:24/km at km 80 before you closed at 2:18/km.",
+    "findings": [
+      {
+        "kind": "limiter",
+        "title": "The ride faded through the middle",
+        "body": "Your closing third averaged 2:18/km against 2:06/km in the opening third, a +9.5% fade.",
+        "evidence": [
+          "km 20: 2:06/km · km 80: 2:24/km",
+          "fade +9.5%"
+        ]
+      },
+      {
+        "kind": "limiter",
+        "title": "Wind is a likely factor the splits can't place",
+        "body": "At 22km/h it was your windiest race, but the splits don't show where it hit.",
+        "evidence": [
+          "22km/h wind",
+          "Brandywine Valley Marathon 14km/h wind"
+        ]
+      },
+      {
+        "kind": "strength",
+        "title": "Fueled in range, and you closed strong",
+        "body": "You took 64g/hr, inside 60–90g/hr, and your last split improved to 2:18/km.",
+        "evidence": [
+          "carbs 64g/hr vs 60–90g/hr target",
+          "km 105: 2:18/km"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "action": "Ride the first 20km a little easier on your next gravel race.",
+        "why": "Your opening split at 2:06/km was your fastest, and the next three slowed to 2:24/km.",
+        "evidence": [
+          "km 20: 2:06/km",
+          "km 80: 2:24/km"
+        ]
+      },
+      {
+        "action": "Keep fueling at 64g/hr or higher.",
+        "why": "It sat inside the 60–90g/hr range for this 231-minute ride.",
+        "evidence": [
+          "carbs 64g/hr vs 60–90g/hr target",
+          "Duration: 231 min"
+        ]
+      },
+      {
+        "action": "Log split-level wind or power on your next ride.",
+        "why": "With 22km/h wind and no power data, RaceIQ can't tell headwind from fatigue in the middle splits.",
+        "evidence": [
+          "22km/h wind"
+        ]
+      }
+    ]
+  }
+}

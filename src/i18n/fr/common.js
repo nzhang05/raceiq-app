@@ -27,6 +27,15 @@ export default {
     planRace: "Planifier une course",
     racePlan: "Plan de course",
     language: "Langue",
+    sampleAthlete: "Athlète exemple",
+    seasonForm: "Forme de la saison {{rating}}",
+  },
+
+  demo: {
+    badge: "DÉMO",
+    banner: "Vous explorez les courses d'un athlète exemple. Ce que vous ajoutez reste dans ce navigateur.",
+    reset: "Réinitialiser la démo",
+    resetConfirm: "Supprimer ce que vous avez ajouté et revenir à l'athlète exemple ?",
   },
 
   actions: {
@@ -249,6 +258,7 @@ export default {
     },
     analysing: "ANALYSE EN COURS…",
     aiAnalysis: "ANALYSE IA",
+    recordedAnalysis: "ANALYSE IA · ENREGISTRÉE",
     fuelingLog: {
       title: "Journal de nutrition",
       subSections: "Ce que vous avez absorbé, section par section.",

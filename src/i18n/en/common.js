@@ -27,6 +27,15 @@ export default {
     planRace: "Plan a race",
     racePlan: "Race plan",
     language: "Language",
+    sampleAthlete: "Sample athlete",
+    seasonForm: "Season form {{rating}}",
+  },
+
+  demo: {
+    badge: "DEMO",
+    banner: "You're exploring a sample athlete's races. Anything you add stays in this browser.",
+    reset: "Reset demo",
+    resetConfirm: "Remove anything you've added and go back to the sample athlete?",
   },
 
   actions: {
@@ -249,6 +258,7 @@ export default {
     },
     analysing: "ANALYSING…",
     aiAnalysis: "AI ANALYSIS",
+    recordedAnalysis: "AI ANALYSIS · RECORDED",
     fuelingLog: {
       title: "Fueling log",
       subSections: "What you took in, by section of the race.",

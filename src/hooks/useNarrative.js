@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { narrateDebrief, narratePlan } from "../lib/coachApi.js";
+import { isDemo } from "../lib/demo.js";
 
 /*
   Runs the Claude analysis for a debrief or a race plan.
@@ -13,6 +14,9 @@ import { narrateDebrief, narratePlan } from "../lib/coachApi.js";
 
   `args` must be memoised by the caller — it participates in the effect's
   dependencies, and a fresh object each render would re-request on every render.
+
+  A demo visitor is never signed in but still gets the analysis: recorded for
+  the sample races, live only if the demo has budget (src/lib/demo.js).
 */
 export function useNarrative(kind, args) {
   const { user, profile } = useAuth();
@@ -21,7 +25,7 @@ export function useNarrative(kind, args) {
 
   useEffect(() => {
     const subject = kind === "plan" ? args?.plan : args?.race;
-    if (!user || !subject) {
+    if ((!user && !isDemo) || !subject) {
       setNarrative(null);
       setStatus("idle");
       return;

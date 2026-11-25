@@ -10,11 +10,16 @@
     task: "estimate" { course, sport, tempC, races, isCycling, profile? }
 
   The browser sends *data*, never prompt text — see api/_lib/prompts.js.
+
+  Callers are either signed-in athletes (Supabase session, per-user rate limit)
+  or, on a demo deployment, anonymous visitors spending a small operator-set
+  budget (api/_lib/demo.js). There is no third way in.
 */
 
-import { send, readJsonBody } from "./_lib/http.js";
+import { send, readJsonBody, bearerToken } from "./_lib/http.js";
 import { authenticate } from "./_lib/auth.js";
 import { checkRateLimit } from "./_lib/rateLimit.js";
+import { demoConfig, clientKey, checkDemoBudget, demoBodyProblem, DEMO_LIMITS } from "./_lib/demo.js";
 import { callClaude, callClaudeJson, ClaudeError, isClaudeConfigured } from "./_lib/anthropic.js";
 import {
   OOS_INTENTS,
@@ -56,17 +61,27 @@ export default async function handler(req, res) {
     return fail(res, 405, "errors.methodNotAllowed");
   }
 
-  if (!isClaudeConfigured()) {
-    return fail(res, 503, "errors.notConfigured");
-  }
+  // A demo visitor has no session to verify. Unless the operator granted a
+  // live budget, they get a clear "replay only" answer and no token is spent —
+  // even when ANTHROPIC_API_KEY is set. See api/_lib/demo.js.
+  const demo = demoConfig();
+  const isDemoRequest = demo.enabled && !bearerToken(req);
 
-  const auth = await authenticate(req);
-  if (auth.error) return send(res, auth.status, { error: auth.error });
+  if (isDemoRequest) {
+    if (!demo.live || !isClaudeConfigured()) return fail(res, 403, "errors.demoLiveOff");
+  } else {
+    if (!isClaudeConfigured()) {
+      return fail(res, 503, "errors.notConfigured");
+    }
 
-  const limit = checkRateLimit(auth.user.id);
-  if (!limit.ok) {
-    res.setHeader("retry-after", String(limit.retryAfter));
-    return fail(res, 429, "errors.rateLimited", { seconds: limit.retryAfter });
+    const auth = await authenticate(req);
+    if (auth.error) return send(res, auth.status, { error: auth.error });
+
+    const limit = checkRateLimit(auth.user.id);
+    if (!limit.ok) {
+      res.setHeader("retry-after", String(limit.retryAfter));
+      return fail(res, 429, "errors.rateLimited", { seconds: limit.retryAfter });
+    }
   }
 
   let body;
@@ -74,6 +89,18 @@ export default async function handler(req, res) {
     body = await readJsonBody(req);
   } catch {
     return fail(res, 400, "errors.malformedBody");
+  }
+
+  if (isDemoRequest) {
+    const problem = demoBodyProblem(body);
+    if (problem) return fail(res, 400, problem, { max: DEMO_LIMITS.maxQuestionChars });
+
+    // Counted after validation, so a malformed request doesn't burn budget.
+    const budget = checkDemoBudget(clientKey(req), demo);
+    if (!budget.ok) {
+      res.setHeader("retry-after", String(budget.retryAfter));
+      return fail(res, 429, "errors.demoBudgetSpent");
+    }
   }
 
   try {
@@ -91,7 +118,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleCoach({ question, races = [], contextRaceId = null, history = [], profile = null, locale }) {
+export async function handleCoach({ question, races = [], contextRaceId = null, history = [], profile = null, locale }) {
   const lng = normalizeLocale(locale);
   if (typeof question !== "string" || !question.trim()) {
     return { error: "Ask a question first." };
@@ -156,7 +183,7 @@ async function handleEstimate({ course, sport, tempC, races = [], isCycling = fa
   invisible. The debrief also gets the pre-race plan when the caller has one,
   which makes planned-vs-actual an explicit input.
 */
-async function handleNarrative(body, kind) {
+export async function handleNarrative(body, kind) {
   const history = Array.isArray(body.races) ? body.races : [];
   let context;
 

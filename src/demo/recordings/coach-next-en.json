@@ -1,0 +1,22 @@
+{
+  "id": "coach-next-en",
+  "task": "coach",
+  "locale": "en",
+  "suggestion": "next",
+  "question": "What should I change before my next marathon?",
+  "contextRaceIds": "any",
+  "source": "authored",
+  "model": null,
+  "recordedAt": "2026-11-25",
+  "note": "Drafted against the exact prompt this request produces, pending a live re-record with `npm run record:demo`.",
+  "response": {
+    "answer": "Your one marathon on file, Brandywine Valley Marathon, is where both of your limiter patterns show up: it was run at 27°C, and you fueled at 52g/hr, making it your only under-fueled limiter. Your strength races came in cool conditions, Tunkhannock Trail 50K at 6°C and Lakefront 10K at 14°C. So the two things to change are a heat plan if race day is warm, and more carbohydrate than 52g/hr.\n\nThat pattern rests on a single marathon, though. Plan the next one in RaceIQ with its course file and the advice can be specific to that course and its forecast.",
+    "intent": "planning",
+    "sourceRaceIds": [
+      "r1",
+      "r2",
+      "r3",
+      "r4"
+    ]
+  }
+}

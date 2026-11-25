@@ -9,14 +9,13 @@ import { buildSegments } from "../utils/courseColors.js";
 import { tallyKit, tallyDropBags } from "../utils/fuelKit.js";
 import { printPlan } from "../utils/planPdf.js";
 import { printCrewSheet } from "../utils/crewPdf.js";
+import { fmtMinSec } from "../utils/clock.js";
 import FuelItemPicker from "./FuelItemPicker.jsx";
 import { useNarrative } from "../hooks/useNarrative.js";
 
 function fmtPace(minPerKm) {
   if (!minPerKm || minPerKm <= 0) return "—";
-  const m = Math.floor(minPerKm);
-  const s = Math.round((minPerKm - m) * 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+  return fmtMinSec(minPerKm);
 }
 
 function labelColor(label) {

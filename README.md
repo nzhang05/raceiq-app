@@ -45,7 +45,7 @@ Browser (React + Vite)
 ## Engineering notes
 
 - **Design docs before code.** Larger features start as a written design: problem, options, decision. See [`docs/`](docs/), e.g. [GPX waypoint parsing](docs/design-gpx-waypoints.md) and [auth and athlete profiles](docs/design-auth-and-profiles.md).
-- **Tests against real-world messiness.** The GPX parser is tested against fixtures for noisy elevation, route-only files, out-and-back courses, off-course waypoints and French-language aid stations (`npm run test:waypoints`).
+- **Tests against real-world messiness.** The GPX parser is tested against fixtures for noisy elevation, route-only files, out-and-back courses, off-course waypoints and French-language aid stations (`npm test`).
 - **i18n is enforced at build time.** `npm run build` fails if any English key is missing its French translation.
 
 ![Race planning from a course file and reference races](docs/screenshots/plan.png)
@@ -63,7 +63,7 @@ With no environment variables set, RaceIQ runs in local mode with sample races a
 
 ```bash
 npm run build           # i18n check + production bundle
-npm run test:waypoints  # GPX waypoint parser tests
+npm test                # Vitest: engine, GPX parser, demo budget
 npm run check:i18n      # translation coverage only
 ```
 

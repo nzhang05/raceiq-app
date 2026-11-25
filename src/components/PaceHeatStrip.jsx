@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState, useRef } from "react";
 import { T, FONT_MONO } from "../constants.js";
-import { hasElevationData } from "../utils/pace.js";
+import { hasElevationData, fmtPace } from "../utils/pace.js";
 
 export default function PaceHeatStrip({ race }) {
   const { t } = useTranslation();
@@ -103,9 +103,7 @@ export default function PaceHeatStrip({ race }) {
   const hoveredSplit = hoveredIdx != null ? splits[hoveredIdx] : null;
 
   function fmtPaceStr(minPerKm) {
-    const m = Math.floor(minPerKm);
-    const s = String(Math.round((minPerKm - m) * 60)).padStart(2, "0");
-    return `${m}:${s}/km`;
+    return fmtPace(minPerKm);
   }
 
   const tooltipLeftPct = hoveredSplit ? (x(hoveredSplit.km) / W) * 100 : 50;

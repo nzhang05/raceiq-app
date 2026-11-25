@@ -1,3 +1,4 @@
+import { fmtClock } from "./clock.js";
 /*
   Failures carry a catalog key (in the `plan` namespace) plus its interpolation
   values, rather than a sentence — see ParseError in gpx.js for the same pattern.
@@ -198,10 +199,5 @@ export function heatAdjustedTime(finishTime, fromTempC, toTempC) {
   const rawMin = parts.length === 3 ? parts[0] * 60 + parts[1] + parts[2] / 60 : parts[0] + parts[1] / 60;
   const fairMin = rawMin / (1 + heatPenalty(fromTempC));
   const adjMin = fairMin * (1 + heatPenalty(toTempC));
-  const h = Math.floor(adjMin / 60);
-  const m = Math.floor(adjMin % 60);
-  const s = Math.round((adjMin * 60) % 60);
-  return h > 0
-    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${m}:${String(s).padStart(2, "0")}`;
+  return fmtClock(adjMin);
 }

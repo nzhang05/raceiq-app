@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, COMPARE_COLORS } from "../constants.js";
 import { fmtDate, shortDate } from "../utils/time.js";
 import { parseClockToMinutes } from "../utils/time.js";
+import { fmtMinSec } from "../utils/clock.js";
 import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { heatPenalty, heatAdjustedTime } from "../utils/weather.js";
 import PaceCompareStrip from "./PaceCompareStrip.jsx";
@@ -26,10 +27,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
   function timeDeltaDisplay(aTime, bTime) {
     const diff = parseClockToMinutes(bTime) - parseClockToMinutes(aTime);
     const sign = diff < 0 ? "−" : "+";
-    const abs = Math.abs(diff);
-    const m = Math.floor(abs);
-    const s = Math.round((abs - m) * 60);
-    return { label: `${sign}${m}:${String(s).padStart(2, "0")}`, color: diff < 0 ? T.green : T.ember };
+    return { label: `${sign}${fmtMinSec(diff)}`, color: diff < 0 ? T.green : T.ember };
   }
 
   function numDelta(a, b, higherIsBetter = true) {

@@ -11,8 +11,9 @@
     "preview": "vite preview",
     "smoke": "node --env-file=.env.local scripts/smoke-claude.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "test:waypoints": "node scripts/test-waypoints.mjs",
-    "record:demo": "node --env-file=.env.local scripts/record-demo.mjs"
+    "record:demo": "node --env-file=.env.local scripts/record-demo.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
@@ -26,8 +27,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
-    "playwright": "^1.61.1",
-    "vite": "^5.4.0"
+    "jsdom": "^26.1.0",
+    "vite": "^5.4.0",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": ">=20"

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useState, useRef } from "react";
 import { T, FONT_MONO, COMPARE_COLORS } from "../constants.js";
 import { shortDate } from "../utils/time.js";
+import { fmtPace } from "../utils/pace.js";
 
 export default function PaceCompareStrip({ races }) {
   const { t } = useTranslation();
@@ -65,9 +66,7 @@ export default function PaceCompareStrip({ races }) {
 
   function fmtPaceStr(v) {
     if (v == null) return "—";
-    const m = Math.floor(v);
-    const s = String(Math.round((v - m) * 60)).padStart(2, "0");
-    return `${m}:${s}/km`;
+    return fmtPace(v);
   }
 
   function handleMouseMove(e) {

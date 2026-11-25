@@ -1,3 +1,4 @@
+import { fmtMinSec } from "./clock.js";
 // Shared plumbing for the printable exports.
 //
 // Rather than pull in a PDF library, we render a self-contained HTML document
@@ -15,9 +16,7 @@ export function esc(s) {
 
 export function fmtPace(minPerKm) {
   if (!minPerKm || minPerKm <= 0) return "—";
-  const m = Math.floor(minPerKm);
-  const s = Math.round((minPerKm - m) * 60);
-  return `${m}:${String(s).padStart(2, "0")}/km`;
+  return `${fmtMinSec(minPerKm)}/km`;
 }
 
 export function fmtDuration(min) {

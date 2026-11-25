@@ -77,5 +77,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), apiDevServer(env)],
     server: { port: 5173 },
+    // Vitest. Node by default — the engine is pure. Files that parse XML opt
+    // into jsdom with a `// @vitest-environment jsdom` pragma.
+    test: {
+      environment: "node",
+      include: ["src/**/*.test.js", "api/**/*.test.js"],
+      // The noisy-elevation GPX fixture takes ~3s on a laptop; give CI room.
+      testTimeout: 20_000,
+    },
   };
 });

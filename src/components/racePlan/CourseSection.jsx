@@ -32,7 +32,7 @@ export default function CourseSection({ sport, setSport, raceDate, setRaceDate, 
           />
         </Field>
         <Field label={P("form.startTime")} hint={P("form.startTimeHint")}>
-          <TextInput value={startTime} onChange={(e) => setStartTime(e.target.value)} placeholder="e.g. 05:00" />
+          <TextInput value={startTime} onChange={(e) => setStartTime(e.target.value)} placeholder={P("form.startTimePlaceholder")} />
         </Field>
       </div>
 

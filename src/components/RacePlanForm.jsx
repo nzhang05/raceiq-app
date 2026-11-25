@@ -249,7 +249,7 @@ export default function RacePlanForm({ allRaces, onPlanGenerated, onCancel }) {
           onClick={onCancel}
           style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.4, padding: "11px 18px", borderRadius: 3, border: `1px solid ${T.line}`, background: "transparent", color: T.inkDim, cursor: "pointer" }}
         >
-          CANCEL
+          {P("form.cancel")}
         </button>
       </div>
     </form>

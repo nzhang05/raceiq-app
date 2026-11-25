@@ -5,9 +5,11 @@ import FuelItemPicker from "../FuelItemPicker.jsx";
 
 // Compact on/off pill used for the water / food refill flags on each aid station.
 export function StationToggle({ on, onClick }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
+      aria-pressed={on}
       onClick={onClick}
       style={{
         fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, fontWeight: 600,
@@ -17,7 +19,7 @@ export function StationToggle({ on, onClick }) {
         color: on ? T.brass : T.inkDim,
       }}
     >
-      {on ? "YES" : "NO"}
+      {t(on ? "form.toggleYes" : "form.toggleNo", { ns: "plan" })}
     </button>
   );
 }

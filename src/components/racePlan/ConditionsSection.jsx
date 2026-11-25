@@ -33,7 +33,7 @@ async function handleWeatherLookup() {
     onSun({ sunrise: forecast.sunrise ?? null, sunset: forecast.sunset ?? null });
     if (forecast.simulated || place.simulated) {
       setWeatherStatus("simulated");
-      setWeatherMessage(`SIMULATED — can't reach the forecast service from here; conditions are estimated.`);
+      setWeatherMessage(P("form.weatherSimulated"));
     } else {
       setWeatherStatus("done");
       setWeatherMessage(P("form.forecastNote", {
@@ -83,13 +83,13 @@ async function handleWeatherLookup() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginTop: 12 }}>
         <Field label={P("form.temp")}>
-          <TextInput type="number" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder="e.g. 18" />
+          <TextInput type="number" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder={P("form.tempPlaceholder")} />
         </Field>
         <Field label={P("form.humidity")}>
-          <TextInput type="number" value={humidity} onChange={(e) => setHumidity(e.target.value)} placeholder="e.g. 60" />
+          <TextInput type="number" value={humidity} onChange={(e) => setHumidity(e.target.value)} placeholder={P("form.humidityPlaceholder")} />
         </Field>
         <Field label={P("form.wind")}>
-          <TextInput type="number" value={wind} onChange={(e) => setWind(e.target.value)} placeholder="e.g. 10" />
+          <TextInput type="number" value={wind} onChange={(e) => setWind(e.target.value)} placeholder={P("form.windPlaceholder")} />
         </Field>
       </div>
     </>

@@ -28,7 +28,15 @@ export default {
     racePlan: "Race plan",
     language: "Language",
     sampleAthlete: "Sample athlete",
+    breadcrumb: "Breadcrumb",
     seasonForm: "Season form {{rating}}",
+  },
+
+  errorPage: {
+    title: "Something went wrong",
+    body: "RaceIQ hit an unexpected error showing this page. Reloading usually fixes it.",
+    reload: "Reload",
+    reset: "Clear saved data and reload",
   },
 
   demo: {
@@ -143,6 +151,13 @@ export default {
     empty: "No races logged in this sport yet. Add a race to start building your résumé.",
     deleteRace: "Delete race",
     deleteRaceAria: "Delete {{name}}",
+    deleteConfirm: "Delete {{name}}? This can't be undone.",
+    selectAria: "Select {{name}} to compare",
+    filterAria: "Filter by sport",
+    first: {
+      title: "No races yet",
+      body: "Log a result and RaceIQ explains what decided it: pacing, heat, climbing and fueling. Or plan an upcoming race from its course file.",
+    },
     selected_one: "{{count}} race selected",
     selected_other: "{{count}} races selected",
     maxThree: "Max 3",
@@ -162,6 +177,8 @@ export default {
       reading: "READING…",
       chooseFile: "CHOOSE FILE",
       error: "Something went wrong reading that file.",
+      done_one: "Imported {{count}} split over {{km, number}} km. Review it below, then add placement and fueling to finish.",
+      done_other: "Imported {{count}} splits over {{km, number}} km. Review them below, then add placement and fueling to finish.",
     },
 
     section: {
@@ -188,6 +205,7 @@ export default {
     locationPlaceholder: "Philadelphia, PA",
     lookingUp: "LOOKING UP…",
     lookUpWeather: "LOOK UP WEATHER",
+    locationHint: "City or race venue, used to look up recorded weather for the date above.",
     temp: "Temperature (°C)",
     humidity: "Humidity (%)",
     wind: "Wind (km/h)",
@@ -221,6 +239,7 @@ export default {
     colTempShort: "TEMP °C (OPT.)",
     colTemp: "TEMP °C (OPTIONAL)",
     removeSplit: "Remove split",
+    splitCellAria: "{{col}} · split {{n}}",
     addSplit: "+ ADD SPLIT",
 
     update: "UPDATE RACE & REGENERATE DEBRIEF",
@@ -297,6 +316,7 @@ export default {
   },
 
   compare: {
+    tableAria: "Comparison table (scrolls sideways)",
     back: "← BACK TO RACE RESUME",
     eyebrow: "RACE COMPARISON",
     vs: " vs. ",
@@ -446,6 +466,7 @@ export default {
     colCaffeine: "CAFF (mg)",
     fromKm: "from {{km, number(maximumFractionDigits: 1)}}",
     mergeAria: "Merge section into the next",
+    cellAria: "{{col}} · S{{n}}",
     mergeTitle: "Merge into next section",
     addSection: "+ ADD SECTION",
     rollsUpTo: "ROLLS UP TO ",

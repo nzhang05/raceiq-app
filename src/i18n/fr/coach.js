@@ -28,6 +28,7 @@ export default {
   basedOn: "D'APRÈS :",
   analyzing: "Analyse de vos données…",
   send: "ENVOYER",
+  inputLabel: "Votre question",
   inputHint: "Entrée pour envoyer · Maj+Entrée pour un saut de ligne",
   placeholder: {
     race: "Posez une question sur {{name}}…",

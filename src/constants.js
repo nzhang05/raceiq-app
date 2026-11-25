@@ -20,7 +20,8 @@ import { withGap } from "./utils/pace.js";
    dark: surfaceHi #1E262F), and as pill text against its own 9%
    tint. Body copy here runs 10.5–13px, so the large-text 3:1
    allowance does not apply. Re-run the contrast audit if you
-   touch these values — several were previously 2.7–3.5:1.
+   touch these values — several were previously 2.7–3.5:1. Last audit:
+   axe-core (wcag2aa) on every view, Nov 2026 — zero contrast findings.
 
    `brass` and `green` are deliberately the SAME green: the accent
    and the "strength" verdict are one idea, and two greens a few
@@ -42,11 +43,11 @@ const LIGHT = {
   ink: "#525A64",      // secondary text — 6.1:1 on surfaceHi
   inkDim: "#646D79",   // tertiary / captions — 4.6:1 on surfaceHi (was #8B939D, 2.7:1)
   line: "#E3E7EC",     // hairline dividers
-  brass: "#0A7C57",    // THE accent — deep green, 4.6:1 on surfaceHi
+  brass: "#08714F",    // THE accent — deep green, 5.3:1 on surfaceHi, 4.6:1 as pill text on its own tint over the translucent header (was #0A7C57, 4.1:1 there)
   brassDim: "#08553C", // darker green for borders / secondary accent text
-  green: "#0A7C57",    // strength — same green as the accent, by design
+  green: "#08714F",    // strength — same green as the accent, by design
   greenDim: "#BFE0D0", // pale green, borders/tints only (never text)
-  ember: "#C4333F",    // limiter — 4.7:1 on surfaceHi (was #E24955, 3.5:1)
+  ember: "#B52D39",    // limiter — 5.4:1 on surfaceHi, 5.0:1 on its own tint (was #C4333F, 4.3:1 on the tint)
   emberDim: "#F0C4C7", // pale red, borders/tints only (never text)
   neutral: "#5A6472",  // "mixed" verdict — 5.3:1 on surfaceHi
   temp: "#2E7590",     // temperature series — 4.5:1 on surfaceHi (was #3E90AA, 3.2:1)

@@ -33,6 +33,7 @@ export default {
   basedOn: "BASED ON:",
   analyzing: "Analyzing your data…",
   send: "SEND",
+  inputLabel: "Your question",
   inputHint: "Enter to send · Shift+Enter for new line",
   placeholder: {
     race: "Ask about {{name}}…",

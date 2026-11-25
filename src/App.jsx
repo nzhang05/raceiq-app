@@ -77,21 +77,24 @@ const FONT_IMPORT = (
       border-color: ${T.brass}44 !important;
       transform: translateY(-1px);
     }
-    .race-row .delete-btn {
+    /* The row's secondary controls appear on hover — and also whenever the
+       row holds keyboard focus, and always on touch screens, which have no
+       hover to reveal them. */
+    .race-row .delete-btn,
+    .race-row .select-cb {
       opacity: 0;
       transition: opacity 120ms ease, color 120ms ease;
     }
-    .race-row:hover .delete-btn {
-      opacity: 1;
-    }
-
-    .race-row .select-cb {
-      opacity: 0;
-      transition: opacity 120ms ease;
-    }
+    .race-row:hover .delete-btn,
+    .race-row:focus-within .delete-btn,
     .race-row:hover .select-cb,
+    .race-row:focus-within .select-cb,
     .race-row.is-selected .select-cb {
       opacity: 1;
+    }
+    @media (hover: none) {
+      .race-row .delete-btn,
+      .race-row .select-cb { opacity: 1; }
     }
 
     .stat-enter {
@@ -109,6 +112,23 @@ const FONT_IMPORT = (
 
     button { font-family: inherit; }
 
+    /* Keyboard focus is always visible. Many controls set outline: none inline
+       to drop the mouse-click ring, so this needs !important to win; it only
+       applies to :focus-visible, so mouse users don't see it. */
+    :focus-visible {
+      outline: 2px solid ${T.brass} !important;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline-offset: 0;
+    }
+
+    .visually-hidden {
+      position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+
     /* The only responsive rules in the app. Layout is otherwise fixed
        gridTemplateColumns in inline styles, which cannot carry a media query —
        so the multi-column blocks that genuinely break below ~900px collapse
@@ -120,6 +140,46 @@ const FONT_IMPORT = (
       .season-form {
         grid-template-columns: 1fr !important;
       }
+    }
+
+    /* Phones (checked at 390px). Fixed inline grids reflow here; selectors
+       match classNames in App, RaceList, RaceDebrief, Compare and the forms. */
+    @media (max-width: 640px) {
+      .app-header-row { padding: 12px 16px !important; flex-wrap: wrap; gap: 10px; }
+      .app-header-actions { gap: 8px !important; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+      .app-header-actions .nav-pill { padding: 6px 12px !important; }
+      .app-breadcrumb { padding: 0 16px 10px !important; flex-wrap: wrap; }
+      .demo-banner { padding: 8px 16px !important; }
+      .app-main { padding: 24px 16px 72px !important; }
+
+      .race-list-head { display: none !important; }
+      .race-row {
+        grid-template-columns: 22px minmax(0, 1fr) auto auto !important;
+        grid-template-areas: "cb name name del" "cb dist finish verdict";
+        column-gap: 12px !important; row-gap: 8px !important; padding: 12px !important;
+      }
+      .race-row .rl-cb { grid-area: cb; align-self: start; padding-top: 2px; }
+      .race-row .rl-name { grid-area: name; }
+      .race-row .rl-dist { grid-area: dist; }
+      .race-row .rl-finish { grid-area: finish; font-size: 15px !important; }
+      .race-row .rl-verdict { grid-area: verdict; }
+      .race-row .rl-del { grid-area: del; align-self: start; }
+      .race-row .rl-cond, .race-row .rl-shape { display: none !important; }
+
+      .stat-strip { grid-template-columns: 1fr 1fr !important; }
+      .stat-strip > :nth-child(odd) { border-left: none !important; }
+      .stat-strip > :nth-child(n+3) { border-top: 1px solid ${T.line}; }
+
+      .form-grid-2, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr !important; }
+      .page-title { font-size: 28px !important; }
+      .compare-bar { left: 16px !important; right: 16px; transform: none !important; justify-content: space-between; }
+      /* Compare tables keep their columns and scroll sideways inside their own
+         box (a focusable region), rather than squeezing figures or pushing the
+         page wider than the screen. */
+      .compare-table { overflow-x: auto !important; }
+      .compare-row { min-width: 500px; }
+      .weather-lookup { flex-wrap: wrap; }
+      .weather-lookup > button { flex: 1 1 100% !important; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -174,9 +234,13 @@ export default function RaceIQApp() {
     saveCustomRaces(customRaces);
   }, [customRaces, loaded]);
 
+  // The sample athlete belongs to local and demo mode only. A signed-in
+  // athlete sees their own races — the coach and the cross-race analysis would
+  // otherwise treat four strangers' results as theirs — and a new account
+  // starts at the first-race empty state instead.
   const allRaces = useMemo(
-    () => [...customRaces, ...SEED_RACES].sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [customRaces]
+    () => [...customRaces, ...(isConfigured ? [] : SEED_RACES)].sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [customRaces, isConfigured]
   );
 
   const activeRace = allRaces.find((r) => r.id === activeId);
@@ -250,8 +314,8 @@ export default function RaceIQApp() {
     <div style={{ minHeight: "100vh", background: T.bg, color: T.paper, fontFamily: FONT_BODY, padding: "0" }}>
       {FONT_IMPORT}
 
-      <div className="app-header" style={{ borderBottom: `1px solid ${T.line}` }}>
-        <div style={{ padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <header className="app-header" style={{ borderBottom: `1px solid ${T.line}` }}>
+        <div className="app-header-row" style={{ padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button
             onClick={() => setView("list")}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "baseline", gap: 1 }}
@@ -259,9 +323,12 @@ export default function RaceIQApp() {
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.paper }}>Race</span>
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, letterSpacing: -0.3, color: T.brass }}>IQ</span>
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="app-header-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <LanguageToggle />
             <button
+              type="button"
+              className="nav-pill"
+              aria-current={view === "coach" ? "page" : undefined}
               onClick={() => openCoach(null)}
               style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500, padding: "7px 16px", borderRadius: 999, border: `1px solid ${view === "coach" ? T.brass : T.line}`, background: view === "coach" ? `${T.brass}1A` : "transparent", color: view === "coach" ? T.brass : T.ink, cursor: "pointer", transition: "all 140ms ease" }}
             >
@@ -282,6 +349,7 @@ export default function RaceIQApp() {
                   {seasonRating != null && (
                     <span
                       aria-label={t("nav.seasonForm", { rating: seasonRating })}
+                      role="img"
                       style={{ fontFamily: FONT_MONO, fontSize: 12, fontWeight: 500, color: T.brass, background: `${T.brass}1A`, borderRadius: 999, padding: "3px 9px" }}
                     >
                       {seasonRating}
@@ -302,7 +370,7 @@ export default function RaceIQApp() {
         </div>
 
         {view !== "list" && (
-          <div style={{ padding: "0 32px 12px", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
+          <nav aria-label={t("nav.breadcrumb")} className="app-breadcrumb" style={{ padding: "0 32px 12px", display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_BODY, fontSize: 13 }}>
             <button onClick={() => setView("list")} style={{ background: "none", border: "none", padding: 0, color: T.inkDim, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
               {t("nav.races")}
             </button>
@@ -335,7 +403,7 @@ export default function RaceIQApp() {
                 {view === "coach" && !coachContextRace && <span style={{ color: T.ink }}>{t("nav.askRaceIQ")}</span>}
               </>
             )}
-          </div>
+          </nav>
         )}
 
         {isDemo && (
@@ -351,9 +419,9 @@ export default function RaceIQApp() {
             </button>
           </div>
         )}
-      </div>
+      </header>
 
-      <div key={view} className="view-enter" style={{ maxWidth: 920, margin: "0 auto", padding: "40px 32px 80px" }}>
+      <main key={view} className="view-enter app-main" style={{ maxWidth: 920, margin: "0 auto", padding: "40px 32px 80px" }}>
         {view === "list" && (
           <RaceList
             races={allRaces}
@@ -416,7 +484,7 @@ export default function RaceIQApp() {
             onAskCoach={() => openCoach(null)}
           />
         )}
-      </div>
+      </main>
     </div>
   );
 }

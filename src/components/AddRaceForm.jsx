@@ -232,7 +232,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
         }))
       );
       setImportStatus("done");
-      setImportMessage(`Imported ${parsed.splits.length} splits over ${parsed.distanceKm} km. Review below, then add placement and fueling to finish.`);
+      setImportMessage(A("import.done", { count: parsed.splits.length, km: parsed.distanceKm }));
 
       if (parsed.startLat != null && parsed.startLon != null && parsed.startTimeMs != null) {
         setWeatherStatus("loading");
@@ -437,7 +437,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
 
       {weatherStatus !== "done" && weatherStatus !== "simulated" && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <div className="weather-lookup" style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <Field label={A("location")}>
                 <LocationAutocomplete
@@ -456,7 +456,7 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
               {A(weatherStatus === "loading" ? "lookingUp" : "lookUpWeather")}
             </button>
           </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim, marginTop: 4 }}>City or race venue — used to look up recorded weather for the date above</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.inkDim, marginTop: 4 }}>{A("locationHint")}</div>
         </div>
       )}
       {statusBanner(weatherStatus, weatherMessage)}
@@ -536,16 +536,21 @@ export default function AddRaceForm({ onSave, onCancel, initialRace = null }) {
           <div key={h} style={{ fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 0.5, color: T.inkDim }}>{h}</div>
         ))}
       </div>
-      {splitRows.map((row, i) => (
+      {splitRows.map((row, i) => {
+        // The column headers above are visual only; each cell carries its own
+        // name, e.g. "Pace · split 3".
+        const cell = (col) => A("splitCellAria", { col, n: i + 1 });
+        return (
         <div key={i} style={{ display: "grid", gridTemplateColumns: showElevCol ? "0.6fr 0.7fr 0.6fr 0.6fr 32px" : "0.7fr 0.8fr 0.7fr 32px", gap: 10, marginBottom: 8 }}>
-          <TextInput type="number" step="0.1" value={row.km} onChange={(e) => updateSplit(i, "km", e.target.value)} placeholder={i === 0 ? "5" : ""} />
-          <TextInput value={row.pace} onChange={(e) => updateSplit(i, "pace", e.target.value)} placeholder={i === 0 ? "4:42" : ""} />
-          {showElevCol && <TextInput type="number" value={row.elevM} onChange={(e) => updateSplit(i, "elevM", e.target.value)} placeholder={i === 0 ? "120" : ""} />}
-          <TextInput type="number" value={row.tempC} onChange={(e) => updateSplit(i, "tempC", e.target.value)} />
-          <button onClick={() => removeSplitRow(i)} aria-label={A("removeSplit")} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 13 }}>×</button>
+          <TextInput aria-label={cell(A("colCheckpoint"))} type="number" step="0.1" value={row.km} onChange={(e) => updateSplit(i, "km", e.target.value)} placeholder={i === 0 ? "5" : ""} />
+          <TextInput aria-label={cell(A("colPace"))} value={row.pace} onChange={(e) => updateSplit(i, "pace", e.target.value)} placeholder={i === 0 ? "4:42" : ""} />
+          {showElevCol && <TextInput aria-label={cell(A("colElev"))} type="number" value={row.elevM} onChange={(e) => updateSplit(i, "elevM", e.target.value)} placeholder={i === 0 ? "120" : ""} />}
+          <TextInput aria-label={cell(A("colTemp"))} type="number" value={row.tempC} onChange={(e) => updateSplit(i, "tempC", e.target.value)} />
+          <button type="button" onClick={() => removeSplitRow(i)} aria-label={`${A("removeSplit")} ${i + 1}`} style={{ background: "none", border: `1px solid ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 13 }}>×</button>
         </div>
-      ))}
-      <button onClick={addSplitRow} style={{ background: "none", border: `1px dashed ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.4, padding: "8px 14px", marginTop: 4, marginBottom: 8 }}>
+        );
+      })}
+      <button type="button" onClick={addSplitRow} style={{ background: "none", border: `1px dashed ${T.line}`, borderRadius: 3, color: T.inkDim, cursor: "pointer", fontFamily: FONT_MONO, fontSize: 11.5, letterSpacing: 0.4, padding: "8px 14px", marginTop: 4, marginBottom: 8 }}>
         {A("addSplit")}
       </button>
 

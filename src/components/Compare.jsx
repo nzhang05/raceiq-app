@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { T, FONT_DISPLAY, FONT_BODY, FONT_MONO, COMPARE_COLORS } from "../constants.js";
 import { fmtDate, shortDate } from "../utils/time.js";
 import { parseClockToMinutes } from "../utils/time.js";
-import { fmtMinSec } from "../utils/clock.js";
+import { fmtClock } from "../utils/clock.js";
 import { verdictColor, verdictKey } from "../utils/ratings.js";
 import { heatPenalty, heatAdjustedTime } from "../utils/weather.js";
 import PaceCompareStrip from "./PaceCompareStrip.jsx";
@@ -27,7 +27,8 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
   function timeDeltaDisplay(aTime, bTime) {
     const diff = parseClockToMinutes(bTime) - parseClockToMinutes(aTime);
     const sign = diff < 0 ? "−" : "+";
-    return { label: `${sign}${fmtMinSec(diff)}`, color: diff < 0 ? T.green : T.ember };
+    // A finish-time gap, so h:mm:ss past an hour ("−2:23:21", not "−143:21").
+    return { label: `${sign}${fmtClock(Math.abs(diff))}`, color: diff < 0 ? T.green : T.ember };
   }
 
   function numDelta(a, b, higherIsBetter = true) {
@@ -70,7 +71,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
         from: driftA, to: driftB,
       }));
     }
-    const fuelDelta = b.fueling.carbsPerHr - a.fueling.carbsPerHr;
+    const fuelDelta = (b.fueling?.carbsPerHr ?? NaN) - (a.fueling?.carbsPerHr ?? NaN);
     if (Math.abs(fuelDelta) >= 10) {
       parts.push(t("compare.narrative.fuel", { context: fuelDelta > 0 ? "up" : "down", delta: fuelDelta }));
     }
@@ -131,8 +132,8 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
         </div>
       )}
 
-      <div style={{ marginBottom: 44 }}>
-        <div style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
+      <div className="compare-table" role="region" tabIndex={0} aria-label={t("compare.tableAria")} style={{ marginBottom: 44 }}>
+        <div className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
           <div style={{ ...headerCellStyle, color: T.inkDim }} />
           {sorted.map((r, i) => (
             <div key={r.id} style={{ ...headerCellStyle, color: COMPARE_COLORS[i] }}>
@@ -143,7 +144,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
           {hasDelta && <div style={{ ...headerCellStyle, color: T.inkDim }}>{t("compare.deltaHeader", { later: shortDate(sorted[sorted.length - 1].date), earlier: shortDate(sorted[0].date) })}</div>}
         </div>
         {statRows.map((row, ri) => (
-          <div key={ri} style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
+          <div key={ri} className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
             <div style={labelCellStyle}>{row.label}</div>
             {sorted.map((r, i) => (
               <div key={r.id} style={{ padding: "14px 16px 14px 0", fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: row.valueColors ? row.valueColors[i] : COMPARE_COLORS[i] }}>
@@ -174,8 +175,8 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.inkDim, marginBottom: 16, maxWidth: 620 }}>
           {t("compare.conditions.sub", { race: refRace.name, tempC: refRace.tempC })}
         </div>
-        <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
+        <div className="compare-table" role="region" tabIndex={0} aria-label={t("compare.tableAria")} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
+          <div className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
             <div style={{ ...headerCellStyle, padding: "10px 16px", color: T.inkDim }} />
             {sorted.map((r, i) => (
               <div key={r.id} style={{ ...headerCellStyle, padding: "10px 16px", color: COMPARE_COLORS[i] }}>{shortDate(r.date)}</div>
@@ -187,7 +188,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
             const last = row.values[row.values.length - 1];
             const isLast = ri === condRows.length - 1;
             return (
-              <div key={ri} style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
+              <div key={ri} className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
                 <div style={{ ...labelCellStyle, padding: "12px 16px" }}>
                   {row.label}
                   {row.note && <div style={{ fontSize: 11, color: T.inkDim, opacity: 0.7, marginTop: 2 }}>{t("compare.conditions.normalizedNote", { date: shortDate(refRace.date) })}</div>}
@@ -208,8 +209,8 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
 
       <div style={{ marginBottom: 44 }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.paper, marginBottom: 16 }}>{t("compare.fueling.title")}</div>
-        <div style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
+        <div className="compare-table" role="region" tabIndex={0} aria-label={t("compare.tableAria")} style={{ background: T.bg2, border: `1px solid ${T.line}`, borderRadius: 4, overflow: "hidden" }}>
+          <div className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: `1px solid ${T.line}` }}>
             <div style={{ ...headerCellStyle, padding: "10px 16px", color: T.inkDim }} />
             {sorted.map((r, i) => (
               <div key={r.id} style={{ ...headerCellStyle, padding: "10px 16px", color: COMPARE_COLORS[i] }}>{shortDate(r.date)}</div>
@@ -222,7 +223,7 @@ export default function CompareView({ races, onBack, onOpenDebrief, onAskCoach }
             const deltaColor = delta > 0 ? T.green : delta < 0 ? T.ember : T.inkDim;
             const isLast = ri === fuelRows.length - 1;
             return (
-              <div key={ri} style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
+              <div key={ri} className="compare-row" style={{ display: "grid", gridTemplateColumns: tableCols, borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
                 <div style={{ ...labelCellStyle, padding: "12px 16px" }}>{row.label}</div>
                 {sorted.map((r, i) => (
                   <div key={r.id} style={{ padding: "12px 16px", fontFamily: FONT_MONO, fontSize: 13, color: COMPARE_COLORS[i] }}>

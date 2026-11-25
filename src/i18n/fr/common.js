@@ -28,7 +28,15 @@ export default {
     racePlan: "Plan de course",
     language: "Langue",
     sampleAthlete: "Athlète exemple",
+    breadcrumb: "Fil d'Ariane",
     seasonForm: "Forme de la saison {{rating}}",
+  },
+
+  errorPage: {
+    title: "Un problème est survenu",
+    body: "RaceIQ a rencontré une erreur inattendue en affichant cette page. Un rechargement suffit généralement.",
+    reload: "Recharger",
+    reset: "Effacer les données enregistrées et recharger",
   },
 
   demo: {
@@ -143,6 +151,13 @@ export default {
     empty: "Aucune course enregistrée dans ce sport. Ajoutez-en une pour commencer à bâtir votre palmarès.",
     deleteRace: "Supprimer la course",
     deleteRaceAria: "Supprimer {{name}}",
+    deleteConfirm: "Supprimer {{name}} ? Cette action est définitive.",
+    selectAria: "Sélectionner {{name}} pour comparer",
+    filterAria: "Filtrer par sport",
+    first: {
+      title: "Aucune course pour l'instant",
+      body: "Enregistrez un résultat et RaceIQ explique ce qui l'a décidé : allure, chaleur, montées et nutrition. Ou planifiez une course à venir à partir de son fichier de parcours.",
+    },
     selected_one: "{{count}} course sélectionnée",
     selected_other: "{{count}} courses sélectionnées",
     maxThree: "3 max",
@@ -162,6 +177,8 @@ export default {
       reading: "LECTURE…",
       chooseFile: "CHOISIR UN FICHIER",
       error: "Une erreur est survenue à la lecture de ce fichier.",
+      done_one: "{{count}} intervalle importé sur {{km, number}} km. Vérifiez-le ci-dessous, puis ajoutez le classement et la nutrition pour terminer.",
+      done_other: "{{count}} intervalles importés sur {{km, number}} km. Vérifiez-les ci-dessous, puis ajoutez le classement et la nutrition pour terminer.",
     },
 
     section: {
@@ -188,6 +205,7 @@ export default {
     locationPlaceholder: "Philadelphie, PA",
     lookingUp: "RECHERCHE…",
     lookUpWeather: "RECHERCHER LA MÉTÉO",
+    locationHint: "Ville ou lieu de la course, pour retrouver la météo enregistrée à la date ci-dessus.",
     temp: "Température (°C)",
     humidity: "Humidité (%)",
     wind: "Vent (km/h)",
@@ -221,6 +239,7 @@ export default {
     colTempShort: "TEMP °C (FAC.)",
     colTemp: "TEMP °C (FACULTATIF)",
     removeSplit: "Retirer l'intervalle",
+    splitCellAria: "{{col}} · intervalle {{n}}",
     addSplit: "+ AJOUTER UN INTERVALLE",
 
     update: "METTRE À JOUR ET REGÉNÉRER LE DÉBRIEFING",
@@ -294,6 +313,7 @@ export default {
   },
 
   compare: {
+    tableAria: "Tableau comparatif (défile horizontalement)",
     back: "← RETOUR AU PALMARÈS",
     eyebrow: "COMPARAISON DE COURSES",
     vs: " vs ",
@@ -441,6 +461,7 @@ export default {
     colFluids: "LIQUIDES ({{unit}})",
     colCaffeine: "CAF. (mg)",
     fromKm: "depuis {{km, number(maximumFractionDigits: 1)}}",
+    cellAria: "{{col}} · S{{n}}",
     mergeAria: "Fusionner la section avec la suivante",
     mergeTitle: "Fusionner avec la section suivante",
     addSection: "+ AJOUTER UNE SECTION",

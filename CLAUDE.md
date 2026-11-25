@@ -2,6 +2,8 @@
 
 Race analysis and planning for runners and cyclists. React 18 + Vite frontend, one Vercel serverless function, Supabase for auth and data. It's public as a portfolio piece, so code and copy are read by reviewers.
 
+Live: <https://raceiq-app-mr8i.vercel.app> (full app with sign-in, deployed from `main` on Vercel).
+
 ## Architecture
 
 - **Engine (`src/utils/`)** computes every number: `analysis.js` (debrief findings), `ratings.js` (fade, drift, verdicts), `pace.js` (grade-adjusted pace), `fueling.js`, `aidStations.js` (carry plan), `racePlan.js`, `gpx.js`. It's pure, with no React. The API imports it too.

@@ -1,5 +1,9 @@
 # Deploying RaceIQ
 
+**Current deployment:** the full app (Supabase sign-in, live AI coach) runs at
+<https://raceiq-app-mr8i.vercel.app>, deployed from `main`. A separate public
+demo project, described below, is optional and not deployed yet.
+
 RaceIQ deploys to Vercel as a static Vite build plus one serverless function
 (`api/claude.js`). `vercel.json` holds the build settings, a 60-second cap on
 the function, and security headers. There are two ways to deploy it.
@@ -62,8 +66,8 @@ the first impression costs nothing.
 
 ### 3. Point the README at it
 
-Replace the live-demo placeholder at the top of `README.md` with the
-deployment URL.
+The README's live link currently points at the full app. If you deploy the
+demo, link to it there as well, as the no-sign-up way in.
 
 ## Full app
 

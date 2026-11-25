@@ -4,9 +4,11 @@
 
 **Race intelligence for runners and cyclists: every race, and the story behind the result.**
 
-**▶ Live demo:** _link coming soon_ <!-- Replace with the Vercel URL once deployed (docs/deploy.md). --> — a sample athlete's races, no sign-up.
+**▶ Live app: [raceiq-app-mr8i.vercel.app](https://raceiq-app-mr8i.vercel.app)**. Create a free account (email or Google) to log your races and get debriefs, plans and the AI coach.
 
-![Demo: race list, a debrief, and a grounded coach answer](docs/screenshots/demo.gif)
+The tour below uses the built-in sample athlete, which you get by running the app locally (`npm run dev`, or `npm run dev:demo` for the recorded AI answers shown here).
+
+![Tour: race list, a debrief, and a grounded coach answer](docs/screenshots/demo.gif)
 
 RaceIQ turns race files into a debrief you can act on. It explains *why* a race went the way it did (pacing, climbing, heat, fueling), then uses your history to plan the next one: pacing by section, nutrition targets, aid-station carry plans and a printable crew sheet. An AI coach answers questions about your races, grounded only in numbers the analysis engine already computed.
 

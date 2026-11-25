@@ -1,5 +1,7 @@
 # RaceIQ
 
+[![CI](https://github.com/nzhang05/raceiq-app/actions/workflows/ci.yml/badge.svg)](https://github.com/nzhang05/raceiq-app/actions/workflows/ci.yml)
+
 **Race intelligence for runners and cyclists: every race, and the story behind the result.**
 
 RaceIQ turns race files into a debrief you can act on. It explains *why* a race went the way it did (pacing, climbing, heat, fueling), then uses your history to plan the next one: pacing by section, nutrition targets, aid-station carry plans and a printable crew sheet. An AI coach answers questions about your races, grounded only in numbers the analysis engine already computed.
